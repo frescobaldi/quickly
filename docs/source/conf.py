@@ -119,7 +119,7 @@ html_theme_options = {
     'description': quickly.pkginfo.description,
     'extra_nav_links': {
         'quickly@Github': 'https://github.com/frescobaldi/quickly',
-        #'quickly@PyPi': 'https://pypi.org/project/quickly',
+        'quickly@PyPi': 'https://pypi.org/project/quickly',
     },
 }
 
