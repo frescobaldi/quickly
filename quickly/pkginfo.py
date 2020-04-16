@@ -25,13 +25,17 @@ command ``ly --version``.
 
 """
 
-from __future__ import unicode_literals
+import collections
+Version = collections.namedtuple("Version", "major minor patch")
+
 
 #: name of the package
 name = "quickly"
 
 #: the current version
-version = "0.0.1"
+version = Version(0, 0, 1)
+version_suffix = ""
+version_string = "{}.{}.{}".format(*version) + version_suffix
 
 #: short description
 description = "Tool and library for manipulating LilyPond files"
@@ -52,4 +56,7 @@ url = "https://github.com/frescobaldi/quickly"
 
 #: license
 license = "GPL v3"
+
+#: copyright year
+copyright_year = "2020"
 

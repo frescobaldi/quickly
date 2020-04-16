@@ -19,5 +19,8 @@
 
 
 """
-
+The quickly module.
 """
+
+from .pkginfo import version, version_string
+
