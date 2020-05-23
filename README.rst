@@ -6,7 +6,7 @@ quickly
 `Documentation  <https://python-quickly.readthedocs.io/>`_      •
 `License        <https://www.gnu.org/licenses/gpl-3.0>`_
 
-The quickly python package will become the successor of python-ly.
+The quickly python package is slated to become the successor of python-ly.
 
 It is currently in the planning phase.
 
@@ -17,4 +17,10 @@ to maintain, it will use the new `parce`_ package for parsing LilyPond files.
 .. _LilyPond: http://lilypond.org/
 .. _parce: https://parce.info/
 
+``ly.dom`` and ``ly.music`` will be superceded by ``quickly.dom`` which will
+provide a way to both build a LilyPond source file from scratch (like ``ly.dom``)
+and manipulate an existing document (like ``ly.music``). It is also expected that
+much of the functionality that is currently implemented at the token level, like
+transposing and rhythm manipulations, can be rewritten to work on the musical
+representation provided by ``quickly.dom``, which will look a lot like ``ly.music``.
 
