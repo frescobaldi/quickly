@@ -23,6 +23,17 @@
 
 The Item classes you can choose from are in the items module.
 
+TODO
+====
+
+- distinguish between Items that originate from tokens from a document
+  and Items that originate from ad-hoc created tokens,
+
+  e.g. transform_text(LilyPond.root, "<c' d e>")
+
+  Ad hoc tokens must not have the origin set, while tokens from a document
+  have.
+
 """
 
 from parce.tree import Token
