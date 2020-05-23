@@ -19,7 +19,7 @@
 
 
 """
-This module defines the Node class, to build simple tree structures based on
+This module defines a Node class, to build simple tree structures based on
 Python lists.
 
 """
@@ -37,7 +37,6 @@ DUMP_STYLES = {
 }
 
 DUMP_STYLE_DEFAULT = "round"
-
 
 
 class Node(list):
@@ -231,5 +230,4 @@ class Node(list):
     def is_first(self):
         """Return True if this is the first node. Fails if no parent."""
         return self.parent[0] is self
-
 
