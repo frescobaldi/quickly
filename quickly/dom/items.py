@@ -24,6 +24,13 @@ The Node types a LilyPond DOM document can be composed of.
 
 
 
-from .base import Item
+from . import base
 
+
+class Pitch(base.TokenItem):
+    """A pitch note name."""
+
+
+class Mode(base.TokenItem):
+    r"""The mode subcommand of the \key statement."""
 
