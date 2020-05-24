@@ -34,6 +34,30 @@ TODO
   Ad hoc tokens must not have the origin set, while tokens from a document
   have.
 
+
+24 mei
+======
+thinkin....
+
+an Item:
+
+- has some value
+- that can originate from tokens origin (read)
+- that can be set manually
+- that must also be output (write)
+
+how do we know if the value was altered manually?
+- a "modified" flag
+- compute the value each time from the origin?
+
+When writing a new document:
+- write out from the value
+
+When writing back to an existing document:
+- if the value has changed, replace the origins's slice with the new output
+- if the value has not changed, do nothing
+
+
 """
 
 from parce.tree import Token
@@ -49,52 +73,100 @@ class Item(Node):
     nodes. The tokens must be adjacent.
 
     """
-    __slots__ = ('origin', 'output')
+    __slots__ = ('origin',)
 
-    def __init__(self, *children, origin=None):
-        super().__init__(*children)
-        self.origin = origin
+    modified = False    #: the value can't be changed
+    value = ''          #: set this to the text the item should write
 
-    def text(self):
-        """Return our representation as in a LilyPond document."""
-        try:
-            return self.output
-        except AttributeError:
-            return ''.join(t.text for t in self.origin)
+    @classmethod
+    def with_origin(cls, origin, *children):
+        """Construct this item from the origin and keep the origin."""
+        node = cls.from_origin(origin, *children)
+        node.origin = origin
+        return node
 
-    def edit(self):
-        """Return the edit that would be made to the document.
+    @classmethod
+    def from_origin(cls, origin, *children):
+        """Construct this item from the origin but don't keep the origin."""
+        return cls(*children)
 
-        This is a three-tuple (start, end, text).
-        If we have no origin, start and end are None.
-        If we have an origin but it is unchanged, text is None.
-
-        """
-        pos, end = self.pos, self.end
-        return pos, end, getattr(self, 'output', None)
+    def write(self):
+        """Return the textual output that represents our value."""
+        return self.value
 
     @property
     def pos(self):
-        if self.origin:
+        try:
             return self.origin[0].pos
+        except AttributeError:
+            pass
 
     @property
     def end(self):
-        if self.origin:
+        try:
             return self.origin[-1].end
+        except AttributeError:
+            pass
+
+    def edit(self):
+        """Return a three-tuple(start, end, text) denoting how to modify an
+        existing document.
+
+        If start and end are None: this is a new node, with text to be added.
+        If start and end are not None, but text is None: the node is unchanged
+        and the text does not need to be altered. If text is not None: the
+        range from start to end needs to be replaced with text.
+
+        """
+        try:
+            origin = self.origin
+        except AttributeError:
+            return None, None, self.write()
+        pos = origin[0].pos
+        end = origin[-1].end
+        return pos, end, self.write() if self.modified else None
 
 
-class TokenItem(Item):
-    """The base node type for Items that originate from one single token.
+class ValueItem(Item):
+    """An Item that has a dynamic value that determines its output.
 
-    It is specified as the first argument, and may also be a generic string.
-    If a Token, it is set as the origin.
+    You should implement :meth:`read` and :meth:`write`.
 
     """
-    def __init__(self, token, *children):
+    __slots__ = ('_value', '_modified')
+
+    def __init__(self, value, *children):
+        self._value = value
+        self._modified = False
         super().__init__(*children)
-        if isinstance(token, Token):
-            self.origin = token,
-        else:
-            self.output = token
+
+    @property
+    def value(self):
+        """Return our value."""
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        """Modify our value."""
+        if value != self._value:
+            self._value = value
+            self._modified = True
+
+    @property
+    def modified(self):
+        """Return true when the Item's value was modified."""
+        return self._modified
+
+    @classmethod
+    def read(cls, origin):
+        """Return the value as computed from the specified origin Tokens."""
+        return ''.join(t.text for t in origin)
+
+    @classmethod
+    def from_origin(cls, origin, *children):
+        """Construct this item from the origin but don't keep the origin."""
+        value = cls.read(origin)
+        node = cls(value, *children)
+        return node
+
 
