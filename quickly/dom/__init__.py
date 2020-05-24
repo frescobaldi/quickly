@@ -24,3 +24,5 @@ This module defines a DOM (Document Object Model) for LilyPond source files.
 
 
 
+from .items import *
+

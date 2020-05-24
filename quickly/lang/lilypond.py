@@ -26,6 +26,10 @@ from parce.transform import Transform
 import parce.lang.lilypond
 
 
+from quickly import dom
+
+
+
 class LilyPond(parce.lang.lilypond.LilyPond):
     """LilyPond language definition."""
 
@@ -34,6 +38,125 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
+    ## helper methods and factory
+    def factory(self, item_class, origin, children=()):
+        """Create an Item, keeping its origin."""
+        return item_class.with_origin(origin, *children)
 
+    def common(self, items):
+        """Find comment, string, scheme and markup."""
+        for origin, item in items.grouped():
+            if origin and item and item.name in (
+                "string", "multiline_comment", "singleline_comment",
+                ):
+                cls, tokens = item.obj
+                yield self.factory(cls, origin + tokens)
+
+
+    ## transforming methods
+    def root(self, items):
+        return list(self.common(items))
+
+    def book(self, items):
+        return items
+
+    def score(self, items):
+        return items
+
+    def header(self, items):
+        return items
+
+    def paper(self, items):
+        return items
+
+    def layout(self, items):
+        return items
+
+    def midi(self, items):
+        return items
+
+    def layout_context(self, items):
+        return items
+
+    def sequential(self, items):
+        return items
+
+    def simultaneous(self, items):
+        return items
+
+    def chord(self, items):
+        return items
+
+    def tempo(self, items):
+        return items
+
+    def context(self, items):
+        return items
+
+    def set_unset(self, items):
+        return items
+
+    def override(self, items):
+        return items
+
+    def script(self, items):
+        return items
+
+    def pitch(self, items):
+        return items
+
+    def duration(self, items):
+        return items
+
+    def duration_dots(self, items):
+        return items
+
+    def duration_scaling(self, items):
+        return items
+
+    def lyricmode(self, items):
+        return items
+
+    def lyricsto(self, items):
+        return items
+
+    def notemode(self, items):
+        return items
+
+    def drummode(self, items):
+        return items
+
+    def drummode_sequential(self, items):
+        return items
+
+    def drummode_simultaneous(self, items):
+        return items
+
+    def chordmode(self, items):
+        return items
+
+    def chord_modifier(self, items):
+        return items
+
+    def varname(self, items):
+        return items
+
+    def markup(self, items):
+        return items
+
+    def markuplist(self, items):
+        return items
+
+    def schemelily(self, items):
+        return items
+
+    def string(self, items):
+        return dom.String, tuple(items)
+
+    def multiline_comment(self, items):
+        return dom.MultilineComment, tuple(items)
+
+    def singleline_comment(self, items):
+        return dom.SinglelineComment, tuple(items)
 
 

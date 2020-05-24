@@ -60,6 +60,8 @@ When writing back to an existing document:
 
 """
 
+import reprlib
+
 from parce.tree import Token
 
 from ..node import Node
@@ -78,6 +80,9 @@ class Item(Node):
     modified = False    #: the value can't be changed
     value = ''          #: set this to the text the item should write
 
+    def __repr__(self):
+        return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.value))
+
     @classmethod
     def with_origin(cls, origin, *children):
         """Construct this item from the origin and keep the origin."""
@@ -93,20 +98,6 @@ class Item(Node):
     def write(self):
         """Return the textual output that represents our value."""
         return self.value
-
-    @property
-    def pos(self):
-        try:
-            return self.origin[0].pos
-        except AttributeError:
-            pass
-
-    @property
-    def end(self):
-        try:
-            return self.origin[-1].end
-        except AttributeError:
-            pass
 
     def edit(self):
         """Return a three-tuple(start, end, text) denoting how to modify an
