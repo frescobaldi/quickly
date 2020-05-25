@@ -82,10 +82,7 @@ class LilyPondTransform(Transform):
     def layout_context(self, items):
         return items
 
-    def sequential(self, items):
-        return items
-
-    def simultaneous(self, items):
+    def musiclist(self, items):
         return items
 
     def chord(self, items):
@@ -130,10 +127,7 @@ class LilyPondTransform(Transform):
     def drummode(self, items):
         return items
 
-    def drummode_sequential(self, items):
-        return items
-
-    def drummode_simultaneous(self, items):
+    def drummode(self, items):
         return items
 
     def chordmode(self, items):
