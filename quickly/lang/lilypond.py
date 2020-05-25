@@ -42,7 +42,9 @@ class LilyPondTransform(Transform):
     def factory(self, item_class, origin, children=()):
         """Create an Item, keeping its origin.
 
-        ``origin`` is an iterable of Token instances.
+        The ``origin`` is an iterable of Token instances. All items should be
+        created using this method, so that it can be overridden for the case
+        you don't want to remember the origin.
 
         """
         return item_class.with_origin(tuple(origin), *children)
