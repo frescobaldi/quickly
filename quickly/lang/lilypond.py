@@ -40,17 +40,21 @@ class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
     ## helper methods and factory
     def factory(self, item_class, origin, children=()):
-        """Create an Item, keeping its origin."""
-        return item_class.with_origin(origin, *children)
+        """Create an Item, keeping its origin.
+
+        ``origin`` is an iterable of Token instances.
+
+        """
+        return item_class.with_origin(tuple(origin), *children)
 
     def common(self, items):
         """Find comment, string, scheme and markup."""
-        for origin, item in items.grouped():
-            if origin and item and item.name in (
-                "string", "multiline_comment", "singleline_comment",
+        for i in items:
+            if not i.is_token:
+                if i.name in (
+                    "string", "multiline_comment", "singleline_comment"
                 ):
-                cls, tokens = item.obj
-                yield self.factory(cls, origin + tokens)
+                    yield i.obj
 
 
     ## transforming methods
@@ -151,12 +155,12 @@ class LilyPondTransform(Transform):
         return items
 
     def string(self, items):
-        return dom.String, tuple(items)
+        return self.factory(dom.String, items)
 
     def multiline_comment(self, items):
-        return dom.MultilineComment, tuple(items)
+        return self.factory(dom.MultilineComment, items)
 
     def singleline_comment(self, items):
-        return dom.SinglelineComment, tuple(items)
+        return self.factory(dom.SinglelineComment, items)
 
 
