@@ -5,4 +5,5 @@ Overview of all modules
    :maxdepth: 1
 
    dom.rst
+   lang.rst
    node.rst
