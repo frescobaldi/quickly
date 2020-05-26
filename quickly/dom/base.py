@@ -67,12 +67,16 @@ from parce.tree import Token
 from ..node import Node
 
 
-class Item(Node):
-    """The base node type for all LilyPond dom nodes.
+class BaseItem(Node):
+    """The base node type for all LilyPond dom nodes."""
 
-    Al LilyPond DOM nodes have the tuple of tokens they originate from in the
-    :attr:`origin` attribute. The attribute is None for manually created DOM
-    nodes. The tokens must be adjacent.
+
+class Item(BaseItem):
+    """The base node type for all LilyPond dom nodes that have output.
+
+    Al LilyPond DOM nodes that have output, have the tuple of tokens they
+    originate from in the :attr:`origin` attribute. The attribute is None for
+    manually created DOM nodes. The tokens must be adjacent.
 
     """
     __slots__ = ('origin',)
@@ -96,7 +100,12 @@ class Item(Node):
         return cls(*children)
 
     def write(self):
-        """Return the textual output that represents our value."""
+        """Return the textual output that represents our value.
+
+        The default implementation just returns the value attribute, assuming
+        it is text.
+
+        """
         return self.value
 
     def edit(self):
@@ -150,7 +159,11 @@ class ValueItem(Item):
 
     @classmethod
     def read(cls, origin):
-        """Return the value as computed from the specified origin Tokens."""
+        """Return the value as computed from the specified origin Tokens.
+
+        The default implementation concatenates the text from all tokens.
+
+        """
         return ''.join(t.text for t in origin)
 
     @classmethod
@@ -159,5 +172,9 @@ class ValueItem(Item):
         value = cls.read(origin)
         node = cls(value, *children)
         return node
+
+
+class Container(BaseItem):
+    """An item that does not print output of itself, just has children."""
 
 

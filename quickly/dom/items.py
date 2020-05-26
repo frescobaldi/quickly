@@ -30,6 +30,10 @@ from parce.lang import lilypond
 from . import base
 
 
+class Delimiter(base.ValueItem):
+    """A delimiter, like { or }."""
+
+
 class Pitch(base.ValueItem):
     """A pitch note name."""
 
@@ -91,4 +95,25 @@ class SinglelineComment(Comment):
     def write(self):
         multiline, text = self.value
         return '%{}'.format(text)
+
+
+class Markup(base.ValueItem):
+    r"""A \markup, \markuplines or \markuplist expression."""
+
+
+class MarkupWord(base.ValueItem):
+    """A word in markup mode."""
+
+
+class MarkupList(base.Container):
+    """A bracketed markup expression, like { ... }."""
+
+
+class MarkupCommand(base.ValueItem):
+    r"""A known markup command, like \bold <arg>."""
+
+
+class MarkupUserCommand(base.ValueItem):
+    r"""An unknown markup command."""
+
 
