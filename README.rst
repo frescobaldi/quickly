@@ -1,5 +1,5 @@
-quickly
-=======
+Welcome to quickly!
+===================
 
 `Homepage       <https://github.com/frescobaldi/quickly>`_      •
 `Download       <https://pypi.org/project/quickly/>`_           •
@@ -8,7 +8,7 @@ quickly
 
 The quickly python package is slated to become the successor of python-ly.
 
-It is currently in the planning phase.
+It is currently in a very early development phase.
 
 Like python-ly, it will provide tools to manipulate `LilyPond`_ music
 documents, but instead of using the lexer in python-ly, which is very difficult
@@ -18,9 +18,10 @@ to maintain, it will use the new `parce`_ package for parsing LilyPond files.
 .. _parce: https://parce.info/
 
 ``ly.dom`` and ``ly.music`` will be superceded by ``quickly.dom`` which will
-provide a way to both build a LilyPond source file from scratch (like ``ly.dom``)
-and manipulate an existing document (like ``ly.music``). It is also expected that
-much of the functionality that is currently implemented at the token level, like
-transposing and rhythm manipulations, can be rewritten to work on the musical
-representation provided by ``quickly.dom``, which will look a lot like ``ly.music``.
+provide a way to both build a LilyPond source file from scratch (like
+``ly.dom``) and manipulate an existing document (like ``ly.music``). It is also
+expected that much of the functionality that is currently implemented at the
+token level, like transposing and rhythm manipulations, can be rewritten to
+work on the musical representation provided by ``quickly.dom``, which will look
+a lot like ``ly.music``.
 
