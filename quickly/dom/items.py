@@ -74,38 +74,58 @@ class _Block(base.EnclosedItem):
 
 
 class Book(_Block):
+    r"""A \book { } block."""
     __slots__ = ()
     head = r"\book {"
 
 
 class BookPart(_Block):
+    r"""A \bookpart { } block."""
     __slots__ = ()
     head = r"\bookpart {"
 
 
 class Score(_Block):
+    r"""A \score { } block."""
     __slots__ = ()
     head = r"\score {"
 
 
 class Header(_Block):
+    r"""A \header { } block."""
     __slots__ = ()
     head = r"\header {"
 
 
 class Paper(_Block):
+    r"""A \header { } block."""
     __slots__ = ()
     head = r"\paper {"
 
 
 class Layout(_Block):
+    r"""A \header { } block."""
     __slots__ = ()
     head = r"\layout {"
 
 
 class Midi(_Block):
+    r"""A \header { } block."""
     __slots__ = ()
     head = r"\midi {"
+
+
+class With(_Block):
+    r"""A \header { } block."""
+    __slots__ = ()
+    head = r"\with {"
+    before = after = " "
+
+
+class LayoutContext(_Block):
+    r"""A \context { } block within \layout or \midi."""
+    __slots__ = ()
+    head = r"\context {"
 
 
 class Pitch(base.HeadItem):
