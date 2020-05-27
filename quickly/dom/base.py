@@ -140,8 +140,19 @@ item.whitespace_after(childitem)
 Document will return '\n\n' for most types but '\n' for comment
 
 
+Item.after  (whitespace to draw after this item)
+Item.between (whitespace to draw between child items)
+
+Item.whitespace(item):
 
 
+
+after       # minimum wsp to draw after
+before      # minimum wsp to draw before item
+between     # minimum wsp to draw between child items
+
+def concat(self, item, next_item):
+    return max_spacing(item.after, next_item.before, self.between)
 
 
 """
@@ -164,8 +175,26 @@ class Item(Node):
     _tail = None
     _modified = 0
 
+
+    before = ""         #: minimum whitespace to draw before this item
+    between = ""        #: minimum whitespace to draw between child items
+    after = ""          #: minimum whitespace to draw after this item
+
+    after_head = ""     #: minimum whitespace to draw after the head
+    before_tail = ""    #: minimum whitespace to draw before the tail
+
+
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.head))
+
+    def value_space(self, whitespace):
+        """Return a tuple useable as sorting key to value whitespace.
+
+        Newlines are preferred over normal spaces, and those are preferred
+        over no space (empty string).
+
+        """
+        return whitespace.count('\n'), whitespace.count(' ')
 
     @property
     def head(self):
@@ -206,19 +235,54 @@ class Item(Node):
         return ''.join(t.text for t in tail_origin)
 
     def write(self):
-        """Write out the combined output of the Item and its children.
+        """Return a three-tuple (before, text, after).
 
-        Writes a space character in between every node's output. Does not yet
-        differentiate spacing, and does not yet insert newlines (e.g. after
-        a singleline comment a newline is mandatory :-) but this is not yet
-        handled.)
+        The ``text`` is the string output of this node. The ``before`` and
+        ``after`` values are strings as well, indicating the minimal whitespace
+        that should be applied before and after this node.
 
         """
-        def output():
-            yield self.write_head()
-            yield from (item.write() for item in self)
-            yield self.write_tail()
-        return ' '.join(text for text in output() if text)
+        result = []
+        result_before = self.before
+        result_after = self.after
+        head = self.write_head()
+        tail = self.write_tail()
+        if head:
+            result.append(head)
+        if len(self):
+            n = self[0]
+            before, text, after = n.write()
+            if head:
+                result.append(max(self.after_head, before, key=self.value_space))
+            else:
+                result_before = before
+            result.append(text)
+            for m in self[1:]:
+                before, text, nafter = m.write()
+                if text:
+                    result.append(max(self.concat(n, m), after, before, key=self.value_space))
+                    result.append(text)
+                after = nafter
+                n = m
+            if not tail:
+                result_after = max(self.after, after, key=self.value_space)
+        if tail:
+            if len(self):
+                result.append(max(self.before_tail, after, key=self.value_space))
+            elif head:
+                result.append(max(self.after_head, self.before_tail, key=self.value_space))
+        return result_before, ''.join(result), result_after
+
+    def concat(self, node, next_node):
+        """Return the minimum whitespace to apply between these child nodes.
+
+        This method is called in the :meth:`write` method, when concatenating
+        child nodes. By default, the value of the ``between`` attribute is
+        returned. Reimplement this method to differentiate whitespacing based
+        on the (type of the) nodes.
+
+        """
+        return self.between
 
     def write_head(self):
         """Return the textual output that represents our ``head`` value.
@@ -291,7 +355,6 @@ class Item(Node):
 class HeadItem(Item):
     """Item that has a variable head value."""
     __slots__ = ('_head', '_modified')
-
     def __init__(self, head, *children):
         self._head = head
         self._modified = 0
@@ -305,5 +368,8 @@ class HeadItem(Item):
 
 class EnclosedItem(Item):
     """Item that has a tail value as well."""
+    between = " "
     __slots__ = ('_tail_origin',)
+
+
 

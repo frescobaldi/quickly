@@ -30,8 +30,36 @@ from parce.lang import lilypond
 from . import base
 
 
+class Newline(base.Item):
+    """A Newline.
+
+    Not created from existing documents, but you can insert this node
+    anywhere you want a newline in manually crafted documents.
+
+    """
+    head = ''
+    after = '\n'
+
+
+class BlankLine(base.Item):
+    """A blank line.
+
+    Not created from existing documents, but you can insert this node
+    anywhere you want a blank line in manually crafted documents.
+
+    """
+    head = '\n'
+    before = '\n'
+
+
 class Document(base.Item):
     """A LilyPond source document."""
+    between = '\n\n'
+
+    def concat(self, n, m):
+        if isinstance(n, SinglelineComment):
+            return '\n'
+        return self.between
 
 
 class Pitch(base.HeadItem):
@@ -88,6 +116,7 @@ class MultilineComment(Comment):
 
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
+    after = '\n'
     @classmethod
     def read_head(cls, origin):
         return ''.join(t.text for t in origin[1:])
