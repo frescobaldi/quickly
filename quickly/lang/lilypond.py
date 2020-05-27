@@ -61,7 +61,7 @@ class LilyPondTransform(Transform):
 
     ## transforming methods
     def root(self, items):
-        return list(self.common(items))
+        return dom.Document(*self.common(items))
 
     def book(self, items):
         return items

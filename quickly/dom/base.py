@@ -119,6 +119,21 @@ class Item(Node):
         """
         return ''.join(t.text for t in tail_origin)
 
+    def write(self):
+        """Write out the combined output of the Item and its children.
+
+        Writes a space character in between every node's output. Does not yet
+        differentiate spacing, and does not yet insert newlines (e.g. after
+        a singleline comment a newline is mandatory :-) but this is not yet
+        handled.)
+
+        """
+        def output():
+            yield self.write_head()
+            yield from (item.write() for item in self)
+            yield self.write_tail()
+        return ' '.join(text for text in output() if text)
+
     def write_head(self):
         """Return the textual output that represents our ``head`` value.
 
@@ -198,7 +213,7 @@ class HeadItem(Item):
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children):
-        head = cls.read(head_origin)
+        head = cls.read_head(head_origin)
         return cls(head, *children)
 
 

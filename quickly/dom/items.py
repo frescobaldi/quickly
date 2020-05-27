@@ -30,6 +30,10 @@ from parce.lang import lilypond
 from . import base
 
 
+class Document(base.Item):
+    """A LilyPond source document."""
+
+
 class Pitch(base.HeadItem):
     """A pitch note name."""
 
@@ -89,8 +93,7 @@ class SinglelineComment(Comment):
         return ''.join(t.text for t in origin[1:])
 
     def write_head(self):
-        multiline, text = self.head
-        return '%{}'.format(text)
+        return '%{}'.format(self.head)
 
 
 class Markup(base.HeadItem):
