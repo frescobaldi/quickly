@@ -58,6 +58,92 @@ When writing back to an existing document:
 - if the value has not changed, do nothing
 
 
+
+
+
+
+27 mei
+======
+
+
+Whitespace handling...
+
+and indenting...
+
+where is what whitespace determined?....
+
+a4-5
+
+Note
+  Pitch
+  Duration
+  Direction
+    Fingering
+
+no whitespace.
+
+
+{ c d e }
+Simultaneous
+  Note
+    Pitch
+  Note
+    Pitch
+  Note
+
+whitespace around the notes
+We could do:
+  Simultaneous draws a space between the children
+
+
+a full document: how many newlines between stuff?
+- at minimum one
+- certainly a newline after a single line comment
+- in most cases two.
+
+
+Maybe we should invent a Newline item, also capture Newline tokens?
+
+Or should we make the automatic formatting so robust that it is never
+needed to insert line breaks automatically?
+
+
+It becomes clear that we want to know what whitespace to put
+*after* what node.
+
+A node can say that itself.
+
+But is a node's last child is a singleline comment, that newline should
+be honoured. So a newline wins over a regular space.
+
+And, a node itself can specify what to put between the children
+and before its tail. This should still consult wat each node wants.
+
+Maybe:
+
+    Item.after
+
+    attribute containing the whitespace to draw after this item.
+    (either '', ' ', or '\n')
+
+    By default, this consults the last child and its own class-level preference.
+
+SO:
+
+an item itself has a preference for whitespace between its children
+an item can have a preference for whitespace to draw after a certain Item type
+an item has a preference for whitespace drawn after it
+
+
+item.whitespace_after(childitem)
+
+Document will return '\n\n' for most types but '\n' for comment
+
+
+
+
+
+
 """
 
 import reprlib
