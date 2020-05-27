@@ -77,7 +77,11 @@ class Item(Node):
 
 
     def __repr__(self):
-        return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.head))
+        head = self.head
+        if head:
+            return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(head))
+        else:
+            return '<{} [{}]>'.format(self.__class__.__name__, len(self))
 
     @property
     def head(self):
@@ -147,6 +151,8 @@ class Item(Node):
                     result.append(text)
                     after = new_after
                     n = m
+                else:
+                    after = max_space(after, before, new_after)
             if not tail:
                 result_after = max_space(self.after, after)
         if tail:
@@ -154,6 +160,7 @@ class Item(Node):
                 result.append(max_space(self.before_tail, after))
             elif head:
                 result.append(max_space(self.after_head, self.before_tail))
+            result.append(tail)
         return result_before, ''.join(result), result_after
 
     def output(self):
@@ -255,8 +262,23 @@ class HeadItem(Item):
 
 class EnclosedItem(Item):
     """Item that has a tail value as well."""
-    between = " "
     __slots__ = ('_tail_origin',)
 
+
+class CustomItem(Item):
+    """Item where head and tail are both writable."""
+    __slots__ = ('_head', '_tail', '_tail_origin', '_modified')
+
+    def __init__(self, head, tail, *children):
+        self._head = head
+        self._tail = tail
+        self._modified = 0
+        super().__init__(*children)
+
+    @classmethod
+    def from_origin(cls, head_origin=(), tail_origin=(), *children):
+        head = cls.read_head(head_origin)
+        tail = cls.read_tail(tail_origin)
+        return cls(head, tail, *children)
 
 

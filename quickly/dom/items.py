@@ -37,7 +37,9 @@ class Newline(base.Item):
     anywhere you want a newline in manually crafted documents.
 
     """
-    head = '\n'
+    __slots__ = ()
+    head = ''
+    after = '\n'
 
 
 class BlankLine(Newline):
@@ -47,11 +49,14 @@ class BlankLine(Newline):
     anywhere you want a blank line in manually crafted documents.
 
     """
-    before = '\n'
+    __slots__ = ()
+    after = '\n\n'
+
 
 
 class Document(base.Item):
     """A LilyPond source document."""
+    __slots__ = ()
     between = '\n\n'
 
     def concat(self, n, m):
@@ -60,12 +65,57 @@ class Document(base.Item):
         return self.between
 
 
+class _Block(base.EnclosedItem):
+    """Base class for a block that wants newlines everywhere."""
+    __slots__ = ()
+    before = after = after_head = after_tail = '\n'
+    head = '<fill in> {'
+    tail = '}'
+
+
+class Book(_Block):
+    __slots__ = ()
+    head = r"\book {"
+
+
+class BookPart(_Block):
+    __slots__ = ()
+    head = r"\bookpart {"
+
+
+class Score(_Block):
+    __slots__ = ()
+    head = r"\score {"
+
+
+class Header(_Block):
+    __slots__ = ()
+    head = r"\header {"
+
+
+class Paper(_Block):
+    __slots__ = ()
+    head = r"\paper {"
+
+
+class Layout(_Block):
+    __slots__ = ()
+    head = r"\layout {"
+
+
+class Midi(_Block):
+    __slots__ = ()
+    head = r"\midi {"
+
+
 class Pitch(base.HeadItem):
     """A pitch note name."""
+    __slots__ = ()
 
 
 class Mode(base.HeadItem):
     r"""The mode subcommand of the \key statement."""
+    __slots__ = ()
 
 
 class Key(base.Item):
@@ -74,6 +124,7 @@ class Key(base.Item):
     Must have a Pitch and a Mode child.
 
     """
+    __slots__ = ()
     head = r"\key"
 
 
@@ -83,11 +134,13 @@ class Clef(base.Item):
     Must have a Symbol or String child indicating the clef type.
 
     """
+    __slots__ = ()
     head = r"\clef"
 
 
 class String(base.HeadItem):
     r"""A quoted string."""
+    __slots__ = ()
     @classmethod
     def read_head(cls, origin):
         return ''.join(t.text[1:] if t.action is a.String.Escape else t.text
@@ -99,10 +152,12 @@ class String(base.HeadItem):
 
 class Comment(base.HeadItem):
     r"""Base class for comment items."""
+    __slots__ = ()
 
 
 class MultilineComment(Comment):
     r"""A multiline comment between %{ and %}."""
+    __slots__ = ()
     @classmethod
     def read_head(cls, origin):
         end = -1 if origin[-1] == "%}" else None
@@ -114,6 +169,7 @@ class MultilineComment(Comment):
 
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
+    __slots__ = ()
     after = '\n'
     @classmethod
     def read_head(cls, origin):
@@ -125,21 +181,29 @@ class SinglelineComment(Comment):
 
 class Markup(base.HeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
+    __slots__ = ()
 
 
 class MarkupWord(base.HeadItem):
     """A word in markup mode."""
+    __slots__ = ()
 
 
 class MarkupList(base.EnclosedItem):
     """A bracketed markup expression, like { ... }."""
+    __slots__ = ()
+    after_head = before_tail = between = " "
+    head = "{"
+    tail = "}"
 
 
 class MarkupCommand(base.HeadItem):
     r"""A known markup command, like \bold <arg>."""
+    __slots__ = ()
 
 
 class MarkupUserCommand(base.HeadItem):
     r"""An unknown markup command."""
+    __slots__ = ()
 
 
