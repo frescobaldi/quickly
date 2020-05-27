@@ -67,48 +67,77 @@ from parce.tree import Token
 from ..node import Node
 
 
-class BaseItem(Node):
-    """The base node type for all LilyPond dom nodes."""
+HEAD_MODIFIED = 1
+TAIL_MODIFIED = 2
 
 
-class Item(BaseItem):
-    """The base node type for all LilyPond dom nodes that have output.
-
-    Al LilyPond DOM nodes that have output, have the tuple of tokens they
-    originate from in the :attr:`origin` attribute. The attribute is None for
-    manually created DOM nodes. The tokens must be adjacent.
-
-    """
-    __slots__ = ('origin',)
-
-    modified = False    #: the value can't be changed
-    value = ''          #: set this to the text the item should write
+class Item(Node):
+    """Abstract base class for all item types."""
+    __slots__ = ('_head_origin',)
+    _head = None
+    _tail = None
+    _modified = 0
 
     def __repr__(self):
-        return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.value))
+        return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.head))
+
+    @property
+    def head(self):
+        return self._head
+
+    @head.setter
+    def head(self, head):
+        if head != self._head:
+            self._head = head
+            self._modified |= HEAD_MODIFIED
+
+    @property
+    def tail(self):
+        return self._tail
+
+    @tail.setter
+    def tail(self, tail):
+        if tail != self._tail:
+            self._tail = tail
+            self._modified |= TAIL_MODIFIED
 
     @classmethod
-    def with_origin(cls, origin, *children):
-        """Construct this item from the origin and keep the origin."""
-        node = cls.from_origin(origin, *children)
-        node.origin = origin
-        return node
+    def read_head(cls, head_origin):
+        """Return the value as computed from the specified origin Tokens.
 
-    @classmethod
-    def from_origin(cls, origin, *children):
-        """Construct this item from the origin but don't keep the origin."""
-        return cls(*children)
-
-    def write(self):
-        """Return the textual output that represents our value.
-
-        The default implementation just returns the value attribute, assuming
-        it is text.
+        The default implementation concatenates the text from all tokens.
 
         """
-        return self.value
+        return ''.join(t.text for t in head_origin)
 
-    def edit(self):
+    @classmethod
+    def read_tail(cls, tail_origin):
+        """Return the value as computed from the specified origin Tokens.
+
+        The default implementation concatenates the text from all tokens.
+
+        """
+        return ''.join(t.text for t in tail_origin)
+
+    def write_head(self):
+        """Return the textual output that represents our ``head`` value.
+
+        The default implementation just returns the ``head`` attribute,
+        assuming it is text.
+
+        """
+        return self.head
+
+    def write_tail(self):
+        """Return the textual output that represents our ``tail`` value.
+
+        The default implementation just returns the ``tail`` attribute,
+        assuming it is text.
+
+        """
+        return self.tail
+
+    def edit_head(self):
         """Return a three-tuple(start, end, text) denoting how to modify an
         existing document.
 
@@ -119,62 +148,61 @@ class Item(BaseItem):
 
         """
         try:
-            origin = self.origin
+            origin = self._head_origin
         except AttributeError:
-            return None, None, self.write()
+            return None, None, self.write_head()
         pos = origin[0].pos
         end = origin[-1].end
-        return pos, end, self.write() if self.modified else None
+        return pos, end, self.write() if self._modified & HEAD_MODIFIED else None
 
+    def edit_tail(self):
+        """Return a three-tuple(start, end, text) denoting how to modify an
+        existing document.
 
-class ValueItem(Item):
-    """An Item that has a dynamic value that determines its output.
-
-    You should implement :meth:`read` and :meth:`write`.
-
-    """
-    __slots__ = ('_value', '_modified')
-
-    def __init__(self, value, *children):
-        self._value = value
-        self._modified = False
-        super().__init__(*children)
-
-    @property
-    def value(self):
-        """Return our value."""
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        """Modify our value."""
-        if value != self._value:
-            self._value = value
-            self._modified = True
-
-    @property
-    def modified(self):
-        """Return true when the Item's value was modified."""
-        return self._modified
-
-    @classmethod
-    def read(cls, origin):
-        """Return the value as computed from the specified origin Tokens.
-
-        The default implementation concatenates the text from all tokens.
+        If start and end are None: this is a new node, with text to be added.
+        If start and end are not None, but text is None: the node is unchanged
+        and the text does not need to be altered. If text is not None: the
+        range from start to end needs to be replaced with text.
 
         """
-        return ''.join(t.text for t in origin)
+        try:
+            origin = self._tail_origin
+        except AttributeError:
+            return None, None, self.write_tail()
+        pos = origin[0].pos
+        end = origin[-1].end
+        return pos, end, self.write() if self._modified & TAIL_MODIFIED else None
 
     @classmethod
-    def from_origin(cls, origin, *children):
-        """Construct this item from the origin but don't keep the origin."""
-        value = cls.read(origin)
-        node = cls(value, *children)
+    def from_origin(cls, head_origin=(), tail_origin=(), *children):
+        return cls(*children)
+
+    @classmethod
+    def with_origin(cls, head_origin=(), tail_origin=(), *children):
+        node = cls.from_origin(head_origin, tail_origin, *children)
+        if head_origin:
+            node._head_origin = head_origin
+        if tail_origin:
+            node._tail_origin = tail_origin
         return node
 
 
-class Container(BaseItem):
-    """An item that does not print output of itself, just has children."""
+class HeadItem(Item):
+    """Item that has a variable head value."""
+    __slots__ = ('_head', '_modified')
 
+    def __init__(self, head, *children):
+        self._head = head
+        self._modified = 0
+        super().__init__(*children)
+
+    @classmethod
+    def from_origin(cls, head_origin=(), tail_origin=(), *children):
+        head = cls.read(head_origin)
+        return cls(head, *children)
+
+
+class EnclosedItem(Item):
+    """Item that has a tail value as well."""
+    __slots__ = ('_tail_origin',)
 

@@ -30,15 +30,11 @@ from parce.lang import lilypond
 from . import base
 
 
-class Delimiter(base.ValueItem):
-    """A delimiter, like { or }."""
-
-
-class Pitch(base.ValueItem):
+class Pitch(base.HeadItem):
     """A pitch note name."""
 
 
-class Mode(base.ValueItem):
+class Mode(base.HeadItem):
     r"""The mode subcommand of the \key statement."""
 
 
@@ -48,7 +44,7 @@ class Key(base.Item):
     Must have a Pitch and a Mode child.
 
     """
-    value = r"\key"
+    head = r"\key"
 
 
 class Clef(base.Item):
@@ -57,63 +53,63 @@ class Clef(base.Item):
     Must have a Symbol or String child indicating the clef type.
 
     """
-    value = r"\clef"
+    head = r"\clef"
 
 
-class String(base.ValueItem):
+class String(base.HeadItem):
     r"""A quoted string."""
     @classmethod
-    def read(cls, origin):
+    def read_head(cls, origin):
         return ''.join(t.text[1:] if t.action is a.String.Escape else t.text
             for t in origin[1:-1])
 
-    def write(self):
-        return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.value))
+    def write_head(self):
+        return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.head))
 
 
-class Comment(base.ValueItem):
+class Comment(base.HeadItem):
     r"""Base class for comment items."""
 
 
 class MultilineComment(Comment):
     r"""A multiline comment between %{ and %}."""
     @classmethod
-    def read(cls, origin):
+    def read_head(cls, origin):
         end = -1 if origin[-1] == "%}" else None
         return ''.join(t.text for t in origin[1:end])
 
-    def write(self):
-        return '%{{{}%}}'.format(self.value)
+    def write_head(self):
+        return '%{{{}%}}'.format(self.head)
 
 
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
     @classmethod
-    def read(cls, origin):
+    def read_head(cls, origin):
         return ''.join(t.text for t in origin[1:])
 
-    def write(self):
-        multiline, text = self.value
+    def write_head(self):
+        multiline, text = self.head
         return '%{}'.format(text)
 
 
-class Markup(base.ValueItem):
+class Markup(base.HeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
 
 
-class MarkupWord(base.ValueItem):
+class MarkupWord(base.HeadItem):
     """A word in markup mode."""
 
 
-class MarkupList(base.Container):
+class MarkupList(base.EnclosedItem):
     """A bracketed markup expression, like { ... }."""
 
 
-class MarkupCommand(base.ValueItem):
+class MarkupCommand(base.HeadItem):
     r"""A known markup command, like \bold <arg>."""
 
 
-class MarkupUserCommand(base.ValueItem):
+class MarkupUserCommand(base.HeadItem):
     r"""An unknown markup command."""
 
 
