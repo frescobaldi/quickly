@@ -8,6 +8,7 @@ Modules in the ``dom`` package:
 
    dom/base.rst
    dom/items.rst
+   dom/util.rst
 
 .. automodule:: quickly.dom
    :members:

@@ -19,140 +19,32 @@
 
 
 """
-(Abstract) base classes for the quickly.dom items.
+Base classes for the quickly.dom items.
 
-The Item classes you can choose from are in the items module.
+An :class:`Item` describes an object and can have child objects. An Item can
+display a ``head`` and optionally a ``tail``. The head is text that is printed
+before the children (if any). The tail is displayed after the children, and
+will in most cases be used as a closing delimiter.
 
-TODO
-====
+An :class:Item can be constructed in two ways: either using the
+:meth:from_origin class method from tokens (this is done by the
+LilyPondTransform class), or manually using the normal constructor.
 
-- distinguish between Items that originate from tokens from a document
-  and Items that originate from ad-hoc created tokens,
+You can specify all child items in the constructor, so theoretically you
+can build a whole document in one expression.
 
-  e.g. transform_text(LilyPond.root, "<c' d e>")
+To get the textual output of an item and all its child items, use the
+:meth:`~Item.output` method. TODO: indenting.
 
-  Ad hoc tokens must not have the origin set, while tokens from a document
-  have.
+Whitespace is handled in a smart way: Item subclasses can specify the preferred
+whitespace ``before``, ``after`` and ``between`` elements, and items that draw
+head and tail texts can also specify the preperred whitespace after the head
+and before the tail. When outputting the text, the whitespace between items is
+combined to fulfil all requirements but to prevent double spaces.
 
-
-24 mei
-======
-thinkin....
-
-an Item:
-
-- has some value
-- that can originate from tokens origin (read)
-- that can be set manually
-- that must also be output (write)
-
-how do we know if the value was altered manually?
-- a "modified" flag
-- compute the value each time from the origin?
-
-When writing a new document:
-- write out from the value
-
-When writing back to an existing document:
-- if the value has changed, replace the origins's slice with the new output
-- if the value has not changed, do nothing
-
-
-
-
-
-
-27 mei
-======
-
-
-Whitespace handling...
-
-and indenting...
-
-where is what whitespace determined?....
-
-a4-5
-
-Note
-  Pitch
-  Duration
-  Direction
-    Fingering
-
-no whitespace.
-
-
-{ c d e }
-Simultaneous
-  Note
-    Pitch
-  Note
-    Pitch
-  Note
-
-whitespace around the notes
-We could do:
-  Simultaneous draws a space between the children
-
-
-a full document: how many newlines between stuff?
-- at minimum one
-- certainly a newline after a single line comment
-- in most cases two.
-
-
-Maybe we should invent a Newline item, also capture Newline tokens?
-
-Or should we make the automatic formatting so robust that it is never
-needed to insert line breaks automatically?
-
-
-It becomes clear that we want to know what whitespace to put
-*after* what node.
-
-A node can say that itself.
-
-But is a node's last child is a singleline comment, that newline should
-be honoured. So a newline wins over a regular space.
-
-And, a node itself can specify what to put between the children
-and before its tail. This should still consult wat each node wants.
-
-Maybe:
-
-    Item.after
-
-    attribute containing the whitespace to draw after this item.
-    (either '', ' ', or '\n')
-
-    By default, this consults the last child and its own class-level preference.
-
-SO:
-
-an item itself has a preference for whitespace between its children
-an item can have a preference for whitespace to draw after a certain Item type
-an item has a preference for whitespace drawn after it
-
-
-item.whitespace_after(childitem)
-
-Document will return '\n\n' for most types but '\n' for comment
-
-
-Item.after  (whitespace to draw after this item)
-Item.between (whitespace to draw between child items)
-
-Item.whitespace(item):
-
-
-
-after       # minimum wsp to draw after
-before      # minimum wsp to draw before item
-between     # minimum wsp to draw between child items
-
-def concat(self, item, next_item):
-    return max_spacing(item.after, next_item.before, self.between)
+When an Item is constructed from tokens using the :meth:`~Item.with_origin`
+constructor, it is able to write ifself back in the document if modified, using
+the :meth:`~Item.edit_head` and :meth:`~Item.edit_tail` method.
 
 
 """
@@ -162,7 +54,7 @@ import reprlib
 from parce.tree import Token
 
 from ..node import Node
-
+from .util import max_space
 
 HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
@@ -186,15 +78,6 @@ class Item(Node):
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(self.head))
-
-    def value_space(self, whitespace):
-        """Return a tuple useable as sorting key to value whitespace.
-
-        Newlines are preferred over normal spaces, and those are preferred
-        over no space (empty string).
-
-        """
-        return whitespace.count('\n'), whitespace.count(' ')
 
     @property
     def head(self):
@@ -253,25 +136,29 @@ class Item(Node):
             n = self[0]
             before, text, after = n.write()
             if head:
-                result.append(max(self.after_head, before, key=self.value_space))
+                result.append(max_space(self.after_head, before))
             else:
                 result_before = before
             result.append(text)
             for m in self[1:]:
-                before, text, nafter = m.write()
+                before, text, new_after = m.write()
                 if text:
-                    result.append(max(self.concat(n, m), after, before, key=self.value_space))
+                    result.append(max_space(self.concat(n, m), after, before))
                     result.append(text)
-                after = nafter
-                n = m
+                    after = new_after
+                    n = m
             if not tail:
-                result_after = max(self.after, after, key=self.value_space)
+                result_after = max_space(self.after, after)
         if tail:
             if len(self):
-                result.append(max(self.before_tail, after, key=self.value_space))
+                result.append(max_space(self.before_tail, after))
             elif head:
-                result.append(max(self.after_head, self.before_tail, key=self.value_space))
+                result.append(max_space(self.after_head, self.before_tail))
         return result_before, ''.join(result), result_after
+
+    def output(self):
+        """Return the formatted (not yet indented) output."""
+        return ''.join(self.write()[1:])
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.

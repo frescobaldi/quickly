@@ -37,18 +37,16 @@ class Newline(base.Item):
     anywhere you want a newline in manually crafted documents.
 
     """
-    head = ''
-    after = '\n'
+    head = '\n'
 
 
-class BlankLine(base.Item):
+class BlankLine(Newline):
     """A blank line.
 
     Not created from existing documents, but you can insert this node
     anywhere you want a blank line in manually crafted documents.
 
     """
-    head = '\n'
     before = '\n'
 
 
@@ -57,7 +55,7 @@ class Document(base.Item):
     between = '\n\n'
 
     def concat(self, n, m):
-        if isinstance(n, SinglelineComment):
+        if isinstance(n, (SinglelineComment, Newline)):
             return '\n'
         return self.between
 

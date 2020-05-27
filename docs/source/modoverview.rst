@@ -2,7 +2,7 @@ Overview of all modules
 =======================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    dom.rst
    lang.rst
