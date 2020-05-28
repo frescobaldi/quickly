@@ -81,6 +81,7 @@ class Node(list):
         parent is set to this node.
 
         """
+        self._parent = lambda: None
         if children:
             list.extend(self, children)
             parent = weakref.ref(self)
