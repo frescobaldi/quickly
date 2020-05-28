@@ -172,6 +172,25 @@ class Item(Node):
         """Return the formatted (not yet indented) output."""
         return ''.join(self.write()[1:])
 
+    def whitespace(self, other=None):
+        """Return the whitespace applicable between self and other.
+
+        """
+        if self.parent and self.parent is other.parent:
+            # other is our sibling
+            return max_space(self.after, other.before, self.parent.concat(self, other))
+        elif self is other.parent:
+            # other is our first child
+            return max_space(other.before, self.after_head)
+        elif other is self.parent:
+            # special case for whitespace between last child and tail
+            return max_space(self.after, other.before_tail)
+        elif other is None:
+            # special case for empty node with head and tail
+            return max_space(self.after_head, self.before_tail)
+        else:
+            return max_space(self.after, other.before)
+
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
 

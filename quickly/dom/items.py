@@ -192,10 +192,12 @@ class SinglelineComment(Comment):
 
 class Markup(base.HeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
+    before = after = between = " "
 
 
 class MarkupWord(base.HeadItem):
     """A word in markup mode."""
+    before = after = " "
 
 
 class MarkupList(base.EnclosedItem):
@@ -206,10 +208,7 @@ class MarkupList(base.EnclosedItem):
 
 
 class MarkupCommand(base.HeadItem):
-    r"""A known markup command, like \bold <arg>."""
-
-
-class MarkupUserCommand(base.HeadItem):
-    r"""An unknown markup command."""
+    r"""A markup command, like \bold <arg>."""
+    before = after = between = " "
 
 
