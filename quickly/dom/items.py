@@ -68,7 +68,7 @@ class Document(base.Item):
 class _Block(base.EnclosedItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
-    before = after = after_head = after_tail = '\n'
+    before = after = after_head = before_tail = '\n'
     head = '<fill in> {'
     tail = '}'
 
@@ -98,25 +98,25 @@ class Header(_Block):
 
 
 class Paper(_Block):
-    r"""A \header { } block."""
+    r"""A \paper { } block."""
     __slots__ = ()
     head = r"\paper {"
 
 
 class Layout(_Block):
-    r"""A \header { } block."""
+    r"""A \layout { } block."""
     __slots__ = ()
     head = r"\layout {"
 
 
 class Midi(_Block):
-    r"""A \header { } block."""
+    r"""A \midi { } block."""
     __slots__ = ()
     head = r"\midi {"
 
 
 class With(_Block):
-    r"""A \header { } block."""
+    r"""A \with { } block."""
     __slots__ = ()
     head = r"\with {"
     before = after = " "

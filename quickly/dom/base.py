@@ -77,11 +77,13 @@ class Item(Node):
 
 
     def __repr__(self):
-        head = self.head
-        if head:
-            return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(head))
-        else:
-            return '<{} ({} children)>'.format(self.__class__.__name__, len(self))
+        def result():
+            yield self.__class__.__name__
+            if self.head:
+                yield reprlib.repr(self.head)
+            if len(self):
+                yield "({} child{})".format(len(self), '' if len(self) == 1 else 'ren')
+        return "<{}>".format(" ".join(result()))
 
     @property
     def head(self):

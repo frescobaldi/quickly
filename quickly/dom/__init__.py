@@ -25,6 +25,7 @@ This module defines a DOM (Document Object Model) for LilyPond source files.
 
 from parce.transform import Transformer
 
+from .base import Item
 from .items import *
 
 

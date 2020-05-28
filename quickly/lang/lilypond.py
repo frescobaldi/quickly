@@ -59,31 +59,45 @@ class LilyPondTransform(Transform):
                 ):
                     yield i.obj
 
+    def create_block(self, item_class, items):
+        r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
+
+        The items are the contents of a block like \book { }.
+        The ``head_origin`` are the first two tokens, the ``tail_origin`` the
+        last token, if that is a '``}``'.
+
+        """
+        tail_origin = (items.pop(),) if items[-1] == '}' else ()
+        head_origin = items[:2]
+        nodes = items[2:].objects(dom.Item)
+        return self.factory(item_class, head_origin, tail_origin, nodes)
 
     ## transforming methods
     def root(self, items):
-        return dom.Document(*self.common(items))
+        return dom.Document(*items.objects(dom.Item))
 
     def book(self, items):
-        return items
+        item_class = dom.BookPart if items[1] == r'\bookpart' else dom.Book
+        return self.create_block(item_class, items)
 
     def score(self, items):
-        return items
+        return self.create_block(dom.Score, items)
 
     def header(self, items):
-        return items
+        return self.create_block(dom.Header, items)
 
     def paper(self, items):
-        return items
+        return self.create_block(dom.Paper, items)
 
     def layout(self, items):
-        return items
+        return self.create_block(dom.Layout, items)
 
     def midi(self, items):
-        return items
+        return self.create_block(dom.Midi, items)
 
     def layout_context(self, items):
-        return items
+        item_class = dom.With if items[1] == r'\with' else dom.LayoutContext
+        return self.create_block(item_class, items)
 
     def musiclist(self, items):
         return items
