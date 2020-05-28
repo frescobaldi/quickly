@@ -198,13 +198,13 @@ class LilyPondTransform(Transform):
 
     def markup(self, items):
         """Simply return the flattened contents, the markup will be constructed later."""
-        def result():
-            for i in items:
-                if not i.is_token and i.name == "markup":
-                    yield from i.obj
-                else:
-                    yield i
-        return list(result())
+        result = []
+        for i in items:
+            if i.is_token or i.name != "markup":
+                result.append(i)
+            else:
+                result.extend(i.obj)
+        return result
 
     def markuplist(self, items):
         """Create a MarkupList node."""
