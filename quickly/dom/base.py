@@ -202,6 +202,25 @@ class Item(Node):
         """
         return self.tail
 
+    def edits(self):
+        """Yield three-tuples(start, end, text) denoting how to modify an
+        existing document.
+
+        If start and end are None: this is a new node, with text to be added.
+        If start and end are not None, but text is None: the node is unchanged
+        and the text does not need to be altered. If text is not None: the
+        range from start to end needs to be replaced with text.
+
+        """
+        head = self.edit_head()
+        if any(head):
+            yield head
+        for node in self:
+            yield from node.edits()
+        tail = self.edit_tail()
+        if any(tail):
+            yield tail
+
     def edit_head(self):
         """Return a three-tuple(start, end, text) denoting how to modify an
         existing document.
@@ -215,10 +234,11 @@ class Item(Node):
         try:
             origin = self._head_origin
         except AttributeError:
-            return None, None, self.write_head()
-        pos = origin[0].pos
-        end = origin[-1].end
-        return pos, end, self.write() if self._modified & HEAD_MODIFIED else None
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        return pos, end, self.write_head() if self._modified & HEAD_MODIFIED else None
 
     def edit_tail(self):
         """Return a three-tuple(start, end, text) denoting how to modify an
@@ -233,10 +253,11 @@ class Item(Node):
         try:
             origin = self._tail_origin
         except AttributeError:
-            return None, None, self.write_tail()
-        pos = origin[0].pos
-        end = origin[-1].end
-        return pos, end, self.write() if self._modified & TAIL_MODIFIED else None
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        return pos, end, self.write_tail() if self._modified & TAIL_MODIFIED else None
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
