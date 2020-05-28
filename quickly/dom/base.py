@@ -81,7 +81,7 @@ class Item(Node):
         if head:
             return '<{} {}>'.format(self.__class__.__name__, reprlib.repr(head))
         else:
-            return '<{} [{}]>'.format(self.__class__.__name__, len(self))
+            return '<{} ({} children)>'.format(self.__class__.__name__, len(self))
 
     @property
     def head(self):

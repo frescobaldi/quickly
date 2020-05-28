@@ -23,6 +23,27 @@ This module defines a DOM (Document Object Model) for LilyPond source files.
 """
 
 
+from parce.transform import Transformer
 
 from .items import *
+
+
+def node(text, lexicon=None):
+    """Build a Item node from text using lexicon (LilyPond.root if not
+    specified).
+
+    """
+    from quickly.lang.lilypond import LilyPond, LilyPondAdHoc
+    t = Transformer()
+    t.add_transform(LilyPond, LilyPondAdHoc())
+    n = t.transform_text(lexicon or LilyPond.root, text)
+    return n[0] if isinstance(n, Document) and len(n) else n
+
+
+def document(text):
+    """Build a Document from the specified text."""
+    from quickly.lang.lilypond import LilyPond, LilyPondAdHoc
+    t = Transformer()
+    t.add_transform(LilyPond, LilyPondAdHoc())
+    return t.transform_text(LilyPond.root, text)
 

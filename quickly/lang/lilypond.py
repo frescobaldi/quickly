@@ -39,15 +39,16 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
     ## helper methods and factory
-    def factory(self, item_class, origin, children=()):
+    def factory(self, item_class, head_origin, tail_origin=(), children=()):
         """Create an Item, keeping its origin.
 
-        The ``origin`` is an iterable of Token instances. All items should be
-        created using this method, so that it can be overridden for the case
-        you don't want to remember the origin.
+        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
+        Token instances. All items should be created using this method, so that
+        it can be overridden for the case you don't want to remember the
+        origin.
 
         """
-        return item_class.with_origin(tuple(origin), *children)
+        return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     def common(self, items):
         """Find comment, string, scheme and markup."""
@@ -159,4 +160,20 @@ class LilyPondTransform(Transform):
     def singleline_comment(self, items):
         return self.factory(dom.SinglelineComment, items)
 
+
+class LilyPondAdHoc(LilyPondTransform):
+    """This Transform is used to build a node from LilyPond input,
+    but without keeping the origin.
+
+    """
+    def factory(self, item_class, head_origin, tail_origin=(), children=()):
+        """Create an Item *without* keeping its origin.
+
+        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
+        Token instances. All items should be created using this method, so that
+        it can be overridden for the case you don't want to remember the
+        origin.
+
+        """
+        return item_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
 
