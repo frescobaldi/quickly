@@ -176,7 +176,10 @@ class Item(Node):
         """Return the whitespace applicable between self and other.
 
         """
-        if self.parent and self.parent is other.parent:
+        if other is None:
+            # special case for empty node with head and tail
+            return max_space(self.after_head, self.before_tail)
+        elif self.parent and self.parent is other.parent:
             # other is our sibling
             return max_space(self.after, other.before, self.parent.concat(self, other))
         elif self is other.parent:
@@ -185,9 +188,6 @@ class Item(Node):
         elif other is self.parent:
             # special case for whitespace between last child and tail
             return max_space(self.after, other.before_tail)
-        elif other is None:
-            # special case for empty node with head and tail
-            return max_space(self.after_head, self.before_tail)
         else:
             return max_space(self.after, other.before)
 

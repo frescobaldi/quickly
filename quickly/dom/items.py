@@ -192,7 +192,7 @@ class SinglelineComment(Comment):
 
 class Markup(base.HeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
-    before = after = between = " "
+    before = after = between = after_head = " "
 
 
 class MarkupWord(base.HeadItem):
