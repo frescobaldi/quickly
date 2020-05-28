@@ -41,7 +41,7 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
     ## helper methods and factory
-    def factory(self, item_class, head_origin, tail_origin=(), children=()):
+    def factory(self, item_class, head_origin, tail_origin=(), *children):
         """Create an Item, keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
@@ -53,13 +53,22 @@ class LilyPondTransform(Transform):
         return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     def common(self, items):
-        """Find comment, string, scheme and markup."""
+        """Find comment, string, scheme and markup.
+
+        Yields dom.Item objects.
+
+        """
+        items = iter(items)
         for i in items:
             if not i.is_token:
-                if i.name in (
-                    "string", "multiline_comment", "singleline_comment"
-                ):
+                if isinstance(i.obj, dom.Item):
                     yield i.obj
+                elif i.name == "markup":
+                    origin = i.obj[:1]
+                    markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
+                    if markup:
+                        yield self.factory(dom.Markup, origin, (), markup)
+
 
     def create_block(self, item_class, items):
         r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
@@ -72,7 +81,7 @@ class LilyPondTransform(Transform):
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
         nodes = items[2:].objects(dom.Item)
-        return self.factory(item_class, head_origin, tail_origin, nodes)
+        return self.factory(item_class, head_origin, tail_origin, *nodes)
 
     def create_markup(self, items):
         """Read from items and yield nodes that can occur in markup."""
@@ -91,14 +100,14 @@ class LilyPondTransform(Transform):
                                 nargs -= 1
                             if nargs == 0:
                                 break
-                    yield self.factory(dom.MarkupCommand, (i,), (), args)
+                    yield self.factory(dom.MarkupCommand, (i,), (), *args)
             elif isinstance(i.obj, dom.Item):
                 yield i.obj
 
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
-        return dom.Document(*items.objects(dom.Item))
+        return dom.Document(*self.common(items))
 
     def book(self, items):
         """Create a Book or BookPart node."""
@@ -188,13 +197,20 @@ class LilyPondTransform(Transform):
         return items
 
     def markup(self, items):
-        return items
+        """Simply return the flattened contents, the markup will be constructed later."""
+        def result():
+            for i in items:
+                if not i.is_token and i.name == "markup":
+                    yield from i.obj
+                else:
+                    yield i
+        return list(result())
 
     def markuplist(self, items):
         """Create a MarkupList node."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '}' else ()
-        return self.factory(dom.MarkupList, head, tail, self.create_markup(items[1:]))
+        return self.factory(dom.MarkupList, head, tail, *self.create_markup(items[1:]))
 
     def schemelily(self, items):
         return items
@@ -221,7 +237,7 @@ class LilyPondAdHocTransform(LilyPondTransform):
     used as if they originated from the document that's being edited.
 
     """
-    def factory(self, item_class, head_origin, tail_origin=(), children=()):
+    def factory(self, item_class, head_origin, tail_origin=(), *children):
         """Create an Item *without* keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
