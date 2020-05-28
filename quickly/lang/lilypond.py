@@ -22,9 +22,11 @@
 LilyPond language and transform definition
 """
 
+import itertools
+
 from parce.transform import Transform
 import parce.lang.lilypond
-
+import parce.action as a
 
 from quickly import dom
 
@@ -71,6 +73,27 @@ class LilyPondTransform(Transform):
         head_origin = items[:2]
         nodes = items[2:].objects(dom.Item)
         return self.factory(item_class, head_origin, tail_origin, nodes)
+
+    def create_markup(self, items):
+        """Read from items and yield nodes that can occur in markup."""
+        items = iter(items)
+        for i in items:
+            if i.is_token:
+                if i.action is a.Text:
+                    yield self.factory(dom.MarkupWord, (i,))
+                elif i.action in a.Name.Function:
+                    nargs = LilyPond.get_markup_argument_count(i.text[1:])
+                    args = []
+                    if nargs:
+                        for arg in self.create_markup(items):
+                            args.append(arg)
+                            if not isinstance(arg, dom.Comment):
+                                nargs -= 1
+                            if nargs == 0:
+                                break
+                    yield self.factory(dom.MarkupCommand, (i,), (), args)
+            elif isinstance(i.obj, dom.Item):
+                yield i.obj
 
     ## transforming methods
     def root(self, items):
@@ -168,7 +191,10 @@ class LilyPondTransform(Transform):
         return items
 
     def markuplist(self, items):
-        return items
+        """Create a MarkupList node."""
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        return self.factory(dom.MarkupList, head, tail, self.create_markup(items[1:]))
 
     def schemelily(self, items):
         return items

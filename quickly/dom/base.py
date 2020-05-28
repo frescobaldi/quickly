@@ -67,7 +67,6 @@ class Item(Node):
     _tail = None
     _modified = 0
 
-
     before = ""         #: minimum whitespace to draw before this item
     between = ""        #: minimum whitespace to draw between child items
     after = ""          #: minimum whitespace to draw after this item
@@ -266,16 +265,14 @@ class Item(Node):
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
-        if head_origin:
-            node._head_origin = head_origin
-        if tail_origin:
-            node._tail_origin = tail_origin
+        node._head_origin = head_origin
         return node
 
 
 class HeadItem(Item):
     """Item that has a variable head value."""
     __slots__ = ('_head', '_modified')
+
     def __init__(self, head, *children, **attrs):
         self._head = head
         self._modified = 0
@@ -291,10 +288,17 @@ class EnclosedItem(Item):
     """Item that has a tail value as well."""
     __slots__ = ('_tail_origin',)
 
+    @classmethod
+    def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
+        node._head_origin = head_origin
+        node._tail_origin = tail_origin
+        return node
 
-class CustomItem(Item):
+
+class CustomItem(EnclosedItem):
     """Item where head and tail are both writable."""
-    __slots__ = ('_head', '_tail', '_tail_origin', '_modified')
+    __slots__ = ('_head', '_tail', '_modified')
 
     def __init__(self, head, tail, *children, **attrs):
         self._head = head
@@ -307,5 +311,4 @@ class CustomItem(Item):
         head = cls.read_head(head_origin)
         tail = cls.read_tail(tail_origin)
         return cls(head, tail, *children, **attrs)
-
 
