@@ -39,5 +39,33 @@ def max_space(*whitespace):
     return max(whitespace, key=lambda s: (s.count('\n'), s.count(' ')))
 
 
+def transform(text, lexicon=None):
+    """Transform the text.
+
+    This function uses a :class:`~quickly.lang.lilypond.LilyPondAdHocTransform`
+    transform object, and uses the LilyPond.root lexicon if no other lexicon
+    is specified.
+
+    """
+    from parce.transform import Transformer
+    from quickly.lang.lilypond import LilyPond, LilyPondAdHocTransform
+    t = Transformer()
+    t.add_transform(LilyPond, LilyPondAdHocTransform())
+    return t.transform_text(lexicon or LilyPond.root, text)
+
+
+def node(text, lexicon=None):
+    """Build a Item node from text using lexicon (LilyPond.root if not
+    specified).
+
+    """
+    from .items import Document
+    n = transform(text, lexicon)
+    return n[0] if isinstance(n, Document) and len(n) else n
+
+
+def document(text):
+    """Build a Document from the specified text."""
+    return transform(text)
 
 

@@ -74,28 +74,36 @@ class LilyPondTransform(Transform):
 
     ## transforming methods
     def root(self, items):
+        """Concatenate all nodes in a Document object."""
         return dom.Document(*items.objects(dom.Item))
 
     def book(self, items):
+        """Create a Book or BookPart node."""
         item_class = dom.BookPart if items[1] == r'\bookpart' else dom.Book
         return self.create_block(item_class, items)
 
     def score(self, items):
+        """Create a Score node (can also appear inside Markup and MarkupList)."""
         return self.create_block(dom.Score, items)
 
     def header(self, items):
+        """Create a Header node."""
         return self.create_block(dom.Header, items)
 
     def paper(self, items):
+        """Create a Paper node."""
         return self.create_block(dom.Paper, items)
 
     def layout(self, items):
+        """Create a Layout node."""
         return self.create_block(dom.Layout, items)
 
     def midi(self, items):
+        """Create a Midi node."""
         return self.create_block(dom.Midi, items)
 
     def layout_context(self, items):
+        """Create a With or LayoutContext node."""
         item_class = dom.With if items[1] == r'\with' else dom.LayoutContext
         return self.create_block(item_class, items)
 
@@ -166,18 +174,25 @@ class LilyPondTransform(Transform):
         return items
 
     def string(self, items):
+        """Create a String node."""
         return self.factory(dom.String, items)
 
     def multiline_comment(self, items):
+        """Create a MultilineComment node."""
         return self.factory(dom.MultilineComment, items)
 
     def singleline_comment(self, items):
+        """Create a SinglelineComment node."""
         return self.factory(dom.SinglelineComment, items)
 
 
-class LilyPondAdHoc(LilyPondTransform):
-    """This Transform is used to build a node from LilyPond input,
-    but without keeping the origin.
+class LilyPondAdHocTransform(LilyPondTransform):
+    """LilyPondTransform that does not keep the origin tokens.
+
+    This is used to create pieces (nodes) of a LilyPond document from text, and
+    then use that pieces to compose a larger Document or to edit an existing
+    document. It is undesirable that origin tokens then would mistakenly be
+    used as if they originated from the document that's being edited.
 
     """
     def factory(self, item_class, head_origin, tail_origin=(), children=()):

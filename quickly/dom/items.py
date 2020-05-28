@@ -53,6 +53,19 @@ class BlankLine(Newline):
     after = '\n\n'
 
 
+class Line(base.Item):
+    """Container that prints the child nodes on one line with a space in between.
+
+    Not created from existing documents, but you can insert this node in a
+    Document when you want some nodes to be on the same line, for example when
+    you want to write a comment at the end of the preceding line instead of on
+    a line of its own.
+
+    """
+    __slots__ = ()
+    before = after = '\n'
+    between = ' '
+
 
 class Document(base.Item):
     """A LilyPond source document."""
@@ -65,7 +78,7 @@ class Document(base.Item):
         return self.between
 
 
-class _Block(base.EnclosedItem):
+class Block(base.EnclosedItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
     before = after = after_head = before_tail = '\n'
@@ -73,56 +86,56 @@ class _Block(base.EnclosedItem):
     tail = '}'
 
 
-class Book(_Block):
+class Book(Block):
     r"""A \book { } block."""
     __slots__ = ()
     head = r"\book {"
 
 
-class BookPart(_Block):
+class BookPart(Block):
     r"""A \bookpart { } block."""
     __slots__ = ()
     head = r"\bookpart {"
 
 
-class Score(_Block):
+class Score(Block):
     r"""A \score { } block."""
     __slots__ = ()
     head = r"\score {"
 
 
-class Header(_Block):
+class Header(Block):
     r"""A \header { } block."""
     __slots__ = ()
     head = r"\header {"
 
 
-class Paper(_Block):
+class Paper(Block):
     r"""A \paper { } block."""
     __slots__ = ()
     head = r"\paper {"
 
 
-class Layout(_Block):
+class Layout(Block):
     r"""A \layout { } block."""
     __slots__ = ()
     head = r"\layout {"
 
 
-class Midi(_Block):
+class Midi(Block):
     r"""A \midi { } block."""
     __slots__ = ()
     head = r"\midi {"
 
 
-class With(_Block):
+class With(Block):
     r"""A \with { } block."""
     __slots__ = ()
     head = r"\with {"
     before = after = " "
 
 
-class LayoutContext(_Block):
+class LayoutContext(Block):
     r"""A \context { } block within \layout or \midi."""
     __slots__ = ()
     head = r"\context {"
