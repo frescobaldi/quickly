@@ -62,7 +62,7 @@ TAIL_MODIFIED = 2
 
 class Item(Node):
     """Abstract base class for all item types."""
-    __slots__ = ('_head_origin',)
+    __slots__ = ('__dict__', '_head_origin',)
     _head = None
     _tail = None
     _modified = 0
@@ -75,6 +75,10 @@ class Item(Node):
     after_head = ""     #: minimum whitespace to draw after the head
     before_tail = ""    #: minimum whitespace to draw before the tail
 
+    def __init__(self, *children, **attrs):
+        super().__init__(*children)
+        if attrs:
+            self.__dict__.update(attrs)
 
     def __repr__(self):
         def result():
@@ -235,12 +239,12 @@ class Item(Node):
         return pos, end, self.write() if self._modified & TAIL_MODIFIED else None
 
     @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children):
-        return cls(*children)
+    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        return cls(*children, **attrs)
 
     @classmethod
-    def with_origin(cls, head_origin=(), tail_origin=(), *children):
-        node = cls.from_origin(head_origin, tail_origin, *children)
+    def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
         if head_origin:
             node._head_origin = head_origin
         if tail_origin:
@@ -251,15 +255,15 @@ class Item(Node):
 class HeadItem(Item):
     """Item that has a variable head value."""
     __slots__ = ('_head', '_modified')
-    def __init__(self, head, *children):
+    def __init__(self, head, *children, **attrs):
         self._head = head
         self._modified = 0
-        super().__init__(*children)
+        super().__init__(*children, **attrs)
 
     @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children):
+    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
-        return cls(head, *children)
+        return cls(head, *children, **attrs)
 
 
 class EnclosedItem(Item):
@@ -271,16 +275,16 @@ class CustomItem(Item):
     """Item where head and tail are both writable."""
     __slots__ = ('_head', '_tail', '_tail_origin', '_modified')
 
-    def __init__(self, head, tail, *children):
+    def __init__(self, head, tail, *children, **attrs):
         self._head = head
         self._tail = tail
         self._modified = 0
-        super().__init__(*children)
+        super().__init__(*children, **attrs)
 
     @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children):
+    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
         tail = cls.read_tail(tail_origin)
-        return cls(head, tail, *children)
+        return cls(head, tail, *children, **attrs)
 
 
