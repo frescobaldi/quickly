@@ -211,6 +211,40 @@ class Item(Node):
         """
         return self.tail
 
+    def edits(self, tree):
+        """Yield three-tuples (pos, end, text) denoting text changes."""
+        tokens = tree.tokens()
+        pos = tree.pos
+        insert_after = None
+        for before, point, after in self.points():
+            b = '' if insert_after is None else collapse_whitespace((insert_after, before))
+            if point.pos is None:
+                # new item.
+                if point.text:
+                    yield pos, pos, b + point.text
+                    insert_after = after
+            else:
+                # existing item
+                if point.pos > pos:
+                    # see if old content needs to be deleted between pos and point.pos
+                    del_pos = del_end = pos
+                    for t in tokens:
+                        if t.pos >= point.pos:
+                            break
+                        if t.pos >= pos:
+                            del_end = t.end
+                    if del_end > del_pos:
+                        yield del_pos, del_end, b
+                elif b:
+                    yield point.pos, point.pos, b
+                # modified?
+                if point.modified:
+                    yield point.pos, point.end, point.text
+                pos = point.end
+                insert_after = after
+        if pos < tree.end:
+            yield pos, tree.end, ''
+
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         return cls(*children, **attrs)
