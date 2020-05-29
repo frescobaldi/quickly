@@ -161,29 +161,29 @@ class Item(Node):
         adjacent pieces, you may collapse whitespace.
 
         """
-        yield from self._points(self.after)
-
-    def _points(self, last_space):
-        """Interally used by points()."""
-        if len(self):
-            yield self.before, self.head_point(), self.after_head
-            n = self[0]
-            for m in self[1:]:
-                points = n.points()
-                p = next(points)
-                for q in points:
-                    yield p
-                    p = q
-                yield p[0], p[1], collapse_whitespace((p[2], self.concat(n, m)))
-                n = m
-            points = n.points()
+        def points(points, last):
+            # yield the points, combining the last whitespace with ``last``
             p = next(points)
             for q in points:
                 yield p
                 p = q
-            yield p[0], p[1], collapse_whitespace((p[2], last_space))
+            before, point, after = p
+            yield before, point, collapse_whitespace((after, last))
+
+        head_point = self.head_point()
+        tail_point = self.tail_point()
+        last_space = self.before_tail if tail_point else self.after
+        if len(self):
+            yield self.before, head_point, self.after_head
+            n = self[0]
+            for m in self[1:]:
+                yield from points(n.points(), self.concat(n, m))
+                n = m
+            yield from points(n.points(), last_space)
         else:
-            yield self.before, self.head_point(), last_space
+            yield self.before, head_point, last_space
+        if tail_point:
+            yield self.before_tail, tail_point, self.after
 
     def write(self):
         """Return the formatted (not yet indented) output."""
@@ -201,10 +201,10 @@ class Item(Node):
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
 
-        This method is called in the :meth:`write` method, when concatenating
-        child nodes. By default, the value of the ``between`` attribute is
-        returned. Reimplement this method to differentiate whitespacing based
-        on the (type of the) nodes.
+        This method is called in the :meth:`points` method, when calculating
+        whitespace between child nodes. By default, the value of the
+        ``between`` attribute is returned. Reimplement this method to
+        differentiate whitespacing based on the (type of the) nodes.
 
         """
         return self.between
@@ -268,11 +268,6 @@ class EnclosedItem(Item):
         tail = self.write_tail()
         modified = bool(self._modified & TAIL_MODIFIED)
         return Point(pos, end, tail, modified)
-
-    def points(self):
-        """Reimplemented to add a tail point as well."""
-        yield from self._points(self.before_tail)
-        yield self.before_tail, self.tail_point(), self.after
 
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
