@@ -49,12 +49,18 @@ the :meth:`~Item.edit_head` and :meth:`~Item.edit_tail` method.
 
 """
 
+import collections
 import reprlib
 
 from parce.tree import Token
 
 from ..node import Node
 from .util import max_space
+
+
+#: describes a piece of text at a certain position
+Point = collections.namedtuple("Point", "pos end text modified")
+
 
 HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
@@ -125,6 +131,59 @@ class Item(Node):
 
         """
         return ''.join(t.text for t in tail_origin)
+
+    def head_point(self):
+        """Return the Point describing the head text."""
+        try:
+            origin = self._head_origin
+        except AttributeError:
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        head = self.write_head()
+        modified = bool(self._modified & HEAD_MODIFIED)
+        return Point(pos, end, head, modified)
+
+    def tail_point(self):
+        """Return the Point describing the tail text.
+
+        Returns None for items that can't have a tail text.
+
+        """
+        return None
+
+    def points(self):
+        """Yield three-tuples (before, point, after).
+
+        Each ``point`` is a Point describing a text piece, ``before`` and
+        ``after`` are the desired whitespace before and after the piece. For
+        adjacent pieces, you may collapse whitespace.
+
+        """
+        yield from self._points(self.after)
+
+    def _points(self, last_space):
+        """Interally used by points()."""
+        if len(self):
+            yield self.before, self.head_point(), self.after_head
+            n = self[0]
+            for m in self[1:]:
+                points = n.points()
+                p = next(points)
+                for q in points:
+                    yield p
+                    p = q
+                yield p[0], p[1], max_space(p[2], self.concat(n, m))
+                n = m
+            points = n.points()
+            p = next(points)
+            for q in points:
+                yield p
+                p = q
+            yield p[0], p[1], max_space(p[2], last_space)
+        else:
+            yield self.before, self.head_point(), last_space
 
     def write(self):
         """Return a three-tuple (before, text, after).
@@ -306,6 +365,23 @@ class HeadItem(Item):
 class EnclosedItem(Item):
     """Item that has a tail value as well."""
     __slots__ = ('_tail_origin',)
+
+    def tail_point(self):
+        try:
+            origin = self._tail_origin
+        except AttributeError:
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        tail = self.write_tail()
+        modified = bool(self._modified & TAIL_MODIFIED)
+        return Point(pos, end, tail, modified)
+
+    def points(self):
+        """Reimplemented to add a tail point as well."""
+        yield from self._points(self.before_tail)
+        yield self.before_tail, self.tail_point(), self.after
 
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
