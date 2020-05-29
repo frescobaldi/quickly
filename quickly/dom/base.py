@@ -153,37 +153,30 @@ class Item(Node):
         """
         return None
 
-    def points(self):
+    def points(self, _last=''):
         """Yield three-tuples (before, point, after).
 
         Each ``point`` is a Point describing a text piece, ``before`` and
         ``after`` are the desired whitespace before and after the piece. For
-        adjacent pieces, you may collapse whitespace.
+        adjacent pieces, you may collapse whitespace. The ``_last`` value can
+        be left alone, it is used by recursive calls to this method.
 
         """
-        def points(points, last):
-            # yield the points, combining the last whitespace with ``last``
-            p = next(points)
-            for q in points:
-                yield p
-                p = q
-            before, point, after = p
-            yield before, point, collapse_whitespace((after, last))
-
         head_point = self.head_point()
         tail_point = self.tail_point()
-        last_space = self.before_tail if tail_point else self.after
+        after = collapse_whitespace((self.after, _last))
+        last_space = self.before_tail if tail_point else after
         if len(self):
             yield self.before, head_point, self.after_head
             n = self[0]
             for m in self[1:]:
-                yield from points(n.points(), self.concat(n, m))
+                yield from n.points(self.concat(n, m))
                 n = m
-            yield from points(n.points(), last_space)
+            yield from n.points(last_space)
         else:
             yield self.before, head_point, last_space
         if tail_point:
-            yield self.before_tail, tail_point, self.after
+            yield self.before_tail, tail_point, after
 
     def write(self):
         """Return the formatted (not yet indented) output."""
