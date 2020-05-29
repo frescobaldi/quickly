@@ -186,13 +186,7 @@ class Item(Node):
             yield self.before, self.head_point(), last_space
 
     def write(self):
-        """Return a three-tuple (before, text, after).
-
-        The ``text`` is the string output of this node. The ``before`` and
-        ``after`` values are strings as well, indicating the minimal whitespace
-        that should be applied before and after this node.
-
-        """
+        """Return the formatted (not yet indented) output."""
         result = []
         after = []
         for b, p, a in self.points():
@@ -202,13 +196,7 @@ class Item(Node):
                 result.append(p.text)
                 after.clear()
             after.append(a)
-        if result:
-            return result[0], ''.join(result[1:]), collapse_whitespace(after)
-        return self.before, '', self.after
-
-    def output(self):
-        """Return the formatted (not yet indented) output."""
-        return ''.join(self.write()[1:])
+        return ''.join(result[1:])
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
