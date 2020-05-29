@@ -55,7 +55,7 @@ import reprlib
 from parce.tree import Token
 
 from ..node import Node
-from .util import max_space
+from .util import collapse_whitespace
 
 
 #: describes a piece of text at a certain position
@@ -174,14 +174,14 @@ class Item(Node):
                 for q in points:
                     yield p
                     p = q
-                yield p[0], p[1], max_space(p[2], self.concat(n, m))
+                yield p[0], p[1], collapse_whitespace((p[2], self.concat(n, m)))
                 n = m
             points = n.points()
             p = next(points)
             for q in points:
                 yield p
                 p = q
-            yield p[0], p[1], max_space(p[2], last_space)
+            yield p[0], p[1], collapse_whitespace((p[2], last_space))
         else:
             yield self.before, self.head_point(), last_space
 
@@ -194,40 +194,21 @@ class Item(Node):
 
         """
         result = []
-        after = ""
+        after = []
         for b, p, a in self.points():
+            after.append(b)
             if p.text:
-                result.append(max_space(after, b))
+                result.append(collapse_whitespace(after))
                 result.append(p.text)
-                after = a
-            else:
-                after = max_space(after, b, a)
+                after.clear()
+            after.append(a)
         if result:
-            return result[0], ''.join(result[1:]), after
+            return result[0], ''.join(result[1:]), collapse_whitespace(after)
         return self.before, '', self.after
 
     def output(self):
         """Return the formatted (not yet indented) output."""
         return ''.join(self.write()[1:])
-
-    def whitespace(self, other=None):
-        """Return the whitespace applicable between self and other.
-
-        """
-        if other is None:
-            # special case for empty node with head and tail
-            return max_space(self.after_head, self.before_tail)
-        elif self.parent and self.parent is other.parent:
-            # other is our sibling
-            return max_space(self.after, other.before, self.parent.concat(self, other))
-        elif self is other.parent:
-            # other is our first child
-            return max_space(other.before, self.after_head)
-        elif other is self.parent:
-            # special case for whitespace between last child and tail
-            return max_space(self.after, other.before_tail)
-        else:
-            return max_space(self.after, other.before)
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
@@ -257,63 +238,6 @@ class Item(Node):
 
         """
         return self.tail
-
-    def edits(self):
-        """Yield three-tuples(start, end, text) denoting how to modify an
-        existing document.
-
-        If start and end are None: this is a new node, with text to be added.
-        If start and end are not None, but text is None: the node is unchanged
-        and the text does not need to be altered. If text is not None: the
-        range from start to end needs to be replaced with text.
-
-        """
-        head = self.edit_head()
-        if any(head):
-            yield head
-        for node in self:
-            yield from node.edits()
-        tail = self.edit_tail()
-        if any(tail):
-            yield tail
-
-    def edit_head(self):
-        """Return a three-tuple(start, end, text) denoting how to modify an
-        existing document.
-
-        If start and end are None: this is a new node, with text to be added.
-        If start and end are not None, but text is None: the node is unchanged
-        and the text does not need to be altered. If text is not None: the
-        range from start to end needs to be replaced with text.
-
-        """
-        try:
-            origin = self._head_origin
-        except AttributeError:
-            pos = end = None
-        else:
-            pos = origin[0].pos
-            end = origin[-1].end
-        return pos, end, self.write_head() if self._modified & HEAD_MODIFIED else None
-
-    def edit_tail(self):
-        """Return a three-tuple(start, end, text) denoting how to modify an
-        existing document.
-
-        If start and end are None: this is a new node, with text to be added.
-        If start and end are not None, but text is None: the node is unchanged
-        and the text does not need to be altered. If text is not None: the
-        range from start to end needs to be replaced with text.
-
-        """
-        try:
-            origin = self._tail_origin
-        except AttributeError:
-            pos = end = None
-        else:
-            pos = origin[0].pos
-            end = origin[-1].end
-        return pos, end, self.write_tail() if self._modified & TAIL_MODIFIED else None
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):

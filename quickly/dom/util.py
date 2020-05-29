@@ -23,20 +23,20 @@ Some utility functions.
 """
 
 
-def max_space(*whitespace):
+def collapse_whitespace(whitespaces):
     r"""Return the "most important" whitespace of the specified strings.
 
     This is used to combine whitespace requirements. For example, newlines
     are preferred over single spaces, and a single space is preferred over
     an empty string. For example::
 
-        >>> max_space('\n', ' ')
+        >>> collapse_whitespace(['\n', ' '])
         '\n'
-        >>> max_space(' ', '')
+        >>> collapse_whitespace([' ', ''])
         ' '
 
     """
-    return max(whitespace, key=lambda s: (s.count('\n'), s.count(' ')))
+    return max(whitespaces, key=lambda s: (s.count('\n'), s.count(' ')), default='')
 
 
 def transform(text, lexicon=None):
