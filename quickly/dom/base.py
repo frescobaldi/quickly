@@ -55,7 +55,7 @@ import reprlib
 from parce.tree import Token
 
 from ..node import Node
-from .util import collapse_whitespace
+from .util import collapse_whitespace, combine_text
 
 
 #: describes a piece of text at a certain position
@@ -180,16 +180,7 @@ class Item(Node):
 
     def write(self):
         """Return the formatted (not yet indented) output."""
-        result = []
-        whitespace = []
-        for before, point, after in self.points():
-            whitespace.append(before)
-            if point.text:
-                result.append(collapse_whitespace(whitespace))
-                result.append(point.text)
-                whitespace.clear()
-            whitespace.append(after)
-        return ''.join(result[1:])
+        return combine_text((b, p.text, a) for b, p, a in self.points())[1]
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
