@@ -188,14 +188,14 @@ class Item(Node):
     def write(self):
         """Return the formatted (not yet indented) output."""
         result = []
-        after = []
-        for b, p, a in self.points():
-            after.append(b)
-            if p.text:
-                result.append(collapse_whitespace(after))
-                result.append(p.text)
-                after.clear()
-            after.append(a)
+        whitespace = []
+        for before, point, after in self.points():
+            whitespace.append(before)
+            if point.text:
+                result.append(collapse_whitespace(whitespace))
+                result.append(point.text)
+                whitespace.clear()
+            whitespace.append(after)
         return ''.join(result[1:])
 
     def concat(self, node, next_node):
