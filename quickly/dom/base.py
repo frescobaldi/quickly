@@ -193,39 +193,19 @@ class Item(Node):
         that should be applied before and after this node.
 
         """
+
         result = []
-        result_before = self.before
-        result_after = self.after
-        head = self.write_head()
-        tail = self.write_tail()
-        if head:
-            result.append(head)
-        if len(self):
-            n = self[0]
-            before, text, after = n.write()
-            if head:
-                result.append(max_space(self.after_head, before))
+        after = ""
+        for b, p, a in self.points():
+            if p.text:
+                result.append(max_space(after, b))
+                result.append(p.text)
+                after = a
             else:
-                result_before = before
-            result.append(text)
-            for m in self[1:]:
-                before, text, new_after = m.write()
-                if text:
-                    result.append(max_space(self.concat(n, m), after, before))
-                    result.append(text)
-                    after = new_after
-                    n = m
-                else:
-                    after = max_space(after, before, new_after)
-            if not tail:
-                result_after = max_space(self.after, after)
-        if tail:
-            if len(self):
-                result.append(max_space(self.before_tail, after))
-            elif head:
-                result.append(max_space(self.after_head, self.before_tail))
-            result.append(tail)
-        return result_before, ''.join(result), result_after
+                after = max_space(after, b, a)
+        if result:
+            return result[0], ''.join(result[1:]), after
+        return self.before, '', self.after
 
     def output(self):
         """Return the formatted (not yet indented) output."""
