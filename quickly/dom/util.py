@@ -39,6 +39,30 @@ def collapse_whitespace(whitespaces):
     return max(whitespaces, key=lambda s: (s.count('\n'), s.count(' ')), default='')
 
 
+def combine_text(fragments):
+    r"""Concatenate text fragments collapsing whitespace before and after the
+    fragments.
+
+    ``fragments`` is an iterable of (``before``, ``text``, ``after``) tuples,
+    where ``before`` and ``after`` are whitespace. If a ``text`` is empty, the
+    whitespace before and after are collapsed into the other surrounding
+    whitespace. Returns a tree-tuple (``before``, ``text``, ``after``)
+    containing the first ``before`` value, the combined ``text``, and the last
+    ``after`` value.
+
+    """
+    result = []
+    whitespace = []
+    for before, text, after in fragments:
+        whitespace.append(before)
+        if text:
+            result.append(collapse_whitespace(whitespace))
+            result.append(text)
+            whitespace.clear()
+        whitespace.append(after)
+    return ''.join(result[:1]), ''.join(result[1:]), collapse_whitespace(whitespace)
+
+
 def transform(text, lexicon=None):
     """Transform the text.
 
