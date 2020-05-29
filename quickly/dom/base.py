@@ -193,7 +193,6 @@ class Item(Node):
         that should be applied before and after this node.
 
         """
-
         result = []
         after = ""
         for b, p, a in self.points():
