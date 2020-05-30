@@ -262,7 +262,11 @@ class Item(Node):
         return self.tail
 
     def edits(self, tree):
-        """Yield three-tuples (pos, end, text) denoting text changes."""
+        """Yield three-tuples (pos, end, text) denoting text changes.
+
+        Changes to whitespace attributes are not registered as text changes.
+
+        """
         tokens = tree.tokens()
         pos = tree.pos
         insert_after = None
