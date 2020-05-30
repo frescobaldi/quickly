@@ -73,8 +73,10 @@ def transform(text, lexicon=None):
     """
     from parce.transform import Transformer
     from quickly.lang.lilypond import LilyPond, LilyPondAdHocTransform
+    from quickly.lang.scheme import Scheme, SchemeAdHocTransform
     t = Transformer()
     t.add_transform(LilyPond, LilyPondAdHocTransform())
+    t.add_transform(Scheme, SchemeAdHocTransform())
     return t.transform_text(lexicon or LilyPond.root, text)
 
 

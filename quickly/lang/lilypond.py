@@ -34,6 +34,11 @@ from quickly import dom
 
 class LilyPond(parce.lang.lilypond.LilyPond):
     """LilyPond language definition."""
+    @classmethod
+    def get_scheme_target(cls):
+        """Get *our* Scheme."""
+        from .scheme import Scheme
+        return Scheme.one_arg
 
 
 

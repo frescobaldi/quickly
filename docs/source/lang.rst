@@ -7,6 +7,7 @@ Modules in the ``lang`` package:
    :maxdepth: 1
 
    lang/lilypond.rst
+   lang/scheme.rst
 
 .. automodule:: quickly.lang
    :members:
