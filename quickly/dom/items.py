@@ -37,6 +37,8 @@ class Newline(base.Item):
     anywhere you want a newline in manually crafted documents.
 
     """
+    __slots__ = ()
+
     head = ''
     after = '\n'
 
@@ -60,12 +62,16 @@ class Line(base.Item):
     a line of its own.
 
     """
+    __slots__ = ()
+
     before = after = '\n'
     between = ' '
 
 
 class Document(base.Item):
     """A LilyPond source document."""
+    __slots__ = ()
+
     between = '\n\n'
 
     def concat(self, n, m):
@@ -76,6 +82,8 @@ class Document(base.Item):
 
 class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
+    __slots__ = ()
+
     before = after = after_head = before_tail = '\n'
     head = '<fill in> {'
     tail = '}'
@@ -83,56 +91,76 @@ class Block(base.TailItem):
 
 class Book(Block):
     r"""A \book { } block."""
+    __slots__ = ()
+
     head = r"\book {"
 
 
 class BookPart(Block):
     r"""A \bookpart { } block."""
+    __slots__ = ()
+
     head = r"\bookpart {"
 
 
 class Score(Block):
     r"""A \score { } block."""
+    __slots__ = ()
+
     head = r"\score {"
 
 
 class Header(Block):
     r"""A \header { } block."""
+    __slots__ = ()
+
     head = r"\header {"
 
 
 class Paper(Block):
     r"""A \paper { } block."""
+    __slots__ = ()
+
     head = r"\paper {"
 
 
 class Layout(Block):
     r"""A \layout { } block."""
+    __slots__ = ()
+
     head = r"\layout {"
 
 
 class Midi(Block):
     r"""A \midi { } block."""
+    __slots__ = ()
+
     head = r"\midi {"
 
 
 class With(Block):
     r"""A \with { } block."""
+    __slots__ = ()
+
     head = r"\with {"
     before = after = " "
 
 
 class LayoutContext(Block):
     r"""A \context { } block within \layout or \midi."""
+    __slots__ = ()
+
     head = r"\context {"
 
 
 class Pitch(base.VarHeadItem):
     """A pitch note name."""
+    __slots__ = ()
 
 
 class Mode(base.VarHeadItem):
     r"""The mode subcommand of the \key statement."""
+    __slots__ = ()
 
 
 class Key(base.HeadItem):
@@ -141,6 +169,8 @@ class Key(base.HeadItem):
     Must have a Pitch and a Mode child.
 
     """
+    __slots__ = ()
+
     head = r"\key"
 
 
@@ -150,11 +180,15 @@ class Clef(base.HeadItem):
     Must have a Symbol or String child indicating the clef type.
 
     """
+    __slots__ = ()
+
     head = r"\clef"
 
 
 class String(base.VarHeadItem):
     r"""A quoted string."""
+    __slots__ = ()
+
     @classmethod
     def read_head(cls, origin):
         return ''.join(t.text[1:] if t.action is a.String.Escape else t.text
@@ -166,10 +200,14 @@ class String(base.VarHeadItem):
 
 class Comment(base.VarHeadItem):
     r"""Base class for comment items."""
+    __slots__ = ()
+
 
 
 class MultilineComment(Comment):
     r"""A multiline comment between %{ and %}."""
+    __slots__ = ()
+
     @classmethod
     def read_head(cls, origin):
         end = -1 if origin[-1] == "%}" else None
@@ -181,6 +219,8 @@ class MultilineComment(Comment):
 
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
+    __slots__ = ()
+
     after = '\n'
     @classmethod
     def read_head(cls, origin):
@@ -192,16 +232,22 @@ class SinglelineComment(Comment):
 
 class Markup(base.VarHeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
+    __slots__ = ()
+
     before = after = between = after_head = " "
 
 
 class MarkupWord(base.VarHeadItem):
     """A word in markup mode."""
+    __slots__ = ()
+
     before = after = " "
 
 
 class MarkupList(base.TailItem):
     """A bracketed markup expression, like { ... }."""
+    __slots__ = ()
+
     after_head = before_tail = between = " "
     head = "{"
     tail = "}"
@@ -209,6 +255,8 @@ class MarkupList(base.TailItem):
 
 class MarkupCommand(base.VarHeadItem):
     r"""A markup command, like \bold <arg>."""
+    __slots__ = ()
+
     before = after = between = " "
 
 

@@ -68,7 +68,7 @@ TAIL_MODIFIED = 2
 
 class Item(Node):
     """Abstract base class for all item types."""
-    __slots__ = ('__dict__',)
+    __slots__ = ()
     _head = None
     _tail = None
     _modified = 0
@@ -82,8 +82,6 @@ class Item(Node):
 
     def __init__(self, *children, **attrs):
         super().__init__(*children)
-        if attrs:
-            self.__dict__.update(attrs)
 
     def __repr__(self):
         def result():
@@ -107,9 +105,21 @@ class Item(Node):
     def head(self):
         return self._head
 
+    @head.setter
+    def head(self, head):
+        if head != self._head:
+            self._head = head
+            self._modified |= HEAD_MODIFIED
+
     @property
     def tail(self):
         return self._tail
+
+    @tail.setter
+    def tail(self, tail):
+        if tail != self._tail:
+            self._tail = tail
+            self._modified |= TAIL_MODIFIED
 
     @classmethod
     def read_head(cls, head_origin):
@@ -260,7 +270,11 @@ class Item(Node):
 
 class HeadItem(Item):
     """Item that has a fixed head value."""
-    __slots__ = ('_head_origin',)
+    __slots__ = ('_head_origin', '_modified')
+
+    def __init__(self, *children, **attrs):
+        self._modified = 0
+        super().__init__(*children, **attrs)
 
     def head_point(self):
         """Return the Point describing the head text."""
@@ -313,16 +327,6 @@ class TailItem(HeadItem):
 class VarHeadItem(HeadItem):
     """Item that has a variable/writable head value."""
     __slots__ = ('_head', '_modified')
-
-    @property
-    def head(self):
-        return self._head
-
-    @head.setter
-    def head(self, head):
-        if head != self._head:
-            self._head = head
-            self._modified |= HEAD_MODIFIED
 
     def __init__(self, head, *children, **attrs):
         self._head = head
