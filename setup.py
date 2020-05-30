@@ -51,7 +51,7 @@ package_data = {
 }
 
 classifiers = [
-    'Development Status :: 1 - Planning',
+    'Development Status :: 2 - Pre-Alpha',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
     'Operating System :: MacOS :: MacOS X',
