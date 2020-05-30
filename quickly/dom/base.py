@@ -26,25 +26,25 @@ display a ``head`` and optionally a ``tail``. The head is text that is printed
 before the children (if any). The tail is displayed after the children, and
 will in most cases be used as a closing delimiter.
 
-An :class:Item can be constructed in two ways: either using the
-:meth:from_origin class method from tokens (this is done by the
+An Item can be constructed in two ways: either using the
+:meth:`~HeadItem.from_origin` class method from tokens (this is done by the
 LilyPondTransform class), or manually using the normal constructor.
 
 You can specify all child items in the constructor, so theoretically you
 can build a whole document in one expression.
 
 To get the textual output of an item and all its child items, use the
-:meth:`~Item.output` method. TODO: indenting.
+:meth:`~Item.write` method. TODO: indenting.
 
 Whitespace is handled in a smart way: Item subclasses can specify the preferred
-whitespace ``before``, ``after`` and ``between`` elements, and items that draw
+whitespace ``before``, ``after`` and ``between`` elements, and items that have
 head and tail texts can also specify the preperred whitespace after the head
 and before the tail. When outputting the text, the whitespace between items is
 combined to fulfil all requirements but to prevent double spaces.
 
-When an Item is constructed from tokens using the :meth:`~Item.with_origin`
+When an Item is constructed from tokens using the :meth:`~HeadItem.with_origin`
 constructor, it is able to write ifself back in the document if modified, using
-the :meth:`~Item.edit_head` and :meth:`~Item.edit_tail` method.
+the :meth:`~Item.edit` method.
 
 
 """
@@ -66,7 +66,7 @@ HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
 
 
-class SpacingProperty:
+class _SpacingProperty:
     """A property that denotes spacing.
 
     If it does not deviate from the default (set in the Item class definition
@@ -112,7 +112,7 @@ class Item(Node):
     ``after``, ``between``, ``after_head`` and ``before_tail``.
 
     """
-    __slots__ = (SpacingProperty._spacing,)
+    __slots__ = (_SpacingProperty._spacing,)
 
     _head = None
     _tail = None
@@ -148,11 +148,11 @@ class Item(Node):
                     yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
 
-    before = SpacingProperty('before')          #: whitespace before this item
-    between = SpacingProperty('between')        #: whitespace between children
-    after = SpacingProperty('after')            #: whitespace after this item
-    after_head = SpacingProperty('after_head')  #: whitespace before first child
-    before_tail = SpacingProperty('before_tail')#: whitespace before tail
+    before = _SpacingProperty('before')          #: whitespace before this item
+    between = _SpacingProperty('between')        #: whitespace between children
+    after = _SpacingProperty('after')            #: whitespace after this item
+    after_head = _SpacingProperty('after_head')  #: whitespace before first child
+    before_tail = _SpacingProperty('before_tail')#: whitespace before tail
 
     @property
     def head(self):
