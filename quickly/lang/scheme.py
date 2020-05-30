@@ -68,13 +68,16 @@ class SchemeTransform(Transform):
         return items
 
     def string(self, items):
-        return items
+        """Create a String node."""
+        return self.factory(dom.SchemeString, items)
 
     def multiline_comment(self, items):
-        return items
+        """Create a MultilineComment node."""
+        return self.factory(dom.SchemeMultilineComment, items)
 
     def singleline_comment(self, items):
-        return items
+        """Create a SinglelineComment node."""
+        return self.factory(dom.SchemeSinglelineComment, items)
 
     def one_arg(self, items):
         return items

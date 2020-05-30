@@ -270,3 +270,47 @@ class MarkupCommand(base.VarHeadItem):
     _before = _after = _between = " "
 
 
+### Scheme
+
+class SchemeSinglelineComment(Comment):
+    r"""A singleline comment in Scheme after ``;``."""
+    __slots__ = ()
+    _after = '\n'
+
+    @classmethod
+    def read_head(cls, origin):
+        return ''.join(t.text for t in origin[1:])
+
+    def write_head(self):
+        return ';{}'.format(self.head)
+
+
+class SchemeMultilineComment(Comment):
+    r"""A multiline comment in Scheme after ``#!``."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        end = -1 if origin[-1] == "#!" else None
+        return ''.join(t.text for t in origin[1:end])
+
+    def write_head(self):
+        return '#!{}#!'.format(self.head)
+
+
+class SchemeString(base.VarHeadItem):
+    r"""A quoted string."""
+    __slots__ = ()
+
+    def __init__(self, text, **attrs):
+        super().__init__(text, **attrs)
+
+    @classmethod
+    def read_head(cls, origin):
+        return ''.join(t.text[1:] if t.action is a.String.Escape else t.text
+            for t in origin[1:-1])
+
+    def write_head(self):
+        return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.head))
+
+
