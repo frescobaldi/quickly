@@ -68,7 +68,7 @@ TAIL_MODIFIED = 2
 
 class Item(Node):
     """Abstract base class for all item types."""
-    __slots__ = ('__dict__', '_head_origin',)
+    __slots__ = ('__dict__',)
     _head = None
     _tail = None
     _modified = 0
@@ -98,21 +98,9 @@ class Item(Node):
     def head(self):
         return self._head
 
-    @head.setter
-    def head(self, head):
-        if head != self._head:
-            self._head = head
-            self._modified |= HEAD_MODIFIED
-
     @property
     def tail(self):
         return self._tail
-
-    @tail.setter
-    def tail(self, tail):
-        if tail != self._tail:
-            self._tail = tail
-            self._modified |= TAIL_MODIFIED
 
     @classmethod
     def read_head(cls, head_origin):
@@ -133,17 +121,12 @@ class Item(Node):
         return ''.join(t.text for t in tail_origin)
 
     def head_point(self):
-        """Return the Point describing the head text."""
-        try:
-            origin = self._head_origin
-        except AttributeError:
-            pos = end = None
-        else:
-            pos = origin[0].pos
-            end = origin[-1].end
-        head = self.write_head()
-        modified = bool(self._modified & HEAD_MODIFIED)
-        return Point(pos, end, head, modified)
+        """Return the Point describing the head text.
+
+        Returns None for items that can't have a head text.
+
+        """
+        return None
 
     def tail_point(self):
         """Return the Point describing the tail text.
@@ -167,13 +150,14 @@ class Item(Node):
         after = collapse_whitespace((self.after, _last))
         last_space = self.before_tail if tail_point else after
         if len(self):
-            yield self.before, head_point, self.after_head
+            if head_point:
+                yield self.before, head_point, self.after_head
             n = self[0]
             for m in self[1:]:
                 yield from n.points(self.concat(n, m))
                 n = m
             yield from n.points(last_space)
-        else:
+        elif head_point:
             yield self.before, head_point, last_space
         if tail_point:
             yield self.before_tail, tail_point, after
@@ -219,7 +203,7 @@ class Item(Node):
         for before, point, after in self.points():
             b = '' if insert_after is None else collapse_whitespace((insert_after, before))
             if point.pos is None:
-                # new item.
+                # new item
                 if point.text:
                     yield pos, pos, b + point.text
                     insert_after = after
@@ -245,6 +229,24 @@ class Item(Node):
         if pos < tree.end:
             yield pos, tree.end, ''
 
+
+class HeadItem(Item):
+    """Item that has a fixed head value."""
+    __slots__ = ('_head_origin',)
+
+    def head_point(self):
+        """Return the Point describing the head text."""
+        try:
+            origin = self._head_origin
+        except AttributeError:
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        head = self.write_head()
+        modified = bool(self._modified & HEAD_MODIFIED)
+        return Point(pos, end, head, modified)
+
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         return cls(*children, **attrs)
@@ -256,23 +258,8 @@ class Item(Node):
         return node
 
 
-class HeadItem(Item):
-    """Item that has a variable head value."""
-    __slots__ = ('_head', '_modified')
-
-    def __init__(self, head, *children, **attrs):
-        self._head = head
-        self._modified = 0
-        super().__init__(*children, **attrs)
-
-    @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
-        head = cls.read_head(head_origin)
-        return cls(head, *children, **attrs)
-
-
-class EnclosedItem(Item):
-    """Item that has a tail value as well."""
+class TailItem(HeadItem):
+    """Item that has a fixed head and tail value."""
     __slots__ = ('_tail_origin',)
 
     def tail_point(self):
@@ -295,19 +282,28 @@ class EnclosedItem(Item):
         return node
 
 
-class CustomItem(EnclosedItem):
-    """Item where head and tail are both writable."""
-    __slots__ = ('_head', '_tail', '_modified')
+class VarHeadItem(HeadItem):
+    """Item that has a variable/writable head value."""
+    __slots__ = ('_head', '_modified')
 
-    def __init__(self, head, tail, *children, **attrs):
+    @property
+    def head(self):
+        return self._head
+
+    @head.setter
+    def head(self, head):
+        if head != self._head:
+            self._head = head
+            self._modified |= HEAD_MODIFIED
+
+    def __init__(self, head, *children, **attrs):
         self._head = head
-        self._tail = tail
         self._modified = 0
         super().__init__(*children, **attrs)
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
-        tail = cls.read_tail(tail_origin)
-        return cls(head, tail, *children, **attrs)
+        return cls(head, *children, **attrs)
+
 

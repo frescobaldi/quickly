@@ -74,7 +74,7 @@ class Document(base.Item):
         return self.between
 
 
-class Block(base.EnclosedItem):
+class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
     before = after = after_head = before_tail = '\n'
     head = '<fill in> {'
@@ -127,15 +127,15 @@ class LayoutContext(Block):
     head = r"\context {"
 
 
-class Pitch(base.HeadItem):
+class Pitch(base.VarHeadItem):
     """A pitch note name."""
 
 
-class Mode(base.HeadItem):
+class Mode(base.VarHeadItem):
     r"""The mode subcommand of the \key statement."""
 
 
-class Key(base.Item):
+class Key(base.HeadItem):
     r"""A \key statement.
 
     Must have a Pitch and a Mode child.
@@ -144,7 +144,7 @@ class Key(base.Item):
     head = r"\key"
 
 
-class Clef(base.Item):
+class Clef(base.HeadItem):
     r"""A \clef statement.
 
     Must have a Symbol or String child indicating the clef type.
@@ -153,7 +153,7 @@ class Clef(base.Item):
     head = r"\clef"
 
 
-class String(base.HeadItem):
+class String(base.VarHeadItem):
     r"""A quoted string."""
     @classmethod
     def read_head(cls, origin):
@@ -164,7 +164,7 @@ class String(base.HeadItem):
         return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.head))
 
 
-class Comment(base.HeadItem):
+class Comment(base.VarHeadItem):
     r"""Base class for comment items."""
 
 
@@ -190,24 +190,24 @@ class SinglelineComment(Comment):
         return '%{}'.format(self.head)
 
 
-class Markup(base.HeadItem):
+class Markup(base.VarHeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
     before = after = between = after_head = " "
 
 
-class MarkupWord(base.HeadItem):
+class MarkupWord(base.VarHeadItem):
     """A word in markup mode."""
     before = after = " "
 
 
-class MarkupList(base.EnclosedItem):
+class MarkupList(base.TailItem):
     """A bracketed markup expression, like { ... }."""
     after_head = before_tail = between = " "
     head = "{"
     tail = "}"
 
 
-class MarkupCommand(base.HeadItem):
+class MarkupCommand(base.VarHeadItem):
     r"""A markup command, like \bold <arg>."""
     before = after = between = " "
 
