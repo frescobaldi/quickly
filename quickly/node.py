@@ -170,6 +170,13 @@ class Node(list):
             old._parent = None
         list.__delitem__(self, k)
 
+    def ancestors(self):
+        """Climb up the tree over the parents."""
+        n = self.parent
+        while n:
+            yield n
+            n = n.parent
+
     def equals(self, other):
         """Return True if we and other are equivalent.
 
@@ -197,19 +204,25 @@ class Node(list):
         """Identity compare to make Node.index robust and "faster"."""
         return self is not other
 
+    def __lshift__(self, other):
+        """Iterate over the ancestors that inherit the specified class."""
+        for i in self.ancestors():
+            if isinstance(i, other):
+                yield i
+
     def __truediv__(self, other):
-        """Iterate over children of the specified class."""
+        """Iterate over children that inherit the specified class."""
         for i in self:
-            if type(i) is other:
+            if isinstance(i, other):
                 yield i
 
     def __floordiv__(self, other):
-        """Iterate over descendants of the specified class, in document order."""
+        """Iterate over descendants inheriting the specified class, in document order."""
         stack = []
         gen = iter(self)
         while True:
             for i in gen:
-                if type(i) is other:
+                if isinstance(i, other):
                     yield i
                 if len(i):
                     stack.append(gen)
