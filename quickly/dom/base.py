@@ -92,6 +92,15 @@ class Item(Node):
                 yield reprlib.repr(self.head)
             if len(self):
                 yield "({} child{})".format(len(self), '' if len(self) == 1 else 'ren')
+            pos = end = None
+            p = self.head_point()
+            if p:
+                pos, end = p.pos, p.end
+                if pos is not None:
+                    p = self.tail_point()
+                    if p and p.end is not None:
+                        end = p.end
+                    yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
 
     @property
