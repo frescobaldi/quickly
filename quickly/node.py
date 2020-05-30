@@ -170,13 +170,6 @@ class Node(list):
             old._parent = None
         list.__delitem__(self, k)
 
-    def ancestors(self):
-        """Climb up the tree over the parents."""
-        n = self.parent
-        while n:
-            yield n
-            n = n.parent
-
     def equals(self, other):
         """Return True if we and other are equivalent.
 
@@ -245,3 +238,30 @@ class Node(list):
         """Return True if this is the first node. Fails if no parent."""
         return self.parent[0] is self
 
+    def ancestors(self):
+        """Climb up the tree over the parents."""
+        n = self.parent
+        while n:
+            yield n
+            n = n.parent
+
+    def root(self):
+        """Return the root node."""
+        root = self
+        for root in self.ancestors():
+            pass
+        return root
+
+    def right_siblings(self):
+        """Iterate over the right siblings of this node."""
+        p = self.parent
+        if p:
+            i = p.index(self)
+            yield from p[i+1:]
+
+    def left_siblings(self):
+        """Iterate backwards over the left siblings of this node."""
+        p = self.parent
+        if p:
+            i = p.index(self)
+            yield from reversed(p[:i])
