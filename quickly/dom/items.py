@@ -40,7 +40,7 @@ class Newline(base.Item):
     __slots__ = ()
 
     head = ''
-    after = '\n'
+    _after = '\n'
 
 
 class BlankLine(Newline):
@@ -50,7 +50,7 @@ class BlankLine(Newline):
     anywhere you want a blank line in manually crafted documents.
 
     """
-    after = '\n\n'
+    _after = '\n\n'
 
 
 class Line(base.Item):
@@ -64,15 +64,15 @@ class Line(base.Item):
     """
     __slots__ = ()
 
-    before = after = '\n'
-    between = ' '
+    _before = _after = '\n'
+    _between = ' '
 
 
 class Document(base.Item):
     """A LilyPond source document."""
     __slots__ = ()
 
-    between = '\n\n'
+    _between = '\n\n'
 
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
@@ -84,7 +84,7 @@ class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
 
-    before = after = after_head = before_tail = '\n'
+    _before = _after = _after_head = _before_tail = '\n'
     head = '<fill in> {'
     tail = '}'
 
@@ -143,7 +143,7 @@ class With(Block):
     __slots__ = ()
 
     head = r"\with {"
-    before = after = " "
+    _before = _after = " "
 
 
 class LayoutContext(Block):
@@ -220,8 +220,8 @@ class MultilineComment(Comment):
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
     __slots__ = ()
+    _after = '\n'
 
-    after = '\n'
     @classmethod
     def read_head(cls, origin):
         return ''.join(t.text for t in origin[1:])
@@ -233,22 +233,19 @@ class SinglelineComment(Comment):
 class Markup(base.VarHeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
     __slots__ = ()
-
-    before = after = between = after_head = " "
+    _before = _after = _between = _after_head = " "
 
 
 class MarkupWord(base.VarHeadItem):
     """A word in markup mode."""
     __slots__ = ()
-
-    before = after = " "
+    _before = _after = " "
 
 
 class MarkupList(base.TailItem):
     """A bracketed markup expression, like { ... }."""
     __slots__ = ()
-
-    after_head = before_tail = between = " "
+    _after_head = _before_tail = _between = " "
     head = "{"
     tail = "}"
 
@@ -256,7 +253,6 @@ class MarkupList(base.TailItem):
 class MarkupCommand(base.VarHeadItem):
     r"""A markup command, like \bold <arg>."""
     __slots__ = ()
-
-    before = after = between = " "
+    _before = _after = _between = " "
 
 

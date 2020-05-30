@@ -66,22 +66,63 @@ HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
 
 
+class SpacingProperty:
+    """A property that denotes spacing.
+
+    If it does not deviate from the default (set in the Item class definition
+    prefixed with an underscore), it takes up no memory. Only when a value is
+    changed, a dict is created to hold the values.
+
+    """
+    __slots__ = ('name',)
+    _spacing = '_spacing'
+
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, obj, cls):
+        d = getattr(obj, self._spacing, None)
+        if d:
+            value = d.get(self.name)
+            if value is not None:
+                return value
+        return getattr(cls, '_' + self.name)
+
+    def __set__(self, obj, value):
+        d = getattr(obj, self._spacing, None)
+        if not d:
+            if value == getattr(obj, '_' + self.name):
+                return # don't set if same as default
+            d = obj._spacing = {}
+        d[self.name] = value
+
+    def __delete__(self, obj):
+        d = getattr(obj, self._spacing, None)
+        if d and self.name in d:
+            del d[self.name]
+            if not d:
+                delattr(obj, self._spacing)
+
+
 class Item(Node):
     """Abstract base class for all item types."""
-    __slots__ = ()
+    __slots__ = (SpacingProperty._spacing,)
+
     _head = None
     _tail = None
     _modified = 0
 
-    before = ""         #: minimum whitespace to draw before this item
-    between = ""        #: minimum whitespace to draw between child items
-    after = ""          #: minimum whitespace to draw after this item
+    _before = ""         #: minimum default whitespace to draw before this item
+    _between = ""        #: minimum default whitespace to draw between child items
+    _after = ""          #: minimum default whitespace to draw after this item
 
-    after_head = ""     #: minimum whitespace to draw after the head
-    before_tail = ""    #: minimum whitespace to draw before the tail
+    _after_head = ""     #: minimum default whitespace to draw after the head
+    _before_tail = ""    #: minimum default whitespace to draw before the tail
 
     def __init__(self, *children, **attrs):
         super().__init__(*children)
+        if attrs:
+            self._spacing = attrs
 
     def __repr__(self):
         def result():
@@ -100,6 +141,12 @@ class Item(Node):
                         end = p.end
                     yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
+
+    before = SpacingProperty('before')          #: whitespace before this item
+    between = SpacingProperty('between')        #: whitespace between children
+    after = SpacingProperty('after')            #: whitespace after this item
+    after_head = SpacingProperty('after_head')  #: whitespace before first child
+    before_tail = SpacingProperty('before_tail')#: whitespace before tail
 
     @property
     def head(self):
