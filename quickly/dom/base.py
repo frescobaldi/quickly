@@ -238,6 +238,25 @@ class Item(Node):
         if pos < tree.end:
             yield pos, tree.end, ''
 
+    def edit(self, document, root=None):
+        """Write back the modifications to the original parce document.
+
+        Returns the number of changes that are made. If you don't specify the
+        root Context, it will be requested from the document's tree builder.
+
+        After writing back the modifications to the original document, you
+        should transform a new dom.Document, because some parts need to be
+        rebuilt.
+
+        """
+        root = root or document.builder().root
+        n = 0
+        with document:
+            for pos, end, text in self.edits(root):
+                document[pos:end] = text
+                n += 1
+        return n
+
 
 class HeadItem(Item):
     """Item that has a fixed head value."""
