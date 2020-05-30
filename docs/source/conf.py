@@ -50,7 +50,10 @@ autodoc_default_options = {
 add_module_names = False
 
 # intersphinx
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/3', None),
+    'parce': ('https://parce.info', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
