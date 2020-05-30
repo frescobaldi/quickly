@@ -40,12 +40,33 @@ DUMP_STYLE_DEFAULT = "round"
 
 
 class Node(list):
-    """Node implements a simple tree type, based on Python list.
+    """Node implements a simple tree type, based on Python :class:`list`.
 
     Adding nodes to the list sets the parent of the nodes; and removing nodes
     sets the parent of the nodes to None; but adding nodes does not
     automatically remove them from the previous parent; you should take care of
     that yourself (e.g. by using the :meth:`take` method).
+
+    Besides the usual methods, Node defines three special query operators:
+    ``/``, ``//`` and ``<<``. All these expect a Node (sub)class as argument,
+    and iterate in different ways over selected Nodes:
+
+    * The ``/`` operator iterates over the children that are instances of the
+      specified class::
+
+        for n in node / MyClass:
+            # do_something with n, which is a child of node and
+            # an an instance of MyClass
+
+    * The ``//`` operator iterates over all descendants in document order::
+
+        for n in node // MyClass:
+            # n is a descendant of node and an instance of MyClass
+
+    * The ``<<`` operator iterates over the ancestors::
+
+        for n in node << Header:
+            n.blabla    # n is the youngest ancestor that is a Header instance
 
     """
 
@@ -173,11 +194,12 @@ class Node(list):
     def equals(self, other):
         """Return True if we and other are equivalent.
 
-        This is the case when we and the other have the same class,
-        both lists of children have the same length and compare equal.
+        This is the case when we and the other have the same class, the same
+        amount of children, :meth:`_equals` returns True, and finally for all
+        the children this method returns True.
 
-        Before it calls :meth:`equals` on all the children this method calls
-        meth:`_equals`; implement that method if you want to add more tests,
+        Before this method is called on all the children, this method calls
+        :meth:`_equals`; implement that method if you want to add more tests,
         e.g. for certain instance attributes.
 
         """
@@ -186,7 +208,12 @@ class Node(list):
             all(a.equals(b) for a, b in zip(self, other))
 
     def _equals(self, other):
-        """Implement this to add more `equals` tests, before all the children are compared."""
+        """Implement this to add more :meth:`equals` tests, before all the children
+        are compared.
+
+        The default implementation returns True.
+
+        """
         return True
 
     def __eq__(self, other):
@@ -211,21 +238,9 @@ class Node(list):
 
     def __floordiv__(self, other):
         """Iterate over descendants inheriting the specified class, in document order."""
-        stack = []
-        gen = iter(self)
-        while True:
-            for i in gen:
-                if isinstance(i, other):
-                    yield i
-                if len(i):
-                    stack.append(gen)
-                    gen = iter(i)
-                    break
-            else:
-                if stack:
-                    gen = stack.pop()
-                else:
-                    break
+        for i in self.descendants():
+            if isinstance(i, other):
+                yield i
 
     def __repr__(self):
         return '<{} ({} children)>'.format(type(self).__name__, len(self))
@@ -244,6 +259,23 @@ class Node(list):
         while n:
             yield n
             n = n.parent
+
+    def descendants(self):
+        """Iterate over all the descendants of this node."""
+        stack = []
+        gen = iter(self)
+        while True:
+            for i in gen:
+                yield i
+                if len(i):
+                    stack.append(gen)
+                    gen = iter(i)
+                    break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
 
     def root(self):
         """Return the root node."""
