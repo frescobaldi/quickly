@@ -42,6 +42,9 @@ class Newline(base.Item):
     head = ''
     _after = '\n'
 
+    def __init__(self, **attrs):
+        super().__init__(**attrs)
+
 
 class BlankLine(Newline):
     """A blank line.
@@ -51,6 +54,9 @@ class BlankLine(Newline):
 
     """
     _after = '\n\n'
+
+    def __init__(self, **attrs):
+        super().__init__(**attrs)
 
 
 class Line(base.Item):
@@ -189,6 +195,9 @@ class String(base.VarHeadItem):
     r"""A quoted string."""
     __slots__ = ()
 
+    def __init__(self, text, **attrs):
+        super().__init__(text, **attrs)
+
     @classmethod
     def read_head(cls, origin):
         return ''.join(t.text[1:] if t.action is a.String.Escape else t.text
@@ -202,6 +211,8 @@ class Comment(base.VarHeadItem):
     r"""Base class for comment items."""
     __slots__ = ()
 
+    def __init__(self, text, **attrs):
+        super().__init__(text, **attrs)
 
 
 class MultilineComment(Comment):
@@ -241,6 +252,9 @@ class MarkupWord(base.VarHeadItem):
     __slots__ = ()
     _before = _after = " "
 
+    def __init__(self, text, **attrs):
+        super().__init__(text, **attrs)
+
 
 class MarkupList(base.TailItem):
     """A bracketed markup expression, like { ... }."""
@@ -251,7 +265,7 @@ class MarkupList(base.TailItem):
 
 
 class MarkupCommand(base.VarHeadItem):
-    r"""A markup command, like \bold <arg>."""
+    r"""A markup command, like ``\bold <arg>``."""
     __slots__ = ()
     _before = _after = _between = " "
 

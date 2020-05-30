@@ -105,7 +105,13 @@ class SpacingProperty:
 
 
 class Item(Node):
-    """Abstract base class for all item types."""
+    """Abstract base class for all item types.
+
+    Most Item types support children. Using keyword arguments you can give
+    other spacing preferences than the default values for ``before``,
+    ``after``, ``between``, ``after_head`` and ``before_tail``.
+
+    """
     __slots__ = (SpacingProperty._spacing,)
 
     _head = None
@@ -388,5 +394,4 @@ class VarHeadItem(HeadItem):
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
         return cls(head, *children, **attrs)
-
 
