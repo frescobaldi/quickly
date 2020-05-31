@@ -57,6 +57,21 @@ class SchemeTransform(Transform):
     def common(self):
         pass
 
+    def numbers(self, items):
+        """Yield items, converting Number tokens to dom objects."""
+        for i in items:
+            if i.is_token and i.action in a.Number:
+                yield self.factory({
+                    Number.Int: dom.SchemeInt,
+                    Number.Binary: dom.SchemeBinary,
+                    Number.Octal: dom.SchemeOctal,
+                    Number.Hexadecimal: dom.SchemeHexadecimal,
+                    Number.Infinity: dom.SchemeInfinity,
+                    Number.NaN: dom.SchemeNaN,
+                }[i.action], (i,))
+            else:
+                yield i
+
     ### transforming methods
     def root(self, items):
         return items

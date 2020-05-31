@@ -22,6 +22,8 @@
 The Node types a LilyPond DOM document can be composed of.
 """
 
+import fractions
+import math
 import re
 
 import parce.action as a
@@ -333,5 +335,130 @@ class SchemeVector(base.TailItem):
 class SchemeQuote(base.VarHeadItem):
     r"""A Scheme quote ``'``, ``\``` or ``,``."""
     __slots__ = ()
+
+
+class SchemeNumber(base.VarHeadItem):
+    r"""Base class from a numerical value.
+
+    You can set and read the numerical value using the ``value`` attribute.
+
+    """
+    __slots__ = ()
+
+    value = base.VarHeadItem.head
+
+
+class SchemeInt(SchemeNumber):
+    r"""A Scheme decimal integer."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0])
+
+    def write_head(self):
+        return format(self.head)
+
+
+class SchemeBinary(SchemeNumber):
+    r"""A Scheme binary integer value."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0][2:], 2)
+
+    def write_head(self):
+        return '#b{:b}'.format(self.head)
+
+
+class SchemeOctal(SchemeNumber):
+    r"""A Scheme octal integer value."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0][2:], 8)
+
+    def write_head(self):
+        return '#o{:o}'.format(self.head)
+
+
+class SchemeHexadecimal(SchemeNumber):
+    r"""A Scheme hexadecimal integer value."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0][2:], 16)
+
+    def write_head(self):
+        return '#x{:x}'.format(self.head)
+
+
+class SchemeFloat(SchemeNumber):
+    r"""A Scheme floating point value."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return float(origin[0])
+
+    def write_head(self):
+        return format(self.head)
+
+
+class SchemeFraction(SchemeNumber):
+    r"""A Scheme fractional value; ``head`` is a two-int tuple(num, den).
+
+    The ``value`` attribute has the numerical value; the ``head`` attribute
+    has the tuple (numerator, denominator). This way, a value like 6/8 can be
+    preserved and will not be converted to 3/4.
+
+    """
+    __slots__ = ()
+
+    @property
+    def value(self):
+        return fractions.Fraction(*self.head)
+
+    @value.setter
+    def value(self, value):
+        f = fractions.Fraction(value)
+        self.head = (f.numerator, f.denominator)
+
+    @classmethod
+    def read_head(cls, origin):
+        num, den = map(int, "".join(origin).split('/'))
+        return (num, den)
+
+    def write_head(self):
+        num, den = self.head
+        return "{}/{}".format(num, den)
+
+
+class SchemeInfinity(SchemeNumber):
+    r"""A Scheme """
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return float(''.join(origin).split('.')[0])
+
+    def write_head(self):
+        return "{}.0".format(self.head)
+
+
+class SchemeNaN(SchemeNumber):
+    r"""A Scheme """
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return float(''.join(origin).split('.')[0])
+
+    def write_head(self):
+        return "{}.0".format(self.head)
+
 
 
