@@ -66,8 +66,9 @@ class SchemeTransform(Transform):
                     Number.Binary: dom.SchemeBinary,
                     Number.Octal: dom.SchemeOctal,
                     Number.Hexadecimal: dom.SchemeHexadecimal,
-                    Number.Infinity: dom.SchemeInfinity,
-                    Number.NaN: dom.SchemeNaN,
+                    Number.Float: dom.SchemeFloat,
+                    Number.Infinity: dom.SchemeFloat,
+                    Number.NaN: dom.SchemeFloat,
                 }[i.action], (i,))
             else:
                 yield i

@@ -354,7 +354,8 @@ class SchemeInt(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        return int(origin[0])
+        t = origin[0].text
+        return int(t)
 
     def write_head(self):
         return format(self.head)
@@ -366,7 +367,8 @@ class SchemeBinary(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        return int(origin[0][2:], 2)
+        t = origin[0].text
+        return int(t[2:], 2)
 
     def write_head(self):
         return '#b{:b}'.format(self.head)
@@ -378,7 +380,8 @@ class SchemeOctal(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        return int(origin[0][2:], 8)
+        t = origin[0].text
+        return int(t[2:], 8)
 
     def write_head(self):
         return '#o{:o}'.format(self.head)
@@ -390,7 +393,8 @@ class SchemeHexadecimal(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        return int(origin[0][2:], 16)
+        t = origin[0].text
+        return int(t[2:], 16)
 
     def write_head(self):
         return '#x{:x}'.format(self.head)
@@ -402,10 +406,24 @@ class SchemeFloat(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        return float(origin[0])
+        t = origin[0]
+        if t.action is a.Number.Infinity:
+            return float(t.text.split('.')[0])
+        elif t.action is a.Number.NaN:
+            return float("nan")
+        else:
+            return float(t.text)
 
     def write_head(self):
-        return format(self.head)
+        text = format(self.head)
+        if text == 'inf':
+            return '+inf.0'
+        elif text == '-inf':
+            return '-inf.0'
+        elif text == 'nan':
+            return '+nan.0'
+        else:
+            return text
 
 
 class SchemeFraction(SchemeNumber):
@@ -429,36 +447,12 @@ class SchemeFraction(SchemeNumber):
 
     @classmethod
     def read_head(cls, origin):
-        num, den = map(int, "".join(origin).split('/'))
+        s = "".join(origin)
+        num, den = map(int, s.split('/'))
         return (num, den)
 
     def write_head(self):
         num, den = self.head
         return "{}/{}".format(num, den)
-
-
-class SchemeInfinity(SchemeNumber):
-    r"""A Scheme """
-    __slots__ = ()
-
-    @classmethod
-    def read_head(cls, origin):
-        return float(''.join(origin).split('.')[0])
-
-    def write_head(self):
-        return "{}.0".format(self.head)
-
-
-class SchemeNaN(SchemeNumber):
-    r"""A Scheme """
-    __slots__ = ()
-
-    @classmethod
-    def read_head(cls, origin):
-        return float(''.join(origin).split('.')[0])
-
-    def write_head(self):
-        return "{}.0".format(self.head)
-
 
 
