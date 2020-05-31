@@ -314,3 +314,24 @@ class SchemeString(base.VarHeadItem):
         return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.head))
 
 
+class SchemeList(base.TailItem):
+    r"""A Scheme pair or list ( ... )."""
+    __slots__ = ()
+    _between = " "
+    head = "("
+    tail = ")"
+
+
+class SchemeVector(base.TailItem):
+    r"""A Scheme vector #( ... )."""
+    __slots__ = ()
+    _between = " "
+    head = "#("
+    tail = ")"
+
+
+class SchemeQuote(base.VarHeadItem):
+    r"""A Scheme quote ``'``, ``\``` or ``,``."""
+    __slots__ = ()
+
+
