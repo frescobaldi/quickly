@@ -134,7 +134,7 @@ class Item(Node):
         def result():
             yield self.__class__.__name__
             if self.head:
-                yield reprlib.repr(self.head)
+                yield self.repr_head()
             if len(self):
                 yield "({} child{})".format(len(self), '' if len(self) == 1 else 'ren')
             pos = end = None
@@ -173,6 +173,10 @@ class Item(Node):
         if tail != self._tail:
             self._tail = tail
             self._modified |= TAIL_MODIFIED
+
+    def repr_head(self):
+        """Return a repr value for our head value."""
+        return reprlib.repr(self.head)
 
     @classmethod
     def read_head(cls, head_origin):

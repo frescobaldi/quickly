@@ -349,6 +349,11 @@ class SchemeNumber(base.VarHeadItem):
     def __init__(self, value, *children, prefix='', **attrs):
         super().__init__((value, prefix), *children, **attrs)
 
+    def repr_head(self):
+        """Show a better repr."""
+        value, prefix = self.head
+        return "{}, prefix='{}'".format(value, prefix) if prefix else format(value)
+
     @property
     def value(self):
         return self.head[0]
