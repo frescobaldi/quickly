@@ -509,3 +509,8 @@ class SchemeBoolean(SchemeNumber):
         return '#t'if self.head else '#f'
 
 
+class SchemeDot(base.VarHeadItem):
+    r"""A dot, e.g. in a scheme pair."""
+    __slots__ = ()
+
+

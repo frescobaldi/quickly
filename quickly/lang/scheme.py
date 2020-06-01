@@ -55,30 +55,38 @@ class SchemeTransform(Transform):
         return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     def common(self, items):
-        for i in self.numbers(items):
-            if isinstance(i, dom.Item):
-                yield i
-
-    def numbers(self, items):
-        """Yield items, converting Number tokens to dom objects."""
-        origin = []
-        for i in items:
-            if i.is_token and i.action in a.Number:
-                origin.append(i)
-                if i.action != a.Number.Prefix:
-                    yield self.factory({
-                        a.Number.Int: dom.SchemeInt,
-                        a.Number.Binary: dom.SchemeBinary,
-                        a.Number.Octal: dom.SchemeOctal,
-                        a.Number.Hexadecimal: dom.SchemeHexadecimal,
-                        a.Number.Float: dom.SchemeFloat,
-                        a.Number.Infinity: dom.SchemeFloat,
-                        a.Number.NaN: dom.SchemeFloat,
-                        a.Number.Boolean: dom.SchemeBoolean,
-                    }[i.action], origin)
-                    origin = []
-            else:
-                yield i
+        """Yield dom nodes from tokens."""
+        number = []
+        quotes = []
+        def nodes():
+            for i in items:
+                node = None
+                if i.is_token:
+                    if i.action in a.Number:
+                        number.append(i)
+                        if i.action != a.Number.Prefix:
+                            yield self.factory({
+                                a.Number.Int: dom.SchemeInt,
+                                a.Number.Binary: dom.SchemeBinary,
+                                a.Number.Octal: dom.SchemeOctal,
+                                a.Number.Hexadecimal: dom.SchemeHexadecimal,
+                                a.Number.Float: dom.SchemeFloat,
+                                a.Number.Infinity: dom.SchemeFloat,
+                                a.Number.NaN: dom.SchemeFloat,
+                                a.Number.Boolean: dom.SchemeBoolean,
+                            }[i.action], number)
+                            number.clear()
+                    elif i.action == a.Delimiter.Scheme.Quote:
+                        quotes.append(i)
+                    elif i == ".":
+                        yield self.factory(dom.SchemeDot, (i,),)
+                elif isinstance(i.obj, dom.Item):
+                    yield i.obj
+        for node in nodes():
+            for q in reversed(quotes):
+                node = self.factory(dom.SchemeQuote, (q,), (), node)
+            quotes.clear()
+            yield node
 
     ### transforming methods
     def root(self, items):
@@ -106,8 +114,18 @@ class SchemeTransform(Transform):
         """Create a SinglelineComment node."""
         return self.factory(dom.SchemeSinglelineComment, items)
 
-    def one_arg(self, items):
-        return self.root(items)
+    def scheme(self, items):
+        """Create a Scheme node in LilyPond."""
+        head = items[:1]    # $ or # token introducing scheme mode
+        scheme = self.factory(dom.Scheme, head)
+        for i in self.common(items[1:]):
+            scheme.append(i)
+            break
+        return scheme
+
+    def argument(self, items):
+        for i in self.common(items):
+            return i
 
 
 class SchemeAdHocTransform(SchemeTransform):
