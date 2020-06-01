@@ -90,7 +90,7 @@ class SchemeTransform(Transform):
 
     ### transforming methods
     def root(self, items):
-        return list(self.common(items))
+        return dom.SchemeDocument(*self.common(items))
 
     def list(self, items):
         head = items[:1]
@@ -117,7 +117,7 @@ class SchemeTransform(Transform):
     def scheme(self, items):
         """Create a Scheme node in LilyPond."""
         head = items[:1]    # $ or # token introducing scheme mode
-        scheme = self.factory(dom.Scheme, head)
+        scheme = self.factory(dom.SchemeExpression, head)
         for i in self.common(items[1:]):
             scheme.append(i)
             break

@@ -274,7 +274,19 @@ class MarkupCommand(base.VarHeadItem):
 
 ### Scheme
 
-class Scheme(base.VarHeadItem):
+class SchemeDocument(base.Item):
+    """A full Scheme document."""
+    __slots__ = ()
+
+    _between = '\n\n'
+
+    def concat(self, n, m):
+        if isinstance(n, (SinglelineComment, Newline)):
+            return '\n'
+        return self.between
+
+
+class SchemeExpression(base.VarHeadItem):
     r"""A Scheme expression in LilyPond."""
     __slots__ = ()
 
