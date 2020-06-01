@@ -85,10 +85,14 @@ class SchemeTransform(Transform):
         return list(self.common(items))
 
     def list(self, items):
-        return items
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == ')' else ()
+        return self.factory(dom.SchemeList, head, tail, *self.common(items[1:]))
 
     def vector(self, items):
-        return items
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == ')' else ()
+        return self.factory(dom.SchemeVector, head, tail, *self.common(items[1:]))
 
     def string(self, items):
         """Create a String node."""
