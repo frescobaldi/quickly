@@ -76,6 +76,7 @@ class SchemeTransform(Transform):
                         a.Number.NaN: dom.SchemeFloat,
                         a.Number.Boolean: dom.SchemeBoolean,
                     }[i.action], origin)
+                    origin = []
             else:
                 yield i
 

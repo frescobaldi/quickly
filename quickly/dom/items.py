@@ -406,7 +406,7 @@ class SchemeInt(SchemeNumber):
         return int(t)
 
     def write_value(self):
-        return format(self.head)
+        return format(self.value)
 
 
 class SchemeBinary(SchemeNumber):
@@ -419,7 +419,7 @@ class SchemeBinary(SchemeNumber):
         return int(t[2:], 2)
 
     def write_value(self):
-        return '#b{:b}'.format(self.head)
+        return '#b{:b}'.format(self.value)
 
 
 class SchemeOctal(SchemeNumber):
@@ -432,7 +432,7 @@ class SchemeOctal(SchemeNumber):
         return int(t[2:], 8)
 
     def write_value(self):
-        return '#o{:o}'.format(self.head)
+        return '#o{:o}'.format(self.value)
 
 
 class SchemeHexadecimal(SchemeNumber):
@@ -445,7 +445,7 @@ class SchemeHexadecimal(SchemeNumber):
         return int(t[2:], 16)
 
     def write_value(self):
-        return '#x{:x}'.format(self.head)
+        return '#x{:x}'.format(self.value)
 
 
 class SchemeFloat(SchemeNumber):
@@ -463,7 +463,7 @@ class SchemeFloat(SchemeNumber):
             return float(t.text)
 
     def write_value(self):
-        text = format(self.head)
+        text = format(self.value)
         if text == 'inf':
             return '+inf.0'
         elif text == '-inf':
