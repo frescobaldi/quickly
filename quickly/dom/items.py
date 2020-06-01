@@ -317,6 +317,18 @@ class SchemeMultilineComment(Comment):
         return '#!{}#!'.format(self.head)
 
 
+class SchemeChar(base.VarHeadItem):
+    r"""A Scheme character."""
+    __slots__ = ()
+
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text[2:]    # leave out the '#\' prefix
+
+    def write_head(self):
+        return r'#\{}'.format(self.head)
+
+
 class SchemeString(base.VarHeadItem):
     r"""A quoted string."""
     __slots__ = ()
