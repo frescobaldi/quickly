@@ -340,12 +340,60 @@ class SchemeQuote(base.VarHeadItem):
 class SchemeNumber(base.VarHeadItem):
     r"""Base class from a numerical value.
 
-    You can set and read the numerical value using the ``value`` attribute.
+    You can set and read the numerical value using the ``value`` attribute. The
+    optional prefix can be ``#e`` or ``#i``, optionally followed by ``#d``.
 
     """
     __slots__ = ()
 
-    value = base.VarHeadItem.head
+    def __init__(self, value, *children, prefix='', **attrs):
+        super().__init__((value, prefix), *children, **attrs)
+
+    @property
+    def value(self):
+        return self.head[0]
+
+    @property
+    def prefix(self):
+        return self.head[1]
+
+    @value.setter
+    def value(self, value):
+        self.head = (value, self.head[1])
+
+    @prefix.setter
+    def prefix(self, prefix):
+        self.head = (self.head[0], prefix)
+
+    @classmethod
+    def read_prefix(self, origin):
+        return ''.join(t.text for t in origin)
+
+    @classmethod
+    def read_value(self, origin):
+        """Implement this method to read the value from the token."""
+        raise NotImplementedError
+
+    def write_head(self):
+        """Reimplemented to add the prefix."""
+        return ''.join((self.prefix, self.write_value()))
+
+    def write_value(self):
+        """Implement this method to write the value as a string."""
+        raise NotImplementedError
+
+    @classmethod
+    def read_head(cls, head_origin):
+        for i, t in enumerate(head_origin):
+            if t.action != a.Number.Prefix:
+                prefix = cls.read_prefix(head_origin[:i])
+                value = cls.read_value(head_origin[i:])
+                return prefix, value
+
+    @classmethod
+    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        prefix, value = cls.read_head(head_origin)
+        return cls(value, *children, prefix=prefix, **attrs)
 
 
 class SchemeInt(SchemeNumber):
@@ -353,11 +401,11 @@ class SchemeInt(SchemeNumber):
     __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
+    def read_value(cls, origin):
         t = origin[0].text
         return int(t)
 
-    def write_head(self):
+    def write_value(self):
         return format(self.head)
 
 
@@ -366,11 +414,11 @@ class SchemeBinary(SchemeNumber):
     __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
+    def read_value(cls, origin):
         t = origin[0].text
         return int(t[2:], 2)
 
-    def write_head(self):
+    def write_value(self):
         return '#b{:b}'.format(self.head)
 
 
@@ -379,11 +427,11 @@ class SchemeOctal(SchemeNumber):
     __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
+    def read_value(cls, origin):
         t = origin[0].text
         return int(t[2:], 8)
 
-    def write_head(self):
+    def write_value(self):
         return '#o{:o}'.format(self.head)
 
 
@@ -392,11 +440,11 @@ class SchemeHexadecimal(SchemeNumber):
     __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
+    def read_value(cls, origin):
         t = origin[0].text
         return int(t[2:], 16)
 
-    def write_head(self):
+    def write_value(self):
         return '#x{:x}'.format(self.head)
 
 
@@ -405,7 +453,7 @@ class SchemeFloat(SchemeNumber):
     __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
+    def read_value(cls, origin):
         t = origin[0]
         if t.action is a.Number.Infinity:
             return float(t.text.split('.')[0])
@@ -414,7 +462,7 @@ class SchemeFloat(SchemeNumber):
         else:
             return float(t.text)
 
-    def write_head(self):
+    def write_value(self):
         text = format(self.head)
         if text == 'inf':
             return '+inf.0'
@@ -427,32 +475,27 @@ class SchemeFloat(SchemeNumber):
 
 
 class SchemeFraction(SchemeNumber):
-    r"""A Scheme fractional value; ``head`` is a two-int tuple(num, den).
-
-    The ``value`` attribute has the numerical value; the ``head`` attribute
-    has the tuple (numerator, denominator). This way, a value like 6/8 can be
-    preserved and will not be converted to 3/4.
-
-    """
+    r"""A Scheme fractional value."""
     __slots__ = ()
 
-    @property
-    def value(self):
-        return fractions.Fraction(*self.head)
+    @classmethod
+    def read_value(cls, origin):
+        s = "".join(t.text for t in origin)
+        return fractions.Fraction(s)
 
-    @value.setter
-    def value(self, value):
-        f = fractions.Fraction(value)
-        self.head = (f.numerator, f.denominator)
+    def write_value(self):
+        return format(self.value)
+
+
+class SchemeBoolean(SchemeNumber):
+    r"""A Scheme boolean value."""
+    __slots__ = ()
 
     @classmethod
-    def read_head(cls, origin):
-        s = "".join(origin)
-        num, den = map(int, s.split('/'))
-        return (num, den)
+    def read_value(cls, origin):
+        return origin[0].text[1] in 'tT'
 
-    def write_head(self):
-        num, den = self.head
-        return "{}/{}".format(num, den)
+    def write_value(self):
+        return '#t'if self.head else '#f'
 
 

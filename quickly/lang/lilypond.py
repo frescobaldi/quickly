@@ -73,7 +73,8 @@ class LilyPondTransform(Transform):
                     markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
                     if markup:
                         yield self.factory(dom.Markup, origin, (), markup)
-
+                elif i.name == "one_arg":
+                    yield from i.obj
 
     def create_block(self, item_class, items):
         r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.

@@ -54,28 +54,34 @@ class SchemeTransform(Transform):
         """
         return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
-    def common(self):
-        pass
+    def common(self, items):
+        for i in self.numbers(items):
+            if isinstance(i, dom.Item):
+                yield i
 
     def numbers(self, items):
         """Yield items, converting Number tokens to dom objects."""
+        origin = []
         for i in items:
             if i.is_token and i.action in a.Number:
-                yield self.factory({
-                    Number.Int: dom.SchemeInt,
-                    Number.Binary: dom.SchemeBinary,
-                    Number.Octal: dom.SchemeOctal,
-                    Number.Hexadecimal: dom.SchemeHexadecimal,
-                    Number.Float: dom.SchemeFloat,
-                    Number.Infinity: dom.SchemeFloat,
-                    Number.NaN: dom.SchemeFloat,
-                }[i.action], (i,))
+                origin.append(i)
+                if i.action != a.Number.Prefix:
+                    yield self.factory({
+                        a.Number.Int: dom.SchemeInt,
+                        a.Number.Binary: dom.SchemeBinary,
+                        a.Number.Octal: dom.SchemeOctal,
+                        a.Number.Hexadecimal: dom.SchemeHexadecimal,
+                        a.Number.Float: dom.SchemeFloat,
+                        a.Number.Infinity: dom.SchemeFloat,
+                        a.Number.NaN: dom.SchemeFloat,
+                        a.Number.Boolean: dom.SchemeBoolean,
+                    }[i.action], origin)
             else:
                 yield i
 
     ### transforming methods
     def root(self, items):
-        return items
+        return list(self.common(items))
 
     def list(self, items):
         return items
@@ -96,7 +102,7 @@ class SchemeTransform(Transform):
         return self.factory(dom.SchemeSinglelineComment, items)
 
     def one_arg(self, items):
-        return items
+        return self.root(items)
 
 
 class SchemeAdHocTransform(SchemeTransform):
