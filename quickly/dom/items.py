@@ -274,6 +274,11 @@ class MarkupCommand(base.VarHeadItem):
 
 ### Scheme
 
+class Scheme(base.VarHeadItem):
+    r"""A Scheme expression in LilyPond."""
+    __slots__ = ()
+
+
 class SchemeSinglelineComment(Comment):
     r"""A singleline comment in Scheme after ``;``."""
     __slots__ = ()

@@ -38,7 +38,7 @@ class LilyPond(parce.lang.lilypond.LilyPond):
     def get_scheme_target(cls):
         """Get *our* Scheme."""
         from .scheme import Scheme
-        return Scheme.one_arg
+        return Scheme.scheme
 
 
 
