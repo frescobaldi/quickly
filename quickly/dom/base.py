@@ -328,6 +328,26 @@ class Item(Node):
                 n += 1
         return n
 
+    def replace(self, index, node):
+        """Replace the node at index with the specified node.
+
+        The origin of the old node is copied to the new, so that when
+        writing out the node, its output exactly comes on the same spot in the
+        document. For nodes without origin, this method does nothing more than
+        ``self[index] = node``.
+
+        """
+        old = self[index]
+        self[index] = node
+        try:
+            node._head_origin = old._head_origin
+        except AttributeError:
+            pass
+        try:
+            node._tail_origin = old._tail_origin
+        except AttributeError:
+            pass
+
 
 class HeadItem(Item):
     """Item that has a fixed head value."""
