@@ -54,6 +54,24 @@ class SchemeTransform(Transform):
         """
         return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
+    # both mappings are used in common, below
+    _number_mapping = {
+        a.Number.Int: dom.SchemeInt,
+        a.Number.Binary: dom.SchemeBinary,
+        a.Number.Octal: dom.SchemeOctal,
+        a.Number.Hexadecimal: dom.SchemeHexadecimal,
+        a.Number.Float: dom.SchemeFloat,
+        a.Number.Infinity: dom.SchemeFloat,
+        a.Number.NaN: dom.SchemeFloat,
+        a.Number.Boolean: dom.SchemeBoolean,
+    }
+    _common_mapping = {
+        a.Character: dom.SchemeChar,
+        a.Delimiter.Dot: dom.SchemeDot,
+        a.Keyword: dom.SchemeIdentifier,
+        a.Name: dom.SchemeIdentifier,
+    }
+
     def common(self, items):
         """Yield dom nodes from tokens."""
         number = []
@@ -65,26 +83,12 @@ class SchemeTransform(Transform):
                     if i.action in a.Number:
                         number.append(i)
                         if i.action != a.Number.Prefix:
-                            yield self.factory({
-                                a.Number.Int: dom.SchemeInt,
-                                a.Number.Binary: dom.SchemeBinary,
-                                a.Number.Octal: dom.SchemeOctal,
-                                a.Number.Hexadecimal: dom.SchemeHexadecimal,
-                                a.Number.Float: dom.SchemeFloat,
-                                a.Number.Infinity: dom.SchemeFloat,
-                                a.Number.NaN: dom.SchemeFloat,
-                                a.Number.Boolean: dom.SchemeBoolean,
-                            }[i.action], number)
+                            yield self.factory(self._number_mapping[i.action], number)
                             number.clear()
                     elif i.action == a.Delimiter.Scheme.Quote:
                         quotes.append(i)
                     else:
-                        yield self.factory({
-                            a.Character: dom.SchemeChar,
-                            a.Delimiter.Dot: dom.SchemeDot,
-                            a.Keyword: dom.SchemeIdentifier,
-                            a.Name: dom.SchemeIdentifier,
-                        }[i.action], (i,))
+                        yield self.factory(self._common_mapping[i.action], (i,))
                 elif isinstance(i.obj, dom.Item):
                     yield i.obj
         for node in nodes():
