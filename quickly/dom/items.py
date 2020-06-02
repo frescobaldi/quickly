@@ -178,6 +178,11 @@ class Number(base.VarHeadItem):
     __slots__ = ()
 
 
+class Unit(base.VarHeadItem):
+    r"""A unit, like \cm, after a numerical value in a paper block."""
+    __slots__ = ()
+
+
 class Symbol(base.VarHeadItem):
     """A symbol (unquoted text piece)."""
     __slots__ = ()

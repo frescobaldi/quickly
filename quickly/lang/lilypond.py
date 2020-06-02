@@ -68,14 +68,13 @@ class LilyPondTransform(Transform):
             if i.is_token:
                 if i.action == a.Operator.Assignment:
                     yield self.factory(dom.EqualSign, (i,))
-            else:
-                if isinstance(i.obj, dom.Item):
-                    yield i.obj
-                elif i.name == "markup":
-                    origin = i.obj[:1]
-                    markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
-                    if markup:
-                        yield self.factory(dom.Markup, origin, (), markup)
+            elif isinstance(i.obj, dom.Item):
+                yield i.obj
+            elif i.name == "markup":
+                origin = i.obj[:1]
+                markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
+                if markup:
+                    yield self.factory(dom.Markup, origin, (), markup)
 
     def handle_assignments(self, nodes):
         """Handle assignments that occur in the dom.Item nodes.
@@ -247,6 +246,13 @@ class LilyPondTransform(Transform):
                 else:
                     yield i.obj # can be a SchemeExpression or String
         return dom.Variable(*nodes())
+
+    def unit(self, items):
+        """A numerical value with possible unit in a paper block."""
+        number = self.factory(dom.Number, items[:1])
+        if len(items) > 1:
+            number.append(self.factory(dom.Unit, items[1:]))
+        return number
 
     def markup(self, items):
         """Simply return the flattened contents, the markup will be constructed later."""
