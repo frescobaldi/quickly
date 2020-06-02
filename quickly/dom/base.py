@@ -217,8 +217,9 @@ class Item(Node):
 
         Each ``point`` is a Point describing a text piece, ``before`` and
         ``after`` are the desired whitespace before and after the piece. For
-        adjacent pieces, you may collapse whitespace. The ``_last`` value can
-        be left alone, it is used by recursive calls to this method.
+        adjacent pieces, you may collapse whitespace. You don't have to supply
+        a value for the ``_last`` argument, it is used by recursive calls to
+        this method.
 
         """
         head_point = self.head_point()
@@ -238,10 +239,6 @@ class Item(Node):
         if tail_point:
             yield self.before_tail, tail_point, after
 
-    def write(self):
-        """Return the formatted (not yet indented) output."""
-        return combine_text((b, p.text, a) for b, p, a in self.points())[1]
-
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
 
@@ -252,6 +249,13 @@ class Item(Node):
 
         """
         return self.between
+
+    def write(self):
+        """Return the combined (not yet indented) output of this node and its
+        children.
+
+        """
+        return combine_text((b, p.text, a) for b, p, a in self.points())[1]
 
     def write_head(self):
         """Return the textual output that represents our ``head`` value.
