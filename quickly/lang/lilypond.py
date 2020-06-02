@@ -199,8 +199,22 @@ class LilyPondTransform(Transform):
     def chord_modifier(self, items):
         return items
 
+    # this mapping is used in the varname method
+    _varname_mapping = {
+        a.Number: dom.Number,
+        a.Separator: dom.Separator,
+    }
+
     def varname(self, items):
-        return items
+        """Return a Variable item."""
+        def nodes():
+            for i in items:
+                if i.is_token:
+                    yield self.factory(
+                        self._varname_mapping.get(i.action, dom.Symbol), (i,))
+                else:
+                    yield i.obj # can be a SchemeExpression or String
+        return dom.Variable(*nodes())
 
     def markup(self, items):
         """Simply return the flattened contents, the markup will be constructed later."""

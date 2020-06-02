@@ -161,6 +161,30 @@ class LayoutContext(Block):
     head = r"\context {"
 
 
+class Separator(base.VarHeadItem):
+    """A separator."""
+    __slots__ = ()
+
+
+class Number(base.VarHeadItem):
+    """A number."""
+    __slots__ = ()
+
+
+class Symbol(base.VarHeadItem):
+    """A symbol (unquoted text piece)."""
+    __slots__ = ()
+
+
+class Variable(base.Item):
+    """A variable name, the first node is always a Symbol or String.
+
+    Further contains Symbol, String, Separator, Number or SchemeExpression.
+
+    """
+    __slots__ = ()
+
+
 class Pitch(base.VarHeadItem):
     """A pitch note name."""
     __slots__ = ()
