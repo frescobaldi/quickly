@@ -78,10 +78,13 @@ class SchemeTransform(Transform):
                             number.clear()
                     elif i.action == a.Delimiter.Scheme.Quote:
                         quotes.append(i)
-                    elif i.action == a.Character:
-                        yield self.factory(dom.SchemeChar, (i,))
-                    elif i == ".":
-                        yield self.factory(dom.SchemeDot, (i,))
+                    else:
+                        yield self.factory({
+                            a.Character: dom.SchemeChar,
+                            a.Delimiter.Dot: dom.SchemeDot,
+                            a.Keyword: dom.SchemeIdentifier,
+                            a.Name: dom.SchemeIdentifier,
+                        }[i.action], (i,))
                 elif isinstance(i.obj, dom.Item):
                     yield i.obj
         for node in nodes():

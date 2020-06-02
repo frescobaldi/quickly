@@ -345,6 +345,11 @@ class SchemeString(base.VarHeadItem):
         return '"{}"'.format(re.sub(r'([\\"])', r'\\\1', self.head))
 
 
+class SchemeIdentifier(base.VarHeadItem):
+    r"""A Scheme identifier (keyword, variable, symbol)."""
+    __slots__ = ()
+
+
 class SchemeList(base.TailItem):
     r"""A Scheme pair or list ( ... )."""
     __slots__ = ()
