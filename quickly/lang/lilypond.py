@@ -64,28 +64,49 @@ class LilyPondTransform(Transform):
 
         """
         items = iter(items)
-        nodes = []
         for i in items:
-            node = None
             if i.is_token:
                 if i.action == a.Operator.Assignment:
-                    sign = self.factory(dom.EqualSign, (i,))
-                    if nodes and isinstance(nodes[-1], dom.Variable):
-                        nodes[-1] = dom.Assignment(nodes[-1], sign)
+                    yield self.factory(dom.EqualSign, (i,))
             else:
                 if isinstance(i.obj, dom.Item):
-                    node = i.obj
+                    yield i.obj
                 elif i.name == "markup":
                     origin = i.obj[:1]
                     markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
                     if markup:
-                        node = self.factory(dom.Markup, origin, (), markup)
-            if node:
-                if nodes and isinstance(nodes[-1], dom.Assignment) and len(nodes[-1]) < 3:
-                    nodes[-1].append(node)
+                        yield self.factory(dom.Markup, origin, (), markup)
+
+    def handle_assignments(self, nodes):
+        """Handle assignments that occur in the dom.Item nodes.
+
+        If a Variable is encountered and then an EqualSign, it is turned
+        into an Assignment.
+
+        Needed at toplevel and in blocks.
+
+        """
+        nodes = iter(nodes)
+        for n in nodes:
+            if isinstance(n, dom.Variable):
+                variable = [n]
+                count, equalsign = 1, False
+                for n in nodes:
+                    variable.append(n)
+                    if not equalsign and isinstance(n, dom.EqualSign):
+                        equalsign = True
+                    if not isinstance(n, dom.Comment):
+                        count += 1
+                    if count == 3:
+                        if equalsign:
+                            yield dom.Assignment(*variable)
+                        else:
+                            yield from variable
+                        break
                 else:
-                    nodes.append(node)
-        return nodes
+                    yield from variable
+            else:
+                yield n
 
     def create_block(self, item_class, items):
         r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
@@ -97,7 +118,8 @@ class LilyPondTransform(Transform):
         """
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
-        return self.factory(item_class, head_origin, tail_origin, *self.common(items[2:]))
+        return self.factory(item_class, head_origin, tail_origin,
+            *self.handle_assignments(self.common(items[2:])))
 
     def create_markup(self, items):
         """Read from items and yield nodes that can occur in markup."""
@@ -123,7 +145,7 @@ class LilyPondTransform(Transform):
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
-        return dom.Document(*self.common(items))
+        return dom.Document(*self.handle_assignments(self.common(items)))
 
     def book(self, items):
         """Create a Book or BookPart node."""
