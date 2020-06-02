@@ -161,6 +161,13 @@ class LayoutContext(Block):
     head = r"\context {"
 
 
+class EqualSign(base.HeadItem):
+    r"""An equal sign (``=``)."""
+    __slots__ = ()
+    head = "="
+    _before = _after = " "
+
+
 class Separator(base.VarHeadItem):
     """A separator."""
     __slots__ = ()
@@ -173,6 +180,15 @@ class Number(base.VarHeadItem):
 
 class Symbol(base.VarHeadItem):
     """A symbol (unquoted text piece)."""
+    __slots__ = ()
+
+
+class Assignment(base.Item):
+    """A variable = value construct.
+
+    The first node is a Variable item, then an EqualSign, and then the value.
+
+    """
     __slots__ = ()
 
 
