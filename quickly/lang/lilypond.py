@@ -90,19 +90,19 @@ class LilyPondTransform(Transform):
         for n in nodes:
             if isinstance(n, dom.Variable):
                 variable = [n]
-                count, equalsign = 1, False
+                equalsign = False
                 for n in nodes:
                     variable.append(n)
-                    if not equalsign and isinstance(n, dom.EqualSign):
-                        equalsign = True
                     if not isinstance(n, dom.Comment):
-                        count += 1
-                    if count == 3:
                         if equalsign:
+                            # gotcha!!
                             yield dom.Assignment(*variable)
+                            break
+                        elif isinstance(n, dom.EqualSign):
+                            equalsign = True
                         else:
                             yield from variable
-                        break
+                            break
                 else:
                     yield from variable
             else:
