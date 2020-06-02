@@ -75,13 +75,12 @@ class _SpacingProperty:
 
     """
     __slots__ = ('name',)
-    _spacing = '_spacing'
 
     def __init__(self, name):
         self.name = name
 
     def __get__(self, obj, cls):
-        d = getattr(obj, self._spacing, None)
+        d = getattr(obj, "_spacing", None)
         if d:
             value = d.get(self.name)
             if value is not None:
@@ -89,7 +88,7 @@ class _SpacingProperty:
         return getattr(cls, '_' + self.name)
 
     def __set__(self, obj, value):
-        d = getattr(obj, self._spacing, None)
+        d = getattr(obj, "_spacing", None)
         if not d:
             if value == getattr(obj, '_' + self.name):
                 return # don't set if same as default
@@ -97,11 +96,11 @@ class _SpacingProperty:
         d[self.name] = value
 
     def __delete__(self, obj):
-        d = getattr(obj, self._spacing, None)
+        d = getattr(obj, "_spacing", None)
         if d and self.name in d:
             del d[self.name]
             if not d:
-                delattr(obj, self._spacing)
+                delattr(obj, "_spacing")
 
 
 class Item(Node):
@@ -112,7 +111,7 @@ class Item(Node):
     ``after``, ``between``, ``after_head`` and ``before_tail``.
 
     """
-    __slots__ = (_SpacingProperty._spacing,)
+    __slots__ = ("_spacing",)
 
     _head = None
     _tail = None
@@ -129,6 +128,11 @@ class Item(Node):
         super().__init__(*children)
         if attrs:
             self._spacing = attrs
+
+    def copy(self):
+        """Copy the node, without the origin."""
+        children = (n.copy() for n in self)
+        return type(self)(*children, **getattr(self, '_spacing', {}))
 
     def __repr__(self):
         def result():
@@ -422,4 +426,9 @@ class VarHeadItem(HeadItem):
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
         return cls(head, *children, **attrs)
+
+    def copy(self):
+        """Copy the node, without the origin."""
+        children = (n.copy() for n in self)
+        return type(self)(self.head, *children, **getattr(self, '_spacing', {}))
 
