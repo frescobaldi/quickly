@@ -271,7 +271,9 @@ class LilyPondTransform(Transform):
         return self.factory(dom.MarkupList, head, tail, *self.create_markup(items[1:]))
 
     def schemelily(self, items):
-        return items
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '#}' else ()
+        return self.factory(dom.LilyPond, head, tail, *self.common(items[1:]))
 
     def string(self, items):
         """Create a String node."""

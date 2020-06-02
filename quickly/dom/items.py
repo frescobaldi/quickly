@@ -88,6 +88,14 @@ class Document(base.Item):
         return self.between
 
 
+class LilyPond(base.TailItem):
+    """A LilyPond block inside Schem, between #{ and #}."""
+    __slots__ = ()
+
+    head = "#{"
+    tail = "#}"
+
+
 class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
