@@ -104,6 +104,41 @@ class Block(base.TailItem):
     head = '<fill in> {'
     tail = '}'
 
+    def get_variable(self, name):
+        """Convenience method to find the value of the named variable.
+
+        Finds an Assignment child that assigns a value to a Variable with the
+        specified ``name``.  Returns the Item node representing the value, or
+        None if no assignment with that name exists.
+
+        """
+        for n in self/Assignment:
+            for v in n/Variable:
+                if v.get_name() == name:
+                    return n[-1]
+
+    def set_variable(self, name, node):
+        """Convenience method to add or replace a variable assignment.
+
+        If an Assignment exists with the named variable, replaces its node
+        value; otherwise appends a new Assignment.
+
+        """
+        for n in self/Assignment:
+            for v in n/Variable:
+                if v.get_name() == name:
+                    n.replace(-1, node)
+                    return
+        self.append(Assignment.with_name(name, node))
+
+    def variables(self):
+        """Convenience method to return a list of the available variable names."""
+        def names():
+            for n in self/Assignment:
+                for v in n/Variable:
+                    yield v.get_name()
+        return list(names())
+
 
 class Book(Block):
     r"""A \book { } block."""
@@ -185,6 +220,13 @@ class Number(base.VarHeadItem):
     """A number."""
     __slots__ = ()
 
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0].text)
+
+    def write_head(self):
+        return str(self.head)
+
 
 class Unit(base.VarHeadItem):
     r"""A unit, like \cm, after a numerical value in a paper block."""
@@ -204,6 +246,17 @@ class Assignment(base.Item):
     """
     __slots__ = ()
 
+    @classmethod
+    def with_name(cls, name, node):
+        """Convenience class method to create a complete Assignment.
+
+        Automatically creates a Variable child node for the ``name``, an
+        EqualSign node, and appends the specified ``node`` as the value of the
+        assignment. For the ``name``, see :meth:`Variable.set_name`.
+
+        """
+        return cls(Variable.with_name(name), EqualSign(), node)
+
 
 class Variable(base.Item):
     """A variable name, the first node is always a Symbol or String.
@@ -212,6 +265,54 @@ class Variable(base.Item):
 
     """
     __slots__ = ()
+
+    @classmethod
+    def with_name(cls, name):
+        """Create a Variable with specified name."""
+        v = cls()
+        v.set_name(name)
+        return v
+
+    def get_name(self):
+        """Convenience method to get the name of this variable.
+
+        This can be a plain string or a tuple. It is a tuple when the variable
+        name consists of multiple parts, separated by dots. The first item in
+        the tuple is always a string, but the other items might also be
+        numbers.
+
+        """
+        heads = tuple(n.head for n in self/(String, Symbol, Number))
+        if len(heads) == 1:
+            return heads[0]
+        return heads
+
+    def set_name(self, name):
+        """Convenience method to set the name of this variable.
+
+        In most cases the name is an alphanumeric identifier, but it can be any
+        string (in that case it is automatically quoted) or a tuple of names,
+        strings and even numbers. The first item in the tuple always must be a
+        name or string. An alphanumeric string is turned into a :class:`Symbol`
+        item, a string containing "illegal" characters into a :class:`String`
+        item, and an integer value into a :class:`Number` item.
+
+        """
+        if type(name) is str:
+            name = name,
+        def nodes():
+            for n in name:
+                if type(n) is str:
+                    yield (Symbol if n.isalpha() else String)(n)
+                elif type(n) is int:
+                    yield Number(n)
+        self.clear()
+        nodes = nodes()
+        for n in nodes:
+            self.append(n)
+            for n in nodes:
+                self.append(Separator('.'))
+                self.append(n)
 
 
 class Pitch(base.VarHeadItem):

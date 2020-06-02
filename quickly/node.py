@@ -191,6 +191,12 @@ class Node(list):
             old._parent = None
         list.__delitem__(self, k)
 
+    def clear(self):
+        """Remove all child nodes."""
+        for node in self:
+            node._parent = lambda: None
+        list.clear(self)
+
     def equals(self, other):
         """Return True if we and other are equivalent.
 
