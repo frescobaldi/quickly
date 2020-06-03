@@ -223,26 +223,20 @@ class Item(Node):
                         mid -= 1
                     n = nodes[mid]
                     pos = n.pos
-                if pos >= position:
+                if pos == position:
+                    return n
+                elif pos > position:
                     hi = mid
-                elif n.end <= position:
-                    i = mid + 1
                 else:
-                    hi = mid
-            i = min(i, len(nodes) - 1)
-            node = nodes[i]
-            if i and node.pos > position:
-                # we're ahead of position, see if previous node
-                # exactly ends here
-                while i:
-                    i -= 1
-                    n = nodes[i]
                     end = n.end
                     if end == position:
                         return n
-                    elif end is not None:
-                        break
-            return node
+                    elif end < position:
+                        i = mid + 1
+                    else:
+                        hi = mid
+            i = min(i, len(nodes) - 1)
+            return nodes[i]
 
     def find_descendant(self, position):
         """Return the youngest descendant node at or at the right of position.
