@@ -245,6 +245,7 @@ class Assignment(base.Item):
 
     """
     __slots__ = ()
+    _before = _after = '\n'
 
     @classmethod
     def with_name(cls, name, node):
