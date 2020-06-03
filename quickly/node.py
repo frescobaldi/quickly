@@ -39,6 +39,9 @@ DUMP_STYLES = {
 DUMP_STYLE_DEFAULT = "round"
 
 
+_NO_PARENT = lambda: None
+
+
 class Node(list):
     """Node implements a simple tree type, based on Python :class:`list`.
 
@@ -102,7 +105,7 @@ class Node(list):
         parent is set to this node.
 
         """
-        self._parent = lambda: None
+        self._parent = _NO_PARENT
         if children:
             list.extend(self, children)
             parent = weakref.ref(self)
@@ -117,12 +120,12 @@ class Node(list):
     @parent.setter
     def parent(self, node):
         """Set the parent to Node node or None."""
-        self._parent = weakref.ref(node) if node else lambda: None
+        self._parent = weakref.ref(node) if node else _NO_PARENT
 
     @parent.deleter
     def parent(self):
         """Set the parent to None."""
-        self._parent = lambda: None
+        self._parent = _NO_PARENT
 
     def append(self, node):
         """Append node to this node; the parent is set to this node."""
@@ -150,7 +153,7 @@ class Node(list):
     def pop(self, index=-1):
         """Pop node from this node; the parent is set to None."""
         node = list.pop(self, index)
-        node._parent = lambda: None
+        node._parent = _NO_PARENT
         return node
 
     def take(self, start=0, end=None):
@@ -162,7 +165,7 @@ class Node(list):
         k = slice(start, end)
         nodes = self[k]
         for node in nodes:
-            node._parent = lambda: None
+            node._parent = _NO_PARENT
         list.__delitem__(self, k)
         return nodes
 
@@ -173,11 +176,11 @@ class Node(list):
         if isinstance(k, slice):
             new = tuple(new)
             for node in old:
-                node._parent = lambda: None
+                node._parent = _NO_PARENT
             for node in new:
                 node._parent = parent
         else:
-            old._parent = lambda: None
+            old._parent = _NO_PARENT
             new._parent = parent
         list.__setitem__(self, k, new)
 
@@ -186,7 +189,7 @@ class Node(list):
         old = self[k]
         if isinstance(k, slice):
             for node in old:
-                node._parent = lambda: None
+                node._parent = _NO_PARENT
         else:
             old._parent = None
         list.__delitem__(self, k)
@@ -194,7 +197,7 @@ class Node(list):
     def clear(self):
         """Remove all child nodes."""
         for node in self:
-            node._parent = lambda: None
+            node._parent = _NO_PARENT
         list.clear(self)
 
     def equals(self, other):
@@ -258,6 +261,19 @@ class Node(list):
     def is_first(self):
         """Return True if this is the first node. Fails if no parent."""
         return self.parent[0] is self
+
+    def common_ancestor(self, other):
+        """Return the common ancestor, if any."""
+        if other is self:
+            return self
+        ancestors = [self]
+        for n in self.ancestors():
+            if n is other:
+                return n
+            ancestors.append(n)
+        for n in other.ancestors():
+            if n in ancestors:
+                return n
 
     def ancestors(self):
         """Climb up the tree over the parents."""

@@ -239,9 +239,11 @@ class Item(Node):
             return nodes[i]
 
     def find_descendant(self, position):
-        """Return the youngest descendant node at or at the right of position.
+        """Return the youngest descendant node that contains position.
 
-        Only returns a node that has an origin.
+        Only returns a node that has a ``pos`` attribute, i.e. at least one of
+        its descendants has an origin. Returns None if there is no such node
+        that contains this position.
 
         """
         m = None
