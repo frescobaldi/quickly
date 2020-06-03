@@ -72,9 +72,9 @@ class LilyPondTransform(Transform):
                 yield i.obj
             elif i.name == "markup":
                 origin = i.obj[:1]
-                markup = next(self.create_markup(itertools.chain(i.obj[1:], items)), None)
-                if markup:
+                for markup in self.create_markup(itertools.chain(i.obj[1:], items)):
                     yield self.factory(dom.Markup, origin, (), markup)
+                    break
 
     def handle_assignments(self, nodes):
         """Handle assignments that occur in the dom.Item nodes.
