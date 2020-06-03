@@ -112,6 +112,10 @@ class Node(list):
             for node in self:
                 node._parent = parent
 
+    def copy(self):
+        """Return a copy of this Node, with copied children."""
+        return type(self)(*(n.copy() for n in self))
+
     @property
     def parent(self):
         """Return the parent Node or None; uses a weak reference."""
