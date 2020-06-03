@@ -202,7 +202,8 @@ class Item(Node):
     def find_child(self, position):
         """Return the child node at or to the right of position.
 
-        Only returns a node that has an origin; ignores nodes without origin.
+        Only returns a node that has a ``pos`` attribute, i.e. at least one
+        of its descendants has an origin.
 
         """
         hi = len(self)
@@ -234,13 +235,29 @@ class Item(Node):
     def find_descendant(self, position):
         """Return the youngest descendant node at or at the right of position.
 
-        Only returns a node that has an origin; ignores nodes without origin.
+        Only returns a node that has a ``pos`` attribute, i.e. at least one
+        of its descendants has an origin.
 
         """
         n = self.find_child(position)
         while n is not None and len(n):
             n = n.find_child(position)
         return n
+
+    def find_descendants(self, position):
+        """Yield the child at position, then the grandchild, etc.
+
+        Stops with the last node that really contains the position. Only yields
+        nodes that have a ``pos`` attribute, i.e. at least one of its
+        descendants has an origin.
+
+        """
+        n = self.find_child(position)
+        while n is not None:
+            if n.pos > position or n.end < position:
+                break
+            yield n
+            n = n.find_child(position)
 
     @property
     def head(self):
