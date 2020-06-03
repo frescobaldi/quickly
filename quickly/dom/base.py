@@ -159,6 +159,90 @@ class Item(Node):
     before_tail = _SpacingProperty('before_tail')#: whitespace before tail
 
     @property
+    def pos(self):
+        """Return the position of this item.
+
+        Only makes sense for items that have an origin, or one of the
+        descendants has an origin. Possibly an expensive call, when a node tree
+        has been heavily modified already. Returns None if this node and no
+        single descendant of it has an origin.
+
+        """
+        try:
+            return self._head_origin[0].pos
+        except (AttributeError, IndexError):
+            for n in self.descendants():
+                try:
+                    return n._head_origin[0].pos
+                except (AttributeError, IndexError):
+                    pass
+
+    @property
+    def end(self):
+        """Return the end position of this item.
+
+        Only makes sense for items that have an origin, or one of the
+        descendants has an origin. Possibly an expensive call, when a node tree
+        has been heavily modified already. Returns None if this node and no
+        single descendant of it has an origin.
+
+        """
+        try:
+            return self._tail_origin[-1].end
+        except (AttributeError, IndexError):
+            for n in reversed(self):
+                end = n.end
+                if end is not None:
+                    return end
+            try:
+                return self._head_origin[-1].end
+            except (AttributeError, IndexError):
+                pass
+
+    def find_child(self, position):
+        """Return the child node at or to the right of position.
+
+        Only returns a node that has an origin; ignores nodes without origin.
+
+        """
+        hi = len(self)
+        if hi:
+            nodes = list(self)
+            i = 0
+            while i < hi:
+                mid = (i + hi) // 2
+                n = nodes[mid]
+                pos = n.pos
+                while pos is None:
+                    del nodes[mid]
+                    if not nodes:
+                        return
+                    hi -= 1
+                    if mid == hi:
+                        mid -= 1
+                    n = nodes[mid]
+                    pos = n.pos
+                if pos >= position:
+                    hi = mid
+                elif n.end <= position:
+                    i = mid + 1
+                else:
+                    hi = mid
+            i = min(i, len(nodes) - 1)
+            return nodes[i]
+
+    def find_descendant(self, position):
+        """Return the youngest descendant node at or at the right of position.
+
+        Only returns a node that has an origin; ignores nodes without origin.
+
+        """
+        n = self.find_child(position)
+        while n is not None and len(n):
+            n = n.find_child(position)
+        return n
+
+    @property
     def head(self):
         return self._head
 
