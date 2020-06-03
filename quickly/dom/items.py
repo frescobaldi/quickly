@@ -522,7 +522,7 @@ class SchemeVector(base.TailItem):
 
 
 class SchemeQuote(base.VarHeadItem):
-    r"""A Scheme quote ``'``, ``\``` or ``,``."""
+    r"""A Scheme quote ``'``, ``\```, ``,`` or ``,@``."""
     __slots__ = ()
 
 

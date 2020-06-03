@@ -25,3 +25,9 @@ token level, like transposing and rhythm manipulations, can be rewritten to
 work on the musical representation provided by ``quickly.dom``, which will look
 a lot like ``ly.music``.
 
+This module is written and maintained by Wilbert Berendsen, and will, as it
+grows, also contain (adapted) code from python-ly that was contributed by
+others. Python 3.5 and higher is supported. Besides Python itself the most
+recent version of the *parce* module is needed. Testing is done by running
+``pytest-3`` in the root directory.
+
