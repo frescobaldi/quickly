@@ -230,19 +230,32 @@ class Item(Node):
                 else:
                     hi = mid
             i = min(i, len(nodes) - 1)
-            return nodes[i]
+            node = nodes[i]
+            if i and node.pos > position:
+                # we're ahead of position, see if previous node
+                # exactly ends here
+                while i:
+                    i -= 1
+                    n = nodes[i]
+                    end = n.end
+                    if end == position:
+                        return n
+                    elif end is not None:
+                        break
+            return node
 
     def find_descendant(self, position):
         """Return the youngest descendant node at or at the right of position.
 
-        Only returns a node that has a ``pos`` attribute, i.e. at least one
-        of its descendants has an origin.
+        Only returns a node that has an origin.
 
         """
+        m = None
         n = self.find_child(position)
-        while n is not None and len(n):
+        while n and n.pos <= position <= n.end:
+            m = n
             n = n.find_child(position)
-        return n
+        return m
 
     def find_descendants(self, position):
         """Yield the child at position, then the grandchild, etc.
@@ -253,9 +266,7 @@ class Item(Node):
 
         """
         n = self.find_child(position)
-        while n is not None:
-            if n.pos > position or n.end < position:
-                break
+        while n and n.pos <= position <= n.end:
             yield n
             n = n.find_child(position)
 
