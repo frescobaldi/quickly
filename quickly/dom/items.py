@@ -100,7 +100,7 @@ class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
 
-    _before = _after = _after_head = _before_tail = '\n'
+    _before = _after = _after_head = _before_tail = _between = '\n'
     head = '<fill in> {'
     tail = '}'
 
