@@ -107,13 +107,13 @@ class Block(base.TailItem):
     def get_variable(self, name):
         """Convenience method to find the value of the named variable.
 
-        Finds an Assignment child that assigns a value to a Variable with the
+        Finds an Assignment child that assigns a value to a Identifier with the
         specified ``name``.  Returns the Item node representing the value, or
         None if no assignment with that name exists.
 
         """
         for n in self/Assignment:
-            for v in n/Variable:
+            for v in n/Identifier:
                 if v.get_name() == name:
                     return n[-1]
 
@@ -125,7 +125,7 @@ class Block(base.TailItem):
 
         """
         for n in self/Assignment:
-            for v in n/Variable:
+            for v in n/Identifier:
                 if v.get_name() == name:
                     n.replace(-1, node)
                     return
@@ -135,7 +135,7 @@ class Block(base.TailItem):
         """Convenience method to return a list of the available variable names."""
         def names():
             for n in self/Assignment:
-                for v in n/Variable:
+                for v in n/Identifier:
                     yield v.get_name()
         return list(names())
 
@@ -241,7 +241,7 @@ class Symbol(base.VarHeadItem):
 class Assignment(base.Item):
     """A variable = value construct.
 
-    The first node is a Variable item, then an EqualSign, and then the value.
+    The first node is a Identifier item, then an EqualSign, and then the value.
 
     """
     __slots__ = ()
@@ -251,15 +251,15 @@ class Assignment(base.Item):
     def with_name(cls, name, node):
         """Convenience class method to create a complete Assignment.
 
-        Automatically creates a Variable child node for the ``name``, an
+        Automatically creates a Identifier child node for the ``name``, an
         EqualSign node, and appends the specified ``node`` as the value of the
-        assignment. For the ``name``, see :meth:`Variable.set_name`.
+        assignment. For the ``name``, see :meth:`Identifier.set_name`.
 
         """
-        return cls(Variable.with_name(name), EqualSign(), node)
+        return cls(Identifier.with_name(name), EqualSign(), node)
 
 
-class Variable(base.Item):
+class Identifier(base.Item):
     """A variable name, the first node is always a Symbol or String.
 
     Further contains Symbol, String, Separator, Number or SchemeExpression.
@@ -269,7 +269,7 @@ class Variable(base.Item):
 
     @classmethod
     def with_name(cls, name):
-        """Create a Variable with specified name."""
+        """Create a Identifier with specified name."""
         v = cls()
         v.set_name(name)
         return v

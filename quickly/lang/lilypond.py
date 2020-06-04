@@ -79,7 +79,7 @@ class LilyPondTransform(Transform):
     def handle_assignments(self, nodes):
         """Handle assignments that occur in the dom.Item nodes.
 
-        If a Variable is encountered and then an EqualSign, it is turned
+        If a Identifier is encountered and then an EqualSign, it is turned
         into an Assignment.
 
         Needed at toplevel and in blocks.
@@ -87,7 +87,7 @@ class LilyPondTransform(Transform):
         """
         nodes = iter(nodes)
         for n in nodes:
-            if isinstance(n, dom.Variable):
+            if isinstance(n, dom.Identifier):
                 variable = [n]
                 equalsign = False
                 for n in nodes:
@@ -231,21 +231,21 @@ class LilyPondTransform(Transform):
         return items
 
     # this mapping is used in the varname method
-    _varname_mapping = {
+    _identifier_mapping = {
         a.Number: dom.Number,
         a.Separator: dom.Separator,
     }
 
-    def varname(self, items):
-        """Return a Variable item."""
+    def identifier(self, items):
+        """Return an Identifier item."""
         def nodes():
             for i in items:
                 if i.is_token:
                     yield self.factory(
-                        self._varname_mapping.get(i.action, dom.Symbol), (i,))
+                        self._identifier_mapping.get(i.action, dom.Symbol), (i,))
                 else:
                     yield i.obj # can be a SchemeExpression or String
-        return dom.Variable(*nodes())
+        return dom.Identifier(*nodes())
 
     def unit(self, items):
         """A numerical value with possible unit in a paper block."""
