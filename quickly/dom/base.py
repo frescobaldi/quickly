@@ -164,11 +164,11 @@ class Item(Node):
                     yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
 
-    before = _SpacingProperty('before')          #: whitespace before this item
-    between = _SpacingProperty('between')        #: whitespace between children
-    after = _SpacingProperty('after')            #: whitespace after this item
-    after_head = _SpacingProperty('after_head')  #: whitespace before first child
-    before_tail = _SpacingProperty('before_tail')#: whitespace before tail
+    space_before = _SpacingProperty('before')          #: whitespace before this item
+    space_between = _SpacingProperty('between')        #: whitespace between children
+    space_after = _SpacingProperty('after')            #: whitespace after this item
+    space_after_head = _SpacingProperty('after_head')  #: whitespace before first child
+    space_before_tail = _SpacingProperty('before_tail')#: whitespace before tail
 
     @property
     def pos(self):
@@ -348,31 +348,31 @@ class Item(Node):
         """
         head_point = self.head_point()
         tail_point = self.tail_point()
-        after = collapse_whitespace((self.after, _last))
-        last_space = self.before_tail if tail_point else after
+        after = collapse_whitespace((self.space_after, _last))
+        last_space = self.space_before_tail if tail_point else after
         if len(self):
             if head_point:
-                yield self.before, head_point, self.after_head
+                yield self.space_before, head_point, self.space_after_head
             n = self[0]
             for m in self[1:]:
                 yield from n.points(self.concat(n, m))
                 n = m
             yield from n.points(last_space)
         elif head_point:
-            yield self.before, head_point, last_space
+            yield self.space_before, head_point, last_space
         if tail_point:
-            yield self.before_tail, tail_point, after
+            yield self.space_before_tail, tail_point, after
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
 
         This method is called in the :meth:`points` method, when calculating
         whitespace between child nodes. By default, the value of the
-        ``between`` attribute is returned. Reimplement this method to
+        ``space_between`` attribute is returned. Reimplement this method to
         differentiate whitespacing based on the (type of the) nodes.
 
         """
-        return self.between
+        return self.space_between
 
     def write(self):
         """Return the combined (not yet indented) output of this node and its

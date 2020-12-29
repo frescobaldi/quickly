@@ -85,7 +85,7 @@ class Document(base.Item):
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
             return '\n'
-        return self.between
+        return self.space_between
 
 
 class LilyPond(base.TailItem):
@@ -438,7 +438,7 @@ class SchemeDocument(base.Item):
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
             return '\n'
-        return self.between
+        return self.space_between
 
 
 class SchemeExpression(base.VarHeadItem):
