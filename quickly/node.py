@@ -303,6 +303,23 @@ class Node(list):
                 else:
                     break
 
+    def descendants_backward(self):
+        """Iterate over all the descendants of this node in backward direction."""
+        stack = []
+        gen = reversed(self)
+        while True:
+            for i in gen:
+                yield i
+                if len(i):
+                    stack.append(gen)
+                    gen = reversed(i)
+                    break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
+
     def root(self):
         """Return the root node."""
         root = self
@@ -323,3 +340,25 @@ class Node(list):
         if p:
             i = p.index(self)
             yield from reversed(p[:i])
+
+    def forward(self):
+        """Iterate forward from this Node, starting with the right sibling."""
+        node = self
+        while node.parent:
+            for n in node.right_siblings():
+                yield n
+                if len(n):
+                    yield from n.descendants()
+            node = node.parent
+
+    def backward(self, other=None):
+        """Iterate backward from this Node, starting with the left sibling."""
+        node = self
+        while node.parent:
+            for n in node.left_siblings():
+                yield n
+                if len(n):
+                    yield from n.descendants_backward()
+            node = node.parent
+
+
