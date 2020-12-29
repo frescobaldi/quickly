@@ -71,7 +71,7 @@ class _SpacingProperty:
 
     If it does not deviate from the default (set in the Item class definition
     prefixed with an underscore), it takes up no memory. Only when a value is
-    changed, a dict is created to hold the values.
+    different from the default value, a dict is created to hold the values.
 
     """
     __slots__ = ('name',)
@@ -80,27 +80,39 @@ class _SpacingProperty:
         self.name = name
 
     def __get__(self, obj, cls):
-        d = getattr(obj, "_spacing", None)
-        if d:
-            value = d.get(self.name)
-            if value is not None:
-                return value
+        try:
+            return obj._spacing[self.name]
+        except (AttributeError, KeyError):
+            pass
         return getattr(cls, '_' + self.name)
 
     def __set__(self, obj, value):
-        d = getattr(obj, "_spacing", None)
-        if not d:
-            if value == getattr(obj, '_' + self.name):
-                return # don't set if same as default
+        is_default = value == getattr(obj, '_' + self.name)
+        try:
+            d = obj._spacing
+        except AttributeError:
+            if is_default:
+                return
             d = obj._spacing = {}
+        else:
+            if is_default:
+                try:
+                    del d[self.name]
+                except KeyError:
+                    pass
+                else:
+                    if not d:
+                        del obj._spacing
+                return
         d[self.name] = value
 
     def __delete__(self, obj):
-        d = getattr(obj, "_spacing", None)
-        if d and self.name in d:
-            del d[self.name]
-            if not d:
-                delattr(obj, "_spacing")
+        try:
+            del obj._spacing[self.name]
+        except (AttributeError, KeyError):
+            return
+        if not obj._spacing:
+            del obj._spacing
 
 
 class Item(Node):
