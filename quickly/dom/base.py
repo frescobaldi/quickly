@@ -507,8 +507,11 @@ class TailItem(HeadItem):
         except AttributeError:
             pos = end = None
         else:
-            pos = origin[0].pos
-            end = origin[-1].end
+            try:
+                pos = origin[0].pos
+                end = origin[-1].end
+            except IndexError:      # can happen when tail was missing
+                pos = end = None
         tail = self.write_tail()
         modified = bool(self._modified & TAIL_MODIFIED)
         return Point(pos, end, tail, modified)
