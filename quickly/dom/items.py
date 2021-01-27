@@ -42,7 +42,7 @@ class Newline(base.Item):
     __slots__ = ()
 
     head = ''
-    _after = '\n'
+    _space_after = '\n'
 
     def __init__(self, **attrs):
         super().__init__(**attrs)
@@ -55,7 +55,7 @@ class BlankLine(Newline):
     anywhere you want a blank line in manually crafted documents.
 
     """
-    _after = '\n\n'
+    _space_after = '\n\n'
 
     def __init__(self, **attrs):
         super().__init__(**attrs)
@@ -72,15 +72,15 @@ class Line(base.Item):
     """
     __slots__ = ()
 
-    _before = _after = '\n'
-    _between = ' '
+    _space_before = _space_after = '\n'
+    _space_between = ' '
 
 
 class Document(base.Item):
     """A LilyPond source document."""
     __slots__ = ()
 
-    _between = '\n\n'
+    _space_between = '\n\n'
 
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
@@ -100,7 +100,7 @@ class Block(base.TailItem):
     """Base class for a block that wants newlines everywhere."""
     __slots__ = ()
 
-    _before = _after = _after_head = _before_tail = _between = '\n'
+    _space_before = _space_after = _space_after_head = _space_before_tail = _space_between = '\n'
     head = '<fill in> {'
     tail = '}'
 
@@ -133,11 +133,9 @@ class Block(base.TailItem):
 
     def variables(self):
         """Convenience method to return a list of the available variable names."""
-        def names():
-            for n in self/Assignment:
-                for v in n/Identifier:
-                    yield v.get_name()
-        return list(names())
+        return list(v.get_name()
+            for n in self/Assignment
+                for v in n/Identifier)
 
 
 class Book(Block):
@@ -194,7 +192,7 @@ class With(Block):
     __slots__ = ()
 
     head = r"\with {"
-    _before = _after = " "
+    _space_before = _space_after = " "
 
 
 class LayoutContext(Block):
@@ -208,7 +206,7 @@ class EqualSign(base.HeadItem):
     r"""An equal sign (``=``)."""
     __slots__ = ()
     head = "="
-    _before = _after = " "
+    _space_before = _space_after = " "
 
 
 class Separator(base.VarHeadItem):
@@ -245,7 +243,7 @@ class Assignment(base.Item):
 
     """
     __slots__ = ()
-    _before = _after = '\n'
+    _space_before = _space_after = '\n'
 
     @classmethod
     def with_name(cls, name, node):
@@ -316,6 +314,39 @@ class Identifier(base.Item):
                 self.append(n)
 
 
+class Music:
+    """Base mixin class for musical items."""
+    __slots__ = ()
+
+
+class MusicList(Music, base.TailItem):
+    """Base class for a music list ``{`` ... ``}`` or ``<<`` ... ``>>``."""
+    __slots__ = ()
+    _space_after_head = _space_before_tail = _space_between = " "
+    head = "{"
+    tail = "}"
+
+
+class SequentialMusic(MusicList):
+    """Music between ``{`` ... ``}``."""
+    __slots__ = ()
+
+
+class SimultaneousMusic(MusicList):
+    """Music between ``<<`` ... ``>>``."""
+    __slots__ = ()
+    head = "<<"
+    tail = ">>"
+
+
+class Chord(Music, base.TailItem):
+    """A chord ``<`` ... ``>``."""
+    __slots__ = ()
+    _space_between = " "
+    head = "<"
+    tail = ">"
+
+
 class Pitch(base.VarHeadItem):
     """A pitch note name."""
     __slots__ = ()
@@ -333,6 +364,7 @@ class Key(base.HeadItem):
 
     """
     __slots__ = ()
+    _space_after_head = _space_between = ' '
 
     head = r"\key"
 
@@ -344,6 +376,7 @@ class Clef(base.HeadItem):
 
     """
     __slots__ = ()
+    _space_after_head = " "
 
     head = r"\clef"
 
@@ -388,7 +421,7 @@ class MultilineComment(Comment):
 class SinglelineComment(Comment):
     r"""A singleline comment after %."""
     __slots__ = ()
-    _after = '\n'
+    _space_after = '\n'
 
     @classmethod
     def read_head(cls, origin):
@@ -401,13 +434,13 @@ class SinglelineComment(Comment):
 class Markup(base.VarHeadItem):
     r"""A \markup, \markuplines or \markuplist expression."""
     __slots__ = ()
-    _before = _after = _between = _after_head = " "
+    _space_before = _space_after = _space_between = _space_after_head = " "
 
 
 class MarkupWord(base.VarHeadItem):
     """A word in markup mode."""
     __slots__ = ()
-    _before = _after = " "
+    _space_before = _space_after = " "
 
     def __init__(self, text, **attrs):
         super().__init__(text, **attrs)
@@ -416,7 +449,7 @@ class MarkupWord(base.VarHeadItem):
 class MarkupList(base.TailItem):
     """A bracketed markup expression, like { ... }."""
     __slots__ = ()
-    _after_head = _before_tail = _between = " "
+    _space_after_head = _space_before_tail = _space_between = " "
     head = "{"
     tail = "}"
 
@@ -424,7 +457,7 @@ class MarkupList(base.TailItem):
 class MarkupCommand(base.VarHeadItem):
     r"""A markup command, like ``\bold <arg>``."""
     __slots__ = ()
-    _before = _after = _between = " "
+    _space_before = _space_after = _space_between = " "
 
 
 ### Scheme
@@ -433,7 +466,7 @@ class SchemeDocument(base.Item):
     """A full Scheme document."""
     __slots__ = ()
 
-    _between = '\n\n'
+    _space_between = '\n\n'
 
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
@@ -449,7 +482,7 @@ class SchemeExpression(base.VarHeadItem):
 class SchemeSinglelineComment(Comment):
     r"""A singleline comment in Scheme after ``;``."""
     __slots__ = ()
-    _after = '\n'
+    _space_after = '\n'
 
     @classmethod
     def read_head(cls, origin):
@@ -508,7 +541,7 @@ class SchemeIdentifier(base.VarHeadItem):
 class SchemeList(base.TailItem):
     r"""A Scheme pair or list ( ... )."""
     __slots__ = ()
-    _between = " "
+    _space_between = " "
     head = "("
     tail = ")"
 
@@ -516,7 +549,7 @@ class SchemeList(base.TailItem):
 class SchemeVector(base.TailItem):
     r"""A Scheme vector #( ... )."""
     __slots__ = ()
-    _between = " "
+    _space_between = " "
     head = "#("
     tail = ")"
 

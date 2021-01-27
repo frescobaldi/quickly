@@ -119,8 +119,9 @@ class Item(Node):
     """Abstract base class for all item types.
 
     Most Item types support children. Using keyword arguments you can give
-    other spacing preferences than the default values for ``before``,
-    ``after``, ``between``, ``after_head`` and ``before_tail``.
+    other spacing preferences than the default values for ``space_before``,
+    ``space_after``, ``space_between``, ``space_after_head`` and
+    ``space_before_tail``.
 
     """
     __slots__ = ("_spacing",)
@@ -129,17 +130,16 @@ class Item(Node):
     _tail = None
     _modified = 0
 
-    _before = ""         #: minimum default whitespace to draw before this item
-    _between = ""        #: minimum default whitespace to draw between child items
-    _after = ""          #: minimum default whitespace to draw after this item
-
-    _after_head = ""     #: minimum default whitespace to draw after the head
-    _before_tail = ""    #: minimum default whitespace to draw before the tail
+    _space_before = ""         #: minimum default whitespace to draw before this item
+    _space_between = ""        #: minimum default whitespace to draw between child items
+    _space_after = ""          #: minimum default whitespace to draw after this item
+    _space_after_head = ""     #: minimum default whitespace to draw after the head
+    _space_before_tail = ""    #: minimum default whitespace to draw before the tail
 
     def __init__(self, *children, **attrs):
         super().__init__(*children)
-        if attrs:
-            self._spacing = attrs
+        for attribute, value in attrs.items():
+            setattr(self, attribute, value)
 
     def copy(self):
         """Copy the node, without the origin."""
@@ -149,8 +149,9 @@ class Item(Node):
     def __repr__(self):
         def result():
             yield self.__class__.__name__
-            if self.head:
-                yield self.repr_head()
+            repr_head = self.repr_head()
+            if repr_head:
+                yield repr_head
             if len(self):
                 yield "({} child{})".format(len(self), '' if len(self) == 1 else 'ren')
             pos = end = None
@@ -164,11 +165,20 @@ class Item(Node):
                     yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
 
-    space_before = _SpacingProperty('before')          #: whitespace before this item
-    space_between = _SpacingProperty('between')        #: whitespace between children
-    space_after = _SpacingProperty('after')            #: whitespace after this item
-    space_after_head = _SpacingProperty('after_head')  #: whitespace before first child
-    space_before_tail = _SpacingProperty('before_tail')#: whitespace before tail
+    def repr_head(self):
+        """Implement to return something repr() can display for the head value.
+
+        The default implementation returns None, causing the head value not to
+        be displayed.
+
+        """
+        return None
+
+    space_before = _SpacingProperty('space_before')          #: whitespace before this item
+    space_between = _SpacingProperty('space_between')        #: whitespace between children
+    space_after = _SpacingProperty('space_after')            #: whitespace after this item
+    space_after_head = _SpacingProperty('space_after_head')  #: whitespace before first child
+    space_before_tail = _SpacingProperty('space_before_tail')#: whitespace before tail
 
     @property
     def pos(self):
@@ -297,10 +307,6 @@ class Item(Node):
         if tail != self._tail:
             self._tail = tail
             self._modified |= TAIL_MODIFIED
-
-    def repr_head(self):
-        """Return a repr value for our head value."""
-        return reprlib.repr(self.head)
 
     @classmethod
     def read_head(cls, head_origin):
@@ -544,6 +550,12 @@ class VarHeadItem(HeadItem):
         self._head = head
         self._modified = 0
         super().__init__(*children, **attrs)
+
+    def repr_head(self):
+        """Return a repr value for our head value."""
+        h = self.head
+        if h is not None:
+            return reprlib.repr(h)
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):

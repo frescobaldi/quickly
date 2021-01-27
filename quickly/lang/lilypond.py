@@ -141,6 +141,15 @@ class LilyPondTransform(Transform):
             elif isinstance(i.obj, dom.Item):
                 yield i.obj
 
+    def create_music(self, items):
+        """Read music from items and yield dom.Item objects."""
+        for i in items:
+            #TEMP
+            if i.is_token:
+                pass
+            elif isinstance(i.obj, dom.Item):
+                yield i.obj
+
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
@@ -177,10 +186,20 @@ class LilyPondTransform(Transform):
         return self.create_block(item_class, items)
 
     def musiclist(self, items):
-        return items
+        """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
+        (``<<`` ... ``>>``) node.
+
+        """
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
+        item_class = dom.SequentialMusic if items[0] == '{' else dom.SimultaneousMusic
+        return self.factory(item_class, head, tail, *self.create_music(items[1:]))
 
     def chord(self, items):
-        return items
+        """Create a Chord node (``<`` ... ``>``)."""
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '>' else ()
+        return self.factory(dom.Chord, head, tail, *self.create_music(items[1:]))
 
     def tempo(self, items):
         return items
@@ -230,7 +249,7 @@ class LilyPondTransform(Transform):
     def chord_modifier(self, items):
         return items
 
-    # this mapping is used in the varname method
+    # this mapping is used in the identifier method
     _identifier_mapping = {
         a.Number: dom.Number,
         a.Separator: dom.Separator,
