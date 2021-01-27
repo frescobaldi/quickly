@@ -76,7 +76,7 @@ class _SpacingProperty:
     """
     __slots__ = ('name',)
 
-    def __init__(self, name):
+    def __set_name__(self, owner, name):
         self.name = name
 
     def __get__(self, obj, cls):
@@ -136,6 +136,12 @@ class Item(Node):
     _space_after_head = ""     #: minimum default whitespace to draw after the head
     _space_before_tail = ""    #: minimum default whitespace to draw before the tail
 
+    space_before = _SpacingProperty()       #: whitespace before this item
+    space_between = _SpacingProperty()      #: whitespace between children
+    space_after = _SpacingProperty()        #: whitespace after this item
+    space_after_head = _SpacingProperty()   #: whitespace before first child
+    space_before_tail = _SpacingProperty()  #: whitespace before tail
+
     def __init__(self, *children, **attrs):
         super().__init__(*children)
         for attribute, value in attrs.items():
@@ -173,12 +179,6 @@ class Item(Node):
 
         """
         return None
-
-    space_before = _SpacingProperty('space_before')          #: whitespace before this item
-    space_between = _SpacingProperty('space_between')        #: whitespace between children
-    space_after = _SpacingProperty('space_after')            #: whitespace after this item
-    space_after_head = _SpacingProperty('space_after_head')  #: whitespace before first child
-    space_before_tail = _SpacingProperty('space_before_tail')#: whitespace before tail
 
     @property
     def pos(self):
