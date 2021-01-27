@@ -37,10 +37,10 @@ To get the textual output of an item and all its child items, use the
 :meth:`~Item.write` method. TODO: indenting.
 
 Whitespace is handled in a smart way: Item subclasses can specify the preferred
-whitespace ``before``, ``after`` and ``between`` elements, and items that have
-head and tail texts can also specify the preperred whitespace after the head
-and before the tail. When outputting the text, the whitespace between items is
-combined to fulfil all requirements but to prevent double spaces.
+whitespace before, after and between elements, and items that have head and
+tail texts can also specify the preperred whitespace after the head and before
+the tail. When outputting the text, the whitespace between items is combined to
+fulfil all requirements but to prevent double spaces.
 
 When an Item is constructed from tokens using the :meth:`~HeadItem.with_origin`
 constructor, it is able to write ifself back in the document if modified, using
@@ -485,11 +485,7 @@ class Item(Node):
 
 class HeadItem(Item):
     """Item that has a fixed head value."""
-    __slots__ = ('_head_origin', '_modified')
-
-    def __init__(self, *children, **attrs):
-        self._modified = 0
-        super().__init__(*children, **attrs)
+    __slots__ = ('_head_origin',)
 
     def head_point(self):
         """Return the Point describing the head text."""

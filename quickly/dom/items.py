@@ -560,7 +560,7 @@ class SchemeQuote(base.VarHeadItem):
 
 
 class SchemeNumber(base.VarHeadItem):
-    r"""Base class from a numerical value.
+    r"""Base class for a numerical value.
 
     You can set and read the numerical value using the ``value`` attribute. The
     optional prefix can be ``#e`` or ``#i``, optionally followed by ``#d``.
