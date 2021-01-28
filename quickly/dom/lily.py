@@ -274,8 +274,12 @@ class Skip(element.TextElement):
     r"""A \skip. Must have a Duration child."""
 
 
+class Q(element.HeadElement, Music):
+    """A ``q``, repeating the previous chord."""
+
+
 class RestPositioner(element.TextElement):
-    r"""A \rest command after a note.
+    r"""A ``\rest`` command after a note.
 
     Is a child of a Rest element that has a pitch name and possibly
     octave information instead of plain "r".

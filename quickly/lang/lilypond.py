@@ -185,7 +185,7 @@ class LilyPondTransform(Transform):
                 if i.action in music:
                     yield from pending_music()
                     if i.action is music.Pitch:
-                        cls = lily.Note
+                        cls = lily.Q if i == 'q' else lily.Note
                     elif i.action is music.Rest:
                         cls = lily.Space if i == 's' else lily.Rest
                     chord = self.factory(cls, (i,))
