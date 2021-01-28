@@ -314,9 +314,9 @@ class Duration(element.TextElement):
         # i: 0    1      2      3  4  5  6  7   8   9   10   11   12   13    14
         dur, *dots = origin
         try:
-            i = (r'\maxima', r'\longa', r'\breve').index(dur.text)
-        except ValueError:
             i = int(dur.text).bit_length() + 2
+        except ValueError:
+            i = (r'\maxima', r'\longa', r'\breve').index(dur.text)
         n = len(dots)
         return fractions.Fraction(8 * ((2 << n) - 1), 1 << n + i)
 
