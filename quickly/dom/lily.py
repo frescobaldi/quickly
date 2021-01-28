@@ -226,11 +226,11 @@ class Identifier(element.Element):
                 self.append(n)
 
 
-class Music:
+class Music(element.Element):
     """Base mixin class for musical elements."""
 
 
-class MusicList(Music, element.BlockElement):
+class MusicList(element.BlockElement, Music):
     """Base class for a music list ``{`` ... ``}`` or ``<<`` ... ``>>``."""
     _space_after_head = _space_before_tail = _space_between = " "
     head = "{"
@@ -247,7 +247,7 @@ class SimultaneousMusic(MusicList):
     tail = ">>"
 
 
-class Chord(Music, element.BlockElement):
+class Chord(element.BlockElement, Music):
     """A chord ``<`` ... ``>``."""
     _space_between = " "
     head = "<"

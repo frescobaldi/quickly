@@ -170,6 +170,8 @@ class LilyPondTransform(Transform):
                     dur.append(scaling)
                     dur.dump()
                 if chord:
+                    if chord.tail:
+                        chord = lily.Music(chord)
                     chord.append(dur)
                     yield chord
                 else:
