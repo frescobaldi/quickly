@@ -292,7 +292,7 @@ class LilyPondTransform(Transform):
     def schemelily(self, items):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '#}' else ()
-        return self.factory(lily.LilyPond, head, tail, *self.common(items[1:]))
+        return self.factory(scm.LilyPond, head, tail, *self.common(items[1:]))
 
     def string(self, items):
         """Create a String node."""
