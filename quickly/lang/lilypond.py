@@ -46,16 +46,16 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
     ## helper methods and factory
-    def factory(self, item_class, head_origin, tail_origin=(), *children):
-        """Create an Item, keeping its origin.
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
+        """Create an Element, keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
-        Token instances. All items should be created using this method, so that
-        it can be overridden for the case you don't want to remember the
+        Token instances. All elements should be created using this method, so
+        that it can be overridden for the case you don't want to remember the
         origin.
 
         """
-        return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
+        return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     def common(self, items):
         """Find comment, string, scheme and markup.
@@ -107,7 +107,7 @@ class LilyPondTransform(Transform):
             else:
                 yield n
 
-    def create_block(self, item_class, items):
+    def create_block(self, element_class, items):
         r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
 
         The items are the contents of a block like \book { }.
@@ -117,7 +117,7 @@ class LilyPondTransform(Transform):
         """
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
-        return self.factory(item_class, head_origin, tail_origin,
+        return self.factory(element_class, head_origin, tail_origin,
             *self.handle_assignments(self.common(items[2:])))
 
     def create_markup(self, items):
@@ -157,8 +157,8 @@ class LilyPondTransform(Transform):
 
     def book(self, items):
         """Create a Book or BookPart node."""
-        item_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
-        return self.create_block(item_class, items)
+        element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
+        return self.create_block(element_class, items)
 
     def score(self, items):
         """Create a Score node (can also appear inside Markup and MarkupList)."""
@@ -182,8 +182,8 @@ class LilyPondTransform(Transform):
 
     def layout_context(self, items):
         """Create a With or LayoutContext node."""
-        item_class = lily.With if items[1] == r'\with' else lily.LayoutContext
-        return self.create_block(item_class, items)
+        element_class = lily.With if items[1] == r'\with' else lily.LayoutContext
+        return self.create_block(element_class, items)
 
     def musiclist(self, items):
         """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
@@ -192,8 +192,8 @@ class LilyPondTransform(Transform):
         """
         head = items[:1]
         tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
-        item_class = lily.SequentialMusic if items[0] == '{' else lily.SimultaneousMusic
-        return self.factory(item_class, head, tail, *self.create_music(items[1:]))
+        element_class = lily.SequentialMusic if items[0] == '{' else lily.SimultaneousMusic
+        return self.factory(element_class, head, tail, *self.create_music(items[1:]))
 
     def chord(self, items):
         """Create a Chord node (``<`` ... ``>``)."""
@@ -316,7 +316,7 @@ class LilyPondAdHocTransform(LilyPondTransform):
     used as if they originated from the document that's being edited.
 
     """
-    def factory(self, item_class, head_origin, tail_origin=(), *children):
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Item *without* keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
@@ -325,5 +325,5 @@ class LilyPondAdHocTransform(LilyPondTransform):
         origin.
 
         """
-        return item_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
+        return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
 

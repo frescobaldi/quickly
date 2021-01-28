@@ -45,8 +45,8 @@ class Block(element.BlockElement):
         """Convenience method to find the value of the named variable.
 
         Finds an Assignment child that assigns a value to a Identifier with the
-        specified ``name``.  Returns the Item node representing the value, or
-        None if no assignment with that name exists.
+        specified ``name``.  Returns the Element node representing the value,
+        or None if no assignment with that name exists.
 
         """
         for n in self/Assignment:
@@ -152,7 +152,8 @@ class Symbol(element.TextElement):
 class Assignment(element.Element):
     """A variable = value construct.
 
-    The first node is a Identifier item, then an EqualSign, and then the value.
+    The first node is a Identifier element, then an EqualSign, and then the
+    value.
 
     """
     _space_before = _space_after = '\n'
@@ -203,8 +204,9 @@ class Identifier(element.Element):
         string (in that case it is automatically quoted) or a tuple of names,
         strings and even numbers. The first item in the tuple always must be a
         name or string. An alphanumeric string is turned into a :class:`Symbol`
-        item, a string containing "illegal" characters into a :class:`String`
-        item, and an integer value into a :class:`Number` item.
+        element, a string containing "illegal" characters into a
+        :class:`String` element, and an integer value into a :class:`Number`
+        element.
 
         """
         if type(name) is str:
@@ -225,7 +227,7 @@ class Identifier(element.Element):
 
 
 class Music:
-    """Base mixin class for musical items."""
+    """Base mixin class for musical elements."""
 
 
 class MusicList(Music, element.BlockElement):

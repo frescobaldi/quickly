@@ -81,7 +81,7 @@ def transform(text, lexicon=None):
 
 
 def node(text, lexicon=None):
-    """Build a Item node from text using lexicon (LilyPond.root if not
+    """Build a Element node from text using lexicon (LilyPond.root if not
     specified).
 
     """

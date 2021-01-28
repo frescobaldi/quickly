@@ -43,7 +43,7 @@ class Scheme(parce.lang.scheme.SchemeLily):
 class SchemeTransform(Transform):
     """Transform Scheme quickly.dom."""
     ## helper methods and factory
-    def factory(self, item_class, head_origin, tail_origin=(), *children):
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Item, keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
@@ -52,7 +52,7 @@ class SchemeTransform(Transform):
         origin.
 
         """
-        return item_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
+        return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     # both mappings are used in common, below
     _number_mapping = {
@@ -146,7 +146,7 @@ class SchemeAdHocTransform(SchemeTransform):
     used as if they originated from the document that's being edited.
 
     """
-    def factory(self, item_class, head_origin, tail_origin=(), *children):
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Item *without* keeping its origin.
 
         The ``head_origin`` and optionally ``tail_origin`` is an iterable of
@@ -155,5 +155,5 @@ class SchemeAdHocTransform(SchemeTransform):
         origin.
 
         """
-        return item_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
+        return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
 

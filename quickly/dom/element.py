@@ -30,17 +30,17 @@ An Element can be constructed in two ways: either using the
 :meth:`~Element.from_origin` class method from tokens (this is done by the
 LilyPondTransform class), or manually using the normal constructor.
 
-You can specify all child items in the constructor, so theoretically you can
+You can specify all child elements in the constructor, so theoretically you can
 build a whole document in one expression.
 
-To get the textual output of an item and all its child items, use the
+To get the textual output of an element and all its child elements, use the
 :meth:`~Element.write` method. TODO: indenting.
 
 Whitespace is handled in a smart way: Element subclasses can specify the
-preferred whitespace before, after and between elements, and items that have
+preferred whitespace before, after and between elements, and elements that have
 head and tail texts can also specify the preperred whitespace after the head
-and before the tail. When outputting the text, the whitespace between items is
-combined to fulfil all requirements but to prevent double spaces.
+and before the tail. When outputting the text, the whitespace between elements
+is combined to fulfil all requirements but to prevent double spaces.
 
 When an Element is constructed from tokens using the
 :meth:`~Element.with_origin` constructor, it is able to write ifself back in
@@ -69,9 +69,10 @@ TAIL_MODIFIED = 2
 class SpacingProperty:
     """A property that denotes spacing.
 
-    If it does not deviate from the default (set in the Item class definition
-    prefixed with an underscore), it takes up no memory. Only when a value is
-    different from the default value, a dict is created to hold the values.
+    If it does not deviate from the default (set in the Element class
+    definition prefixed with an underscore), it takes up no memory. Only when a
+    value is different from the default value, a dict is created to hold the
+    values.
 
     """
     __slots__ = ('name',)
@@ -133,10 +134,10 @@ class Element(Node, metaclass=ElementType):
 
     The Element has no head or tail value.
 
-    Most Element types support children. Using keyword arguments you can give
-    other spacing preferences than the default values for ``space_before``,
-    ``space_after``, ``space_between``, ``space_after_head`` and
-    ``space_before_tail``.
+    Child elements can be specified directly as arguments to the constructor.
+    Using keyword arguments you can give other spacing preferences than the
+    default values for ``space_before``, ``space_after``, ``space_between``,
+    ``space_after_head`` and ``space_before_tail``.
 
     """
     __slots__ = ("_spacing",)
@@ -145,17 +146,17 @@ class Element(Node, metaclass=ElementType):
     _tail = None
     _modified = 0
 
-    _space_before = ""         #: minimum default whitespace to draw before this item
+    _space_before = ""         #: minimum default whitespace to draw before this element
     _space_after_head = ""     #: minimum default whitespace to draw after the head
-    _space_between = ""        #: minimum default whitespace to draw between child items
+    _space_between = ""        #: minimum default whitespace to draw between child elements
     _space_before_tail = ""    #: minimum default whitespace to draw before the tail
-    _space_after = ""          #: minimum default whitespace to draw after this item
+    _space_after = ""          #: minimum default whitespace to draw after this element
 
-    space_before = SpacingProperty()       #: whitespace before this item
+    space_before = SpacingProperty()       #: whitespace before this element
     space_after_head = SpacingProperty()   #: whitespace before first child
     space_between = SpacingProperty()      #: whitespace between children
     space_before_tail = SpacingProperty()  #: whitespace before tail
-    space_after = SpacingProperty()        #: whitespace after this item
+    space_after = SpacingProperty()        #: whitespace after this element
 
     def __init__(self, *children, **attrs):
         super().__init__(*children)
@@ -198,9 +199,9 @@ class Element(Node, metaclass=ElementType):
 
     @property
     def pos(self):
-        """Return the position of this item.
+        """Return the position of this element.
 
-        Only makes sense for items that have an origin, or one of the
+        Only makes sense for elements that have an origin, or one of the
         descendants has an origin. Possibly an expensive call, when a node tree
         has been heavily modified already. Returns None if this node and no
         single descendant of it has an origin.
@@ -217,9 +218,9 @@ class Element(Node, metaclass=ElementType):
 
     @property
     def end(self):
-        """Return the end position of this item.
+        """Return the end position of this element.
 
-        Only makes sense for items that have an origin, or one of the
+        Only makes sense for elements that have an origin, or one of the
         descendants has an origin. Possibly an expensive call, when a node tree
         has been heavily modified already. Returns None if this node and no
         single descendant of it has an origin.
@@ -381,7 +382,7 @@ class Element(Node, metaclass=ElementType):
     def head_point(self):
         """Return the Point describing the head text.
 
-        Returns None for items that don't have a head text.
+        Returns None for elements that don't have a head text.
 
         """
         head = self.write_head()
@@ -399,7 +400,7 @@ class Element(Node, metaclass=ElementType):
     def tail_point(self):
         """Return the Point describing the tail text.
 
-        Returns None for items that can't have a tail text.
+        Returns None for elements that can't have a tail text.
 
         """
         tail = self.write_tail()
@@ -474,12 +475,12 @@ class Element(Node, metaclass=ElementType):
         for before, point, after in self.points():
             b = '' if insert_after is None else collapse_whitespace((insert_after, before))
             if point.pos is None:
-                # new item
+                # new element
                 if point.text:
                     yield pos, pos, b + point.text
                     insert_after = after
             else:
-                # existing item
+                # existing element
                 if point.pos > pos:
                     # see if old content needs to be deleted between pos and point.pos
                     del_pos = del_end = pos
@@ -568,7 +569,7 @@ class BlockElement(HeadElement):
 
 
 class TextElement(HeadElement):
-    """Item that has a variable/writable head value.
+    """Element that has a variable/writable head value.
 
     This value must be given to the constructor, and can be modified later.
 
