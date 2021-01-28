@@ -45,6 +45,21 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
+
+    ## mappings from action to element
+    #: this mapping is used in the identifier method
+    identifier_mapping = {
+        a.Number: lily.Number,
+        a.Separator: lily.Separator,
+    }
+
+    #: mapping for actions in LilyPond.pitch
+    pitch_mapping = {
+        a.Text.Music.Pitch.Octave: lily.Octave,
+        a.Text.Music.Pitch.Octave.OctaveCheck: lily.OctaveCheck,
+        a.Text.Music.Pitch.Accidental: lily.Accidental,
+    }
+
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -143,12 +158,68 @@ class LilyPondTransform(Transform):
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
+        chord = None
+        duration = None
+        music = a.Text.Music
+
+        def pending_music(scaling=None):
+            nonlocal chord, duration
+            if duration:
+                dur = self.factory(lily.Duration, duration)
+                if scaling:
+                    dur.append(scaling)
+                    dur.dump()
+                if chord:
+                    chord.append(dur)
+                    yield chord
+                else:
+                    yield lily.Unpitched(dur)
+            elif chord:
+                yield chord
+            chord = duration = None
+
         for i in items:
-            #TEMP
             if i.is_token:
-                pass
+                if i.action in music:
+                    yield from pending_music()
+                    if i.action is music.Pitch:
+                        cls = lily.Note
+                    elif i.action is music.Rest:
+                        cls = lily.Space if i == 's' else lily.Rest
+                    chord = self.factory(cls, (i,))
+                elif i.action is a.Literal.Number.Duration:
+                    if duration:
+                        yield from pending_music()
+                    duration = [i]
+                elif i == r'\skip':
+                    yield from pending_music()
+                    chord = self.factory(lily.Skip, (i,))
+                elif i == r'\rest':
+                    if isinstance(chord, lily.Note):
+                        chord.dump()
+                        # make it a positioned rest, reuse old pitch token if possible
+                        try:
+                            origin = chord._head_origin
+                        except AttributeError:
+                            chord = lily.Rest(chord.head, *chord)
+                        else:
+                            chord = self.factory(lily.Rest, origin, (), *chord)
+                        chord.append(self.factory(lily.RestPositioner, (i,)))
+            elif i.name == "pitch":
+                # pitch context: octave, accidental, octavecheck
+                chord.extend(i.obj)
+            elif i.name == "duration":
+                dots, scaling = i.obj
+                duration.extend(dots)
+                yield from pending_music(scaling)
+            elif i.name == "chord":
+                yield from pending_music()
+                chord = i.obj
             elif isinstance(i.obj, element.Element):
                 yield i.obj
+
+        # pending stuff
+        yield from pending_music()
 
     ## transforming methods
     def root(self, items):
@@ -217,16 +288,38 @@ class LilyPondTransform(Transform):
         return items
 
     def pitch(self, items):
-        return items
+        """Octave, Accidental and OctaveCheck after a note name.
+
+        Return a list of elements.
+
+        """
+        def gen():
+            for i in items:
+                if i.is_token:
+                    yield self.factory(self.pitch_mapping[i.action], (i,))
+                else:
+                    yield i.obj # can only be a comment
+        return list(gen())
 
     def duration(self, items):
-        return items
+        """Dots after a duration, can include scaling.
 
-    def duration_dots(self, items):
-        return items
+        Returns (dots, scaling), where dots is a list of Dot tokens and
+        scaling a DurationScaling node.
+
+        """
+        dots = []
+        scaling = None
+        for i in items:
+            if i == '.':
+                dots.append(i)
+            elif not i.is_token and i.name == 'duration_scaling':
+                scaling = i.obj
+        return dots, scaling
 
     def duration_scaling(self, items):
-        return items
+        """Scaling after a duration."""
+        return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
         return items
@@ -249,11 +342,6 @@ class LilyPondTransform(Transform):
     def chord_modifier(self, items):
         return items
 
-    # this mapping is used in the identifier method
-    _identifier_mapping = {
-        a.Number: lily.Number,
-        a.Separator: lily.Separator,
-    }
 
     def identifier(self, items):
         """Return an Identifier item."""
@@ -261,7 +349,7 @@ class LilyPondTransform(Transform):
             for i in items:
                 if i.is_token:
                     yield self.factory(
-                        self._identifier_mapping.get(i.action, lily.Symbol), (i,))
+                        self.identifier_mapping.get(i.action, lily.Symbol), (i,))
                 else:
                     yield i.obj # can be a SchemeExpression or String
         return lily.Identifier(*nodes())
@@ -326,4 +414,6 @@ class LilyPondAdHocTransform(LilyPondTransform):
 
         """
         return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
+
+
 

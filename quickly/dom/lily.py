@@ -254,8 +254,60 @@ class Chord(Music, element.BlockElement):
     tail = ">"
 
 
-class Pitch(element.TextElement):
+class Note(element.TextElement):
     """A pitch note name."""
+
+
+class Unpitched(element.Element):
+    """An unpitched duration, has a Duration child."""
+
+
+class Rest(element.TextElement):
+    """A rest."""
+
+
+class Space(element.TextElement):
+    """A space (s)."""
+
+
+class Skip(element.TextElement):
+    r"""A \skip. Must have a Duration child."""
+
+
+class RestPositioner(element.TextElement):
+    r"""A \rest command after a note.
+
+    Is a child of a Rest element that has a pitch name and possibly
+    octave information instead of plain "r".
+
+    """
+
+class Accidental(element.TextElement):
+    """The accidental after a note."""
+
+
+class Octave(element.TextElement):
+    """The octave after a note."""
+
+
+class OctaveCheck(element.TextElement):
+    """The octavecheck after a note."""
+
+
+class Duration(element.TextElement):
+    """A duration after a note.
+
+    Can contain dots, e.g. ``2..``.
+
+    """
+
+
+class DurationScaling(element.TextElement):
+    """An optional scaling after a Duration.
+
+    E.g. ``*1/2``. May contain multiple *n/m parts.
+
+    """
 
 
 class Mode(element.TextElement):
