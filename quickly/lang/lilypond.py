@@ -198,7 +198,6 @@ class LilyPondTransform(Transform):
                     chord = self.factory(lily.Skip, (i,))
                 elif i == r'\rest':
                     if isinstance(chord, lily.Note):
-                        chord.dump()
                         # make it a positioned rest, reuse old pitch token if possible
                         try:
                             origin = chord._head_origin
