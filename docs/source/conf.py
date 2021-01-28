@@ -113,17 +113,6 @@ html_theme = "sphinx_rtd_theme"
 # documentation.
 #
 html_theme_options = {
-#    'logo': 'quickly-logo.png',
-    'fixed_sidebar': 'true',
-    'github_user': 'frescobaldi',
-    'github_repo': 'quickly',
-#    'show_related': 'true',
-    'show_relbar_bottom': 'true',
-    'description': quickly.pkginfo.description,
-    'extra_nav_links': {
-        'quickly@Github': 'https://github.com/frescobaldi/quickly',
-        'quickly@PyPi': 'https://pypi.org/project/quickly',
-    },
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
