@@ -28,7 +28,7 @@ from parce.transform import Transform
 import parce.lang.lilypond
 import parce.action as a
 
-from quickly import dom
+from quickly.dom import base, element, lily, scm
 
 
 
@@ -60,24 +60,24 @@ class LilyPondTransform(Transform):
     def common(self, items):
         """Find comment, string, scheme and markup.
 
-        Yields dom.Item objects.
+        Yields Element objects.
 
         """
         items = iter(items)
         for i in items:
             if i.is_token:
                 if i.action == a.Operator.Assignment:
-                    yield self.factory(dom.EqualSign, (i,))
-            elif isinstance(i.obj, dom.Item):
+                    yield self.factory(lily.EqualSign, (i,))
+            elif isinstance(i.obj, element.Element):
                 yield i.obj
             elif i.name == "markup":
                 origin = i.obj[:1]
                 for markup in self.create_markup(itertools.chain(i.obj[1:], items)):
-                    yield self.factory(dom.Markup, origin, (), markup)
+                    yield self.factory(lily.Markup, origin, (), markup)
                     break
 
     def handle_assignments(self, nodes):
-        """Handle assignments that occur in the dom.Item nodes.
+        """Handle assignments that occur in the Element nodes.
 
         If a Identifier is encountered and then an EqualSign, it is turned
         into an Assignment.
@@ -87,17 +87,17 @@ class LilyPondTransform(Transform):
         """
         nodes = iter(nodes)
         for n in nodes:
-            if isinstance(n, dom.Identifier):
+            if isinstance(n, lily.Identifier):
                 variable = [n]
                 equalsign = False
                 for n in nodes:
                     variable.append(n)
-                    if not isinstance(n, dom.Comment):
+                    if not isinstance(n, base.Comment):
                         if equalsign:
                             # gotcha!!
-                            yield dom.Assignment(*variable)
+                            yield lily.Assignment(*variable)
                             break
-                        elif isinstance(n, dom.EqualSign):
+                        elif isinstance(n, lily.EqualSign):
                             equalsign = True
                         else:
                             yield from variable
@@ -126,63 +126,63 @@ class LilyPondTransform(Transform):
         for i in items:
             if i.is_token:
                 if i.action is a.Text:
-                    yield self.factory(dom.MarkupWord, (i,))
+                    yield self.factory(lily.MarkupWord, (i,))
                 elif i.action in a.Name.Function:
                     nargs = LilyPond.get_markup_argument_count(i.text[1:])
                     args = []
                     if nargs:
                         for arg in self.create_markup(items):
                             args.append(arg)
-                            if not isinstance(arg, dom.Comment):
+                            if not isinstance(arg, base.Comment):
                                 nargs -= 1
                             if nargs == 0:
                                 break
-                    yield self.factory(dom.MarkupCommand, (i,), (), *args)
-            elif isinstance(i.obj, dom.Item):
+                    yield self.factory(lily.MarkupCommand, (i,), (), *args)
+            elif isinstance(i.obj, element.Element):
                 yield i.obj
 
     def create_music(self, items):
-        """Read music from items and yield dom.Item objects."""
+        """Read music from items and yield Element nodes."""
         for i in items:
             #TEMP
             if i.is_token:
                 pass
-            elif isinstance(i.obj, dom.Item):
+            elif isinstance(i.obj, element.Element):
                 yield i.obj
 
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
-        return dom.Document(*self.handle_assignments(self.common(items)))
+        return lily.Document(*self.handle_assignments(self.common(items)))
 
     def book(self, items):
         """Create a Book or BookPart node."""
-        item_class = dom.BookPart if items[1] == r'\bookpart' else dom.Book
+        item_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
         return self.create_block(item_class, items)
 
     def score(self, items):
         """Create a Score node (can also appear inside Markup and MarkupList)."""
-        return self.create_block(dom.Score, items)
+        return self.create_block(lily.Score, items)
 
     def header(self, items):
         """Create a Header node."""
-        return self.create_block(dom.Header, items)
+        return self.create_block(lily.Header, items)
 
     def paper(self, items):
         """Create a Paper node."""
-        return self.create_block(dom.Paper, items)
+        return self.create_block(lily.Paper, items)
 
     def layout(self, items):
         """Create a Layout node."""
-        return self.create_block(dom.Layout, items)
+        return self.create_block(lily.Layout, items)
 
     def midi(self, items):
         """Create a Midi node."""
-        return self.create_block(dom.Midi, items)
+        return self.create_block(lily.Midi, items)
 
     def layout_context(self, items):
         """Create a With or LayoutContext node."""
-        item_class = dom.With if items[1] == r'\with' else dom.LayoutContext
+        item_class = lily.With if items[1] == r'\with' else lily.LayoutContext
         return self.create_block(item_class, items)
 
     def musiclist(self, items):
@@ -192,14 +192,14 @@ class LilyPondTransform(Transform):
         """
         head = items[:1]
         tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
-        item_class = dom.SequentialMusic if items[0] == '{' else dom.SimultaneousMusic
+        item_class = lily.SequentialMusic if items[0] == '{' else lily.SimultaneousMusic
         return self.factory(item_class, head, tail, *self.create_music(items[1:]))
 
     def chord(self, items):
         """Create a Chord node (``<`` ... ``>``)."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '>' else ()
-        return self.factory(dom.Chord, head, tail, *self.create_music(items[1:]))
+        return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
 
     def tempo(self, items):
         return items
@@ -251,8 +251,8 @@ class LilyPondTransform(Transform):
 
     # this mapping is used in the identifier method
     _identifier_mapping = {
-        a.Number: dom.Number,
-        a.Separator: dom.Separator,
+        a.Number: lily.Number,
+        a.Separator: lily.Separator,
     }
 
     def identifier(self, items):
@@ -261,16 +261,16 @@ class LilyPondTransform(Transform):
             for i in items:
                 if i.is_token:
                     yield self.factory(
-                        self._identifier_mapping.get(i.action, dom.Symbol), (i,))
+                        self._identifier_mapping.get(i.action, lily.Symbol), (i,))
                 else:
                     yield i.obj # can be a SchemeExpression or String
-        return dom.Identifier(*nodes())
+        return lily.Identifier(*nodes())
 
     def unit(self, items):
         """A numerical value with possible unit in a paper block."""
-        number = self.factory(dom.Number, items[:1])
+        number = self.factory(lily.Number, items[:1])
         if len(items) > 1:
-            number.append(self.factory(dom.Unit, items[1:]))
+            number.append(self.factory(lily.Unit, items[1:]))
         return number
 
     def markup(self, items):
@@ -287,24 +287,24 @@ class LilyPondTransform(Transform):
         """Create a MarkupList node."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '}' else ()
-        return self.factory(dom.MarkupList, head, tail, *self.create_markup(items[1:]))
+        return self.factory(lily.MarkupList, head, tail, *self.create_markup(items[1:]))
 
     def schemelily(self, items):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '#}' else ()
-        return self.factory(dom.LilyPond, head, tail, *self.common(items[1:]))
+        return self.factory(lily.LilyPond, head, tail, *self.common(items[1:]))
 
     def string(self, items):
         """Create a String node."""
-        return self.factory(dom.String, items)
+        return self.factory(lily.String, items)
 
     def multiline_comment(self, items):
         """Create a MultilineComment node."""
-        return self.factory(dom.MultilineComment, items)
+        return self.factory(lily.MultilineComment, items)
 
     def singleline_comment(self, items):
         """Create a SinglelineComment node."""
-        return self.factory(dom.SinglelineComment, items)
+        return self.factory(lily.SinglelineComment, items)
 
 
 class LilyPondAdHocTransform(LilyPondTransform):

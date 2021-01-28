@@ -85,7 +85,7 @@ def node(text, lexicon=None):
     specified).
 
     """
-    from .items import Document
+    from .lily import Document
     n = transform(text, lexicon)
     return n[0] if isinstance(n, Document) and len(n) else n
 

@@ -28,7 +28,7 @@ from parce.transform import Transform
 import parce.lang.scheme
 import parce.action as a
 
-from quickly import dom
+from quickly.dom import base, element, lily, scm
 
 
 class Scheme(parce.lang.scheme.SchemeLily):
@@ -56,20 +56,20 @@ class SchemeTransform(Transform):
 
     # both mappings are used in common, below
     _number_mapping = {
-        a.Number.Int: dom.SchemeInt,
-        a.Number.Binary: dom.SchemeBinary,
-        a.Number.Octal: dom.SchemeOctal,
-        a.Number.Hexadecimal: dom.SchemeHexadecimal,
-        a.Number.Float: dom.SchemeFloat,
-        a.Number.Infinity: dom.SchemeFloat,
-        a.Number.NaN: dom.SchemeFloat,
-        a.Number.Boolean: dom.SchemeBoolean,
+        a.Number.Int: scm.Int,
+        a.Number.Binary: scm.Bin,
+        a.Number.Octal: scm.Oct,
+        a.Number.Hexadecimal: scm.Hex,
+        a.Number.Float: scm.Float,
+        a.Number.Infinity: scm.Float,
+        a.Number.NaN: scm.Float,
+        a.Number.Boolean: scm.Bool,
     }
     _common_mapping = {
-        a.Character: dom.SchemeChar,
-        a.Delimiter.Dot: dom.SchemeDot,
-        a.Keyword: dom.SchemeIdentifier,
-        a.Name: dom.SchemeIdentifier,
+        a.Character: scm.Char,
+        a.Delimiter.Dot: scm.Dot,
+        a.Keyword: scm.Identifier,
+        a.Name: scm.Identifier,
     }
 
     def common(self, items):
@@ -89,44 +89,44 @@ class SchemeTransform(Transform):
                         quotes.append(i)
                     else:
                         yield self.factory(self._common_mapping[i.action], (i,))
-                elif isinstance(i.obj, dom.Item):
+                elif isinstance(i.obj, element.Element):
                     yield i.obj
         for node in nodes():
             for q in reversed(quotes):
-                node = self.factory(dom.SchemeQuote, (q,), (), node)
+                node = self.factory(scm.Quote, (q,), (), node)
             quotes.clear()
             yield node
 
     ### transforming methods
     def root(self, items):
-        return dom.SchemeDocument(*self.common(items))
+        return scm.Document(*self.common(items))
 
     def list(self, items):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ')' else ()
-        return self.factory(dom.SchemeList, head, tail, *self.common(items[1:]))
+        return self.factory(scm.List, head, tail, *self.common(items[1:]))
 
     def vector(self, items):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ')' else ()
-        return self.factory(dom.SchemeVector, head, tail, *self.common(items[1:]))
+        return self.factory(scm.Vector, head, tail, *self.common(items[1:]))
 
     def string(self, items):
         """Create a String node."""
-        return self.factory(dom.SchemeString, items)
+        return self.factory(scm.String, items)
 
     def multiline_comment(self, items):
         """Create a MultilineComment node."""
-        return self.factory(dom.SchemeMultilineComment, items)
+        return self.factory(scm.MultilineComment, items)
 
     def singleline_comment(self, items):
         """Create a SinglelineComment node."""
-        return self.factory(dom.SchemeSinglelineComment, items)
+        return self.factory(scm.SinglelineComment, items)
 
     def scheme(self, items):
         """Create a Scheme node in LilyPond."""
         head = items[:1]    # $ or # token introducing scheme mode
-        scheme = self.factory(dom.SchemeExpression, head)
+        scheme = self.factory(lily.SchemeExpression, head)
         for i in self.common(items[1:]):
             scheme.append(i)
             break

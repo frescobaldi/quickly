@@ -41,9 +41,9 @@ This DOM is used in two ways:
 
 """
 
-
-from .util import node, document
-from .base import Item
-from .items import *
+## TEMP
+from .util import *
+from .element import *
+from .base import *
 
 
