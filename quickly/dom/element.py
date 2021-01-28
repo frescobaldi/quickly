@@ -19,12 +19,12 @@
 
 
 """
-Base classes for the quickly.dom elements.
+This module defines the :class:`Element` class.
 
-An :class:`Element` describes an object and can have child objects. An Element
-can display a ``head`` and optionally a ``tail``. The head is text that is
-printed before the children (if any). The tail is displayed after the children,
-and will in most cases be used as a closing delimiter.
+An Element describes an object and can have child objects. An Element can
+display a ``head`` and optionally a ``tail``. The head is text that is printed
+before the children (if any). The tail is displayed after the children, and
+will in most cases be used as a closing delimiter.
 
 An Element can be constructed in two ways: either using the
 :meth:`~Element.from_origin` class method from tokens (this is done by the
@@ -46,6 +46,8 @@ When an Element is constructed from tokens using the
 :meth:`~Element.with_origin` constructor, it is able to write ifself back in
 the document if modified, using the :meth:`~Element.edit` method.
 
+:class:`Element` inherits from  :class:`~quickly.node.Node`, and thus from
+:class:`list`, to build a reliable and easy to navigate tree structure.
 
 """
 
