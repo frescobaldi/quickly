@@ -306,6 +306,7 @@ class Element(Node, metaclass=ElementType):
 
     @property
     def head(self):
+        """The head contents."""
         return self._head
 
     @head.setter
@@ -316,6 +317,7 @@ class Element(Node, metaclass=ElementType):
 
     @property
     def tail(self):
+        """The tail contents."""
         return self._tail
 
     @tail.setter
