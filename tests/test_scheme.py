@@ -19,14 +19,14 @@
 
 
 """
-Template for test files that test quickly.
+Template for test files that test *quickly*.
 """
 
 ### find quickly
 import sys
 sys.path.insert(0, '.')
 
-from quickly import dom
+from quickly.dom import scm
 
 from quickly.lang.scheme import Scheme
 from parce.transform import transform_text
@@ -51,15 +51,15 @@ scheme_doc = """
 def test_main():
     d = transform_text(Scheme.root, scheme_doc)
     assert len(d) == 9
-    assert sum(1 for _ in d//dom.SchemeInt) == 5
-    assert sum(1 for _ in d//dom.SchemeString) == 1
-    assert sum(1 for _ in d//dom.SchemeIdentifier) == 14
+    assert sum(1 for _ in d//scm.Int) == 5
+    assert sum(1 for _ in d//scm.String) == 1
+    assert sum(1 for _ in d//scm.Identifier) == 14
 
     # does find_descendant work propery?
     assert d.find_descendant(40).head == "("
     assert d.find_descendant(41).head == "define"
     l = d.find_descendant(59)
-    assert isinstance(l, dom.SchemeList)
+    assert isinstance(l, scm.List)
     assert l.pos == 48
 
     # see if the output is correct, and when transformed again as well...
