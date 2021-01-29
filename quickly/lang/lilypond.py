@@ -86,10 +86,7 @@ class LilyPondTransform(Transform):
             elif isinstance(i.obj, element.Element):
                 yield i.obj
             elif i.name == "markup":
-                origin = i.obj[:1]
-                for markup in self.create_markup(itertools.chain(i.obj[1:], items)):
-                    yield self.factory(lily.Markup, origin, (), markup)
-                    break
+                yield from self.create_markup(i.obj, items)
 
     def handle_assignments(self, nodes):
         """Handle assignments that occur in the Element nodes.
@@ -135,7 +132,20 @@ class LilyPondTransform(Transform):
         return self.factory(element_class, head_origin, tail_origin,
             *self.handle_assignments(self.common(items[2:])))
 
-    def create_markup(self, items):
+    def create_markup(self, markup, items):
+        """Yield zero or one Markup element.
+
+        ``markup`` is the result list of :meth:`markup`, and items is the
+        iterable from which more arguments are read. If there is no single
+        argument, nothing is yielded.
+
+        """
+        origin = markup[:1]     # the \markup or \markuplist command
+        for mkup in self.read_markup_arguments(itertools.chain(markup[1:], items)):
+            yield self.factory(lily.Markup, origin, (), mkup)
+            break
+
+    def read_markup_arguments(self, items):
         """Read from items and yield nodes that can occur in markup."""
         items = iter(items)
         for i in items:
@@ -146,7 +156,7 @@ class LilyPondTransform(Transform):
                     nargs = LilyPond.get_markup_argument_count(i.text[1:])
                     args = []
                     if nargs:
-                        for arg in self.create_markup(items):
+                        for arg in self.read_markup_arguments(items):
                             args.append(arg)
                             if not isinstance(arg, base.Comment):
                                 nargs -= 1
@@ -228,6 +238,9 @@ class LilyPondTransform(Transform):
                 elif i.action is a.Delimiter.Separator.PipeSymbol:
                     yield from pending_music()
                     yield self.factory(lily.PipeSymbol, (i,))
+                else:
+                    # TEMP
+                    print("Unknown token:", i)
             elif i.name == "pitch":
                 # pitch context: octave, accidental, octavecheck
                 music.extend(i.obj)
@@ -238,15 +251,14 @@ class LilyPondTransform(Transform):
             elif i.name == "music":
                 yield from pending_music()
                 music = i.obj
-            elif i.name == "script":
+            elif i.name in ("script", "string", "scheme"):
                 add_articulation(i.obj)
             elif i.name == "markup":
-                origin = i.obj[:1]
-                for markup in self.create_markup(itertools.chain(i.obj[1:], items)):
-                    add_articulation(self.factory(lily.Markup, origin, (), markup))
-                    break
-            elif isinstance(i.obj, element.Element):
-                yield i.obj
+                for node in self.create_markup(i.obj, items):
+                    add_articulation(node)
+            else:
+                # TEMP
+                print("Unknown item:", i)
 
         # pending stuff
         yield from pending_music()
@@ -408,7 +420,7 @@ class LilyPondTransform(Transform):
         """Create a MarkupList node."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '}' else ()
-        return self.factory(lily.MarkupList, head, tail, *self.create_markup(items[1:]))
+        return self.factory(lily.MarkupList, head, tail, *self.read_markup_arguments(items[1:]))
 
     def schemelily(self, items):
         head = items[:1]

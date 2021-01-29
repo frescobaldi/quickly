@@ -353,7 +353,17 @@ class Articulations(element.Element):
 
 
 class Direction(element.TextElement):
-    r"""A ``-``, ``_`` or ``^``."""
+    r"""A ``-``, ``_`` or ``^``.
+
+    The value is -1 for ``_``, 0 for ``-`` or 1 for ``^``
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        return '_-^'.index(origin[0].text) -1
+
+    def write_head(self):
+        return '_-^'[self.head + 1]
 
 
 class Articulation(element.TextElement):
