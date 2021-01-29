@@ -17,7 +17,7 @@ to maintain, it will use the new `parce`_ package for parsing LilyPond files.
 .. _LilyPond: http://lilypond.org/
 .. _parce: https://parce.info/
 
-``ly.dom`` and ``ly.music`` will be superceded by ``quickly.dom`` which will
+``ly.dom`` and ``ly.music`` will be superseded by ``quickly.dom`` which will
 provide a way to both build a LilyPond source file from scratch (like
 ``ly.dom``) and manipulate an existing document (like ``ly.music``). It is also
 expected that much of the functionality that is currently implemented at the
