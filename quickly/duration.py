@@ -27,7 +27,7 @@ import math
 
 
 def to_string(value):
-    """Converts the value (most times a Fraction) to a LilyPond string notation.
+    r"""Convert the value (most times a Fraction) to a LilyPond string notation.
 
     The value is truncated to a duration that can be expressed by a note length
     and a number of dots. For example::
@@ -52,9 +52,11 @@ def to_string(value):
 
 
 def to_fraction(text, dotcount=None):
-    """Converts a LilyPond duration string (e.g. ``'4.'``) to a Fraction.
+    r"""Convert a LilyPond duration string (e.g. ``'4.'``) to a Fraction.
 
-    If ``dotcount`` is None, the dots are expected to be in the ``text``.
+    The durations ``\breve``, ``\longa`` and ``\maxima`` may be used with or
+    without backslash. If ``dotcount`` is None, the dots are expected to be in
+    the ``text``.
 
     For example::
 
@@ -75,6 +77,6 @@ def to_fraction(text, dotcount=None):
     try:
         i = int(text).bit_length() + 2
     except ValueError:
-        i = (r'\maxima', r'\longa', r'\breve').index(text)
+        i = ('maxima', 'longa', 'breve').index(text.lstrip('\\'))
     return fractions.Fraction(8 * ((2 << dotcount) - 1), 1 << dotcount + i)
 
