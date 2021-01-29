@@ -262,7 +262,7 @@ class Note(element.TextElement):
 
 
 class Unpitched(element.Element):
-    """An unpitched duration, has a Duration child."""
+    """An unpitched duration, always has a Duration child."""
 
 
 class Rest(element.TextElement):
@@ -348,6 +348,27 @@ class DurationScaling(element.TextElement):
         return ""
 
 
+class Articulations(element.Element):
+    r"""A list of elements that are attched to a note or chord."""
+
+
+class Direction(element.TextElement):
+    r"""A ``-``, ``_`` or ``^``."""
+
+
+class Articulation(element.TextElement):
+    r"""An ArticulationEvent."""
+
+
+class Fingering(element.TextElement):
+    r"""A FingeringEvent."""
+
+
+class PipeSymbol(element.HeadElement):
+    r"""A PipeSymbol, most times used as bar check."""
+    head = "|"
+
+
 class Mode(element.TextElement):
     r"""The mode subcommand of the ``\key`` statement."""
 
@@ -402,7 +423,8 @@ class SinglelineComment(base.SinglelineComment):
 
 class Markup(element.TextElement):
     r"""A ``\markup``, ``\markuplines`` or ``\markuplist`` expression."""
-    _space_before = _space_after = _space_between = _space_after_head = " "
+    _space_before = _space_after = ""
+    _space_between = _space_after_head = " "
 
 
 class MarkupWord(element.TextElement):

@@ -158,63 +158,93 @@ class LilyPondTransform(Transform):
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
-        chord = None
+        music = None
         duration = None
-        music = a.Text.Music
+        direction = None
+        Music = a.Text.Music
+        articulations = []
 
         def pending_music(scaling=None):
-            nonlocal chord, duration
+            """Yield pending music."""
+            nonlocal music, duration
             if duration:
                 dur = self.factory(lily.Duration, duration)
                 if scaling:
                     dur.append(scaling)
-                if chord:
-                    if chord.tail:
-                        chord = lily.Music(chord)
-                    chord.append(dur)
-                    yield chord
+                if music:
+                    if music.tail:
+                        music = lily.Music(music)
+                    music.append(dur)
                 else:
-                    yield lily.Unpitched(dur)
-            elif chord:
-                yield chord
-            chord = duration = None
+                    music = lily.Unpitched(dur)
+            if music:
+                if articulations:
+                    music.append(lily.Articulations(*articulations))
+                    articulations.clear()
+                yield music
+            music = duration = None
 
+        def add_articulation(art):
+            """Add an articulation or script."""
+            nonlocal direction
+            if direction:
+                direction.append(art)
+                articulations.append(direction)
+                direction = None
+            else:
+                articulations.append(art)
+
+        items = iter(items)
         for i in items:
             if i.is_token:
-                if i.action in music:
+                if i.action in Music:
                     yield from pending_music()
-                    if i.action is music.Pitch:
+                    if i.action is Music.Pitch:
                         cls = lily.Q if i == 'q' else lily.Note
-                    elif i.action is music.Rest:
+                    elif i.action is Music.Rest:
                         cls = lily.Space if i == 's' else lily.Rest
-                    chord = self.factory(cls, (i,))
+                    music = self.factory(cls, (i,))
                 elif i.action is a.Literal.Number.Duration:
-                    if duration:
+                    if duration or articulations:
                         yield from pending_music()
                     duration = [i]
                 elif i == r'\skip':
                     yield from pending_music()
-                    chord = self.factory(lily.Skip, (i,))
+                    music = self.factory(lily.Skip, (i,))
                 elif i == r'\rest':
-                    if isinstance(chord, lily.Note):
+                    if isinstance(music, lily.Note):
                         # make it a positioned rest, reuse old pitch token if possible
                         try:
-                            origin = chord._head_origin
+                            origin = music._head_origin
                         except AttributeError:
-                            chord = lily.Rest(chord.head, *chord)
+                            music = lily.Rest(music.head, *music)
                         else:
-                            chord = self.factory(lily.Rest, origin, (), *chord)
-                        chord.append(self.factory(lily.RestPositioner, (i,)))
+                            music = self.factory(lily.Rest, origin, (), *music)
+                        music.append(self.factory(lily.RestPositioner, (i,)))
+                elif i.action is a.Delimiter.Direction:
+                    direction = self.factory(lily.Direction, (i,))
+                elif i.action is a.Name.Script.Articulation:
+                    add_articulation(self.factory(lily.Articulation, (i,)))
+                elif i.action is a.Delimiter.Separator.PipeSymbol:
+                    yield from pending_music()
+                    yield self.factory(lily.PipeSymbol, (i,))
             elif i.name == "pitch":
                 # pitch context: octave, accidental, octavecheck
-                chord.extend(i.obj)
+                music.extend(i.obj)
             elif i.name == "duration":
                 dots, scaling = i.obj
                 duration.extend(dots)
                 yield from pending_music(scaling)
-            elif i.name == "chord":
+            elif i.name == "music":
                 yield from pending_music()
-                chord = i.obj
+                music = i.obj
+            elif i.name == "script":
+                add_articulation(i.obj)
+            elif i.name == "markup":
+                origin = i.obj[:1]
+                for markup in self.create_markup(itertools.chain(i.obj[1:], items)):
+                    add_articulation(self.factory(lily.Markup, origin, (), markup))
+                    break
             elif isinstance(i.obj, element.Element):
                 yield i.obj
 
@@ -285,7 +315,10 @@ class LilyPondTransform(Transform):
         return items
 
     def script(self, items):
-        return items
+        """Contains one Fingering or Articulation event."""
+        if items[0].action is a.Literal.Number.Fingering:
+            return self.factory(lily.Fingering, items)
+        return self.factory(lily.Articulation, items)
 
     def pitch(self, items):
         """Octave, Accidental and OctaveCheck after a note name.
