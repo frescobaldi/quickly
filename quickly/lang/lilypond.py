@@ -168,7 +168,6 @@ class LilyPondTransform(Transform):
                 dur = self.factory(lily.Duration, duration)
                 if scaling:
                     dur.append(scaling)
-                    dur.dump()
                 if chord:
                     if chord.tail:
                         chord = lily.Music(chord)
