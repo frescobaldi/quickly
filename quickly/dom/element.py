@@ -208,11 +208,11 @@ class Element(Node, metaclass=ElementType):
 
         """
         try:
-            return self._head_origin[0].pos
+            return self.head_origin[0].pos
         except (AttributeError, IndexError):
             for n in self.descendants():
                 try:
-                    return n._head_origin[0].pos
+                    return n.head_origin[0].pos
                 except (AttributeError, IndexError):
                     pass
 
@@ -227,14 +227,14 @@ class Element(Node, metaclass=ElementType):
 
         """
         try:
-            return self._tail_origin[-1].end
+            return self.tail_origin[-1].end
         except (AttributeError, IndexError):
             for n in reversed(self):
                 end = n.end
                 if end is not None:
                     return end
             try:
-                return self._head_origin[-1].end
+                return self.head_origin[-1].end
             except (AttributeError, IndexError):
                 pass
 
@@ -388,7 +388,7 @@ class Element(Node, metaclass=ElementType):
         head = self.write_head()
         if head is not None:
             try:
-                origin = self._head_origin
+                origin = self.head_origin
             except AttributeError:
                 pos = end = None
             else:
@@ -406,7 +406,7 @@ class Element(Node, metaclass=ElementType):
         tail = self.write_tail()
         if tail is not None:
             try:
-                origin = self._tail_origin
+                origin = self.tail_origin
             except AttributeError:
                 pos = end = None
             else:
@@ -532,18 +532,18 @@ class Element(Node, metaclass=ElementType):
         old = self[index]
         self[index] = node
         try:
-            node._head_origin = old._head_origin
+            node.head_origin = old.head_origin
         except AttributeError:
             pass
         try:
-            node._tail_origin = old._tail_origin
+            node.tail_origin = old.tail_origin
         except AttributeError:
             pass
 
 
 class HeadElement(Element):
     """Element that has a fixed head value."""
-    __slots__ = ('_head_origin',)
+    __slots__ = ('head_origin',)
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
@@ -552,19 +552,19 @@ class HeadElement(Element):
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
-        node._head_origin = head_origin
+        node.head_origin = head_origin
         return node
 
 
 class BlockElement(HeadElement):
     """Element that has a fixed head and tail value."""
-    __slots__ = ('_tail_origin',)
+    __slots__ = ('tail_origin',)
 
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
-        node._head_origin = head_origin
-        node._tail_origin = tail_origin
+        node.head_origin = head_origin
+        node.tail_origin = tail_origin
         return node
 
 

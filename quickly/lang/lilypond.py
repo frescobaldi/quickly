@@ -225,7 +225,7 @@ class LilyPondTransform(Transform):
                     if isinstance(music, lily.Note):
                         # make it a positioned rest, reuse old pitch token if possible
                         try:
-                            origin = music._head_origin
+                            origin = music.head_origin
                         except AttributeError:
                             music = lily.Rest(music.head, *music)
                         else:
