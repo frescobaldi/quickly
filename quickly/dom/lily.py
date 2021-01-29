@@ -25,7 +25,7 @@ Elements needed for LilyPond expressions.
 
 import fractions
 
-from .. import duration
+from .. import duration, pitch
 from . import base, element
 
 
@@ -262,19 +262,19 @@ class Note(element.TextElement):
 
 
 class Unpitched(element.Element):
-    """An unpitched duration, always has a Duration child."""
+    """An unpitched note, always has a Duration child."""
 
 
 class Rest(element.TextElement):
-    """A rest."""
+    """A rest (``r`` or ``R``)."""
 
 
 class Space(element.TextElement):
-    """A space (s)."""
+    """A space (``s``)."""
 
 
 class Skip(element.TextElement):
-    r"""A \skip. Must have a Duration child."""
+    r"""A ``\skip``. Must have a Duration child."""
 
 
 class Q(element.HeadElement, Music):
@@ -294,11 +294,39 @@ class Accidental(element.TextElement):
 
 
 class Octave(element.TextElement):
-    """The octave after a note."""
+    """The octave after a note.
+
+    The default octave is 0; each ``'`` increases the octave by one; each ``,``
+    decreases the octave by one. Note that this differs from LilyPond, which
+    uses 0 to denote the ``'`` octave.
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        """Read the octave from the token."""
+        return pitch.octave_to_num(origin[0].text)
+
+    def write_head(self):
+        """Write the octave, an empty string for octave 0."""
+        return pitch.num_to_octave(self.head)
 
 
 class OctaveCheck(element.TextElement):
-    """The octavecheck after a note."""
+    """The octavecheck after a note.
+
+    The default octave is 0; each ``'`` increases the octave by one;
+    each ``,`` decreases the octave by one. Note that differs from LilyPond,
+    which uses 0 to denote the ``'`` octave.
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        """Read the octave from the token."""
+        return pitch.octave_to_num(origin[0].text[1:])
+
+    def write_head(self):
+        """Write the octave, an empty string for octave 0."""
+        return '=' + pitch.num_to_octave(self.head)
 
 
 class Duration(element.TextElement):
@@ -308,7 +336,11 @@ class Duration(element.TextElement):
 
     """
     def duration(self):
-        """Return the duration, also obeying scaling."""
+        """Return the duration.
+
+        Also obeys scaling if a DurationScaling child is present.
+
+        """
         duration = self.head
         for e in self / DurationScaling:
             duration *= e.head
