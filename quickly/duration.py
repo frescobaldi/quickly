@@ -1,0 +1,80 @@
+# -*- coding: utf-8 -*-
+#
+# This file is part of `quickly`, a library for LilyPond and the `.ly` format
+#
+# Copyright © 2019-2021 by Wilbert Berendsen <info@wilbertberendsen.nl>
+#
+# This module is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This module is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+"""
+Functions to deal with LilyPond's musical durations.
+"""
+
+import fractions
+import math
+
+
+def to_string(value):
+    """Converts the value (most times a Fraction) to a LilyPond string notation.
+
+    The value is truncated to a duration that can be expressed by a note length
+    and a number of dots. For example::
+
+    >>> from fractions import Fraction
+    >>> from quickly.duration import to_string
+    >>> to_string(Fraction(3, 2))
+    '1.'
+    >>> to_string(4)
+    '\\longa'
+    >>> to_string(7.75)
+    '\\longa....'
+
+    """
+    mantisse, exponent = math.frexp(value)
+    dotcount = int(-1 - math.log2(1 - mantisse))
+    if exponent >= 2:
+        dur = (r'\breve', r'\longa', r'\maxima')[exponent-2]
+    else:
+        dur = str(2 ** (1 - exponent))
+    return dur + '.' * dotcount
+
+
+def to_fraction(text, dotcount=None):
+    """Converts a LilyPond duration string (e.g. ``'4.'``) to a Fraction.
+
+    If ``dotcount`` is None, the dots are expected to be in the ``text``.
+
+    For example::
+
+    >>> from quickly.duration import to_fraction
+    >>> to_fraction('8')
+    Fraction(1, 8)
+    >>> to_fraction('8..')
+    Fraction(7, 32)
+    >>> to_fraction('8', dotcount=2)
+    Fraction(7, 32)
+
+    """
+    if dotcount is None:
+        text, *rest = text.split('.')
+        dotcount = len(rest)
+    # maxima, longa, breve, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
+    # i: 0    1      2      3  4  5  6  7   8   9   10   11   12   13    14
+    try:
+        i = int(text).bit_length() + 2
+    except ValueError:
+        i = (r'\maxima', r'\longa', r'\breve').index(text)
+    return fractions.Fraction(8 * ((2 << dotcount) - 1), 1 << dotcount + i)
+

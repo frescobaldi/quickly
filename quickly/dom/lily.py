@@ -23,9 +23,7 @@ Elements needed for LilyPond expressions.
 """
 
 
-import fractions
-import math
-
+from .. import duration
 from . import base, element
 
 
@@ -317,25 +315,12 @@ class Duration(element.TextElement):
     @classmethod
     def read_head(cls, origin):
         """Read the duration value from the origin tokens."""
-        # maxima, longa, breve, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
-        # i: 0    1      2      3  4  5  6  7   8   9   10   11   12   13    14
         dur, *dots = origin
-        try:
-            i = int(dur.text).bit_length() + 2
-        except ValueError:
-            i = (r'\maxima', r'\longa', r'\breve').index(dur.text)
-        n = len(dots)
-        return fractions.Fraction(8 * ((2 << n) - 1), 1 << n + i)
+        return duration.to_fraction(dur.text, len(dots))
 
     def write_head(self):
         """Write back the duration fraction to a string like ``4.``"""
-        mantisse, exponent = math.frexp(self.head)
-        n = int(-1 - math.log2(1 - mantisse))
-        if exponent >= 2:
-            dur = (r'\breve', r'\longa', r'\maxima')[exponent-2]
-        else:
-            dur = str(2 ** (1 - exponent))
-        return dur + '.' * n
+        return duration.to_string(self.head)
 
 
 class DurationScaling(element.TextElement):
