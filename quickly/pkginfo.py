@@ -20,8 +20,10 @@
 """
 Meta-information about the quickly package.
 
-This information is used by the install script, and also for the
-command ``ly --version``.
+This information is used by the install script.
+
+The :attr:`version` and :attr:`version_string` are also available
+in the global :mod:`quickly` module space.
 
 """
 
