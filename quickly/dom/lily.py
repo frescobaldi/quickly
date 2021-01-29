@@ -307,6 +307,13 @@ class Duration(element.TextElement):
     Can contain dots, e.g. ``2..``.
 
     """
+    def duration(self):
+        """Return the duration, also obeying scaling."""
+        duration = self.head
+        for e in self / DurationScaling:
+            duration *= e.head
+        return duration
+
     @classmethod
     def read_head(cls, origin):
         """Read the duration value from the origin tokens."""
@@ -337,6 +344,20 @@ class DurationScaling(element.TextElement):
     E.g. ``*1/2``. May contain multiple *n/m parts.
 
     """
+    @classmethod
+    def read_head(cls, origin):
+        """Read the scaling from the origin tokens."""
+        scaling = 1
+        for t in origin:
+            if t != "*":
+                scaling *= fractions.Fraction(t.text)
+        return scaling
+
+    def write_head(self):
+        """Write back the scaling to a string like ``*1/2``."""
+        if self.head != 1:
+            return "*{}".format(self.head)
+        return ""
 
 
 class Mode(element.TextElement):
