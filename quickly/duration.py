@@ -47,8 +47,8 @@ def to_string(value):
     if exponent >= 2:
         dur = (r'\breve', r'\longa', r'\maxima')[exponent-2]
     else:
-        dur = str(2 ** (1 - exponent))
-    return dur + '.' * dotcount
+        dur = 1 << 1 - exponent
+    return '{}{}'.format(dur, '.' * dotcount)
 
 
 def to_fraction(text, dotcount=None):
@@ -70,8 +70,8 @@ def to_fraction(text, dotcount=None):
 
     """
     if dotcount is None:
-        text, *rest = text.split('.')
-        dotcount = len(rest)
+        dotcount = text.count('.')
+        text = text.strip(' \t.')
     # maxima, longa, breve, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
     # i: 0    1      2      3  4  5  6  7   8   9   10   11   12   13    14
     try:
