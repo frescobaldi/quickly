@@ -60,6 +60,15 @@ class LilyPondTransform(Transform):
         a.Text.Music.Pitch.Accidental: lily.Accidental,
     }
 
+    #: mapping for actions in LilyPond.create_music
+    music_mapping = {
+        a.Name.Symbol.Spanner.Slur: lily.Slur,
+        a.Name.Symbol.Spanner.Slur.Phrasing: lily.PhrasingSlur,
+        a.Name.Symbol.Spanner.Tie: lily.Tie,
+        a.Name.Symbol.Spanner.Beam: lily.Beam,
+        a.Name.Symbol.Spanner.Ligature: lily.Ligature,
+    }
+
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -135,7 +144,7 @@ class LilyPondTransform(Transform):
     def create_markup(self, markup, items):
         """Yield zero or one Markup element.
 
-        ``markup`` is the result list of :meth:`markup`, and items is the
+        ``markup`` is the result list of :meth:`markup`, and ``items`` is the
         iterable from which more arguments are read. If there is no single
         argument, nothing is yielded.
 
@@ -230,11 +239,15 @@ class LilyPondTransform(Transform):
                             music = lily.Rest(music.head, *music)
                         else:
                             music = self.factory(lily.Rest, origin, (), *music)
-                        music.append(self.factory(lily.RestPositioner, (i,)))
+                        music.append(self.factory(lily.RestModifier, (i,)))
                 elif i.action is a.Delimiter.Direction:
                     direction = self.factory(lily.Direction, (i,))
                 elif i.action is a.Name.Script.Articulation:
                     add_articulation(self.factory(lily.Articulation, (i,)))
+                elif i.action is a.Name.Builtin.Dynamic:
+                    add_articulation(self.factory(lily.Dynamic, (i,)))
+                elif i.action in a.Name.Symbol.Spanner:
+                    add_articulation(self.factory(self.music_mapping[i.action], (i,)))
                 elif i.action is a.Delimiter.Separator.PipeSymbol:
                     yield from pending_music()
                     yield self.factory(lily.PipeSymbol, (i,))

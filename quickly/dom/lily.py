@@ -281,7 +281,7 @@ class Q(element.HeadElement, Music):
     """A ``q``, repeating the previous chord."""
 
 
-class RestPositioner(element.TextElement):
+class RestModifier(element.TextElement):
     r"""A ``\rest`` command after a note.
 
     Is a child of a Rest element that has a pitch name and possibly
@@ -292,9 +292,17 @@ class RestPositioner(element.TextElement):
 class Accidental(element.TextElement):
     """The accidental after a note.
 
-    Can be ``?`` or ``!``.
+    Can be ``cautionary`` or ``forced``.
 
     """
+    @classmethod
+    def read_head(cls, origin):
+        """Read the accidental type."""
+        return 'cautionary' if origin[0] == '?' else 'forced'
+
+    def write_head(self):
+        """Write the accidental type."""
+        return {'cautionary': '?', 'forced': '!'}.get(self.head, '')
 
 
 class Octave(element.TextElement):
@@ -408,6 +416,63 @@ class Articulation(element.TextElement):
 
 class Fingering(element.TextElement):
     r"""A FingeringEvent."""
+
+
+class Dynamic(element.TextElement):
+    r"""A dynamic symbol, like ``pp``."""
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text[1:]    # remove the backslash
+
+    def write_head(self):
+        return r'\{}'.format(self.head)
+
+
+class Slur(element.TextElement):
+    r"""A slur. (-1 is ``(``, 1 is ``)``."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '(' else 1
+
+    def write_head(self):
+        return '(' if self.head == -1 else ')'
+
+
+class PhrasingSlur(element.TextElement):
+    r"""A slur. (-1 is ``\(``, 1 is ``\)``."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '\\(' else 1
+
+    def write_head(self):
+        return '\\(' if self.head == -1 else '\\)'
+
+
+class Tie(element.HeadElement):
+    r"""A tie."""
+    head = '~'
+
+
+class Beam(element.TextElement):
+    r"""A beam. (-1 is ``[``, 1 is ``]``."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '[' else 1
+
+    def write_head(self):
+        return '[' if self.head == -1 else ']'
+
+
+class Ligature(element.TextElement):
+    r"""A ligature. (-1 is ``\[``, 1 is ``\]``."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '\\[' else 1
+
+    def write_head(self):
+        return '\\[' if self.head == -1 else '\\]'
+
+
 
 
 class PipeSymbol(element.HeadElement):
