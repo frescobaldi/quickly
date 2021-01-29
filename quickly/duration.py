@@ -32,14 +32,14 @@ def to_string(value):
     The value is truncated to a duration that can be expressed by a note length
     and a number of dots. For example::
 
-    >>> from fractions import Fraction
-    >>> from quickly.duration import to_string
-    >>> to_string(Fraction(3, 2))
-    '1.'
-    >>> to_string(4)
-    '\\longa'
-    >>> to_string(7.75)
-    '\\longa....'
+        >>> from fractions import Fraction
+        >>> from quickly.duration import to_string
+        >>> to_string(Fraction(3, 2))
+        '1.'
+        >>> to_string(4)
+        '\\longa'
+        >>> to_string(7.75)
+        '\\longa....'
 
     """
     mantisse, exponent = math.frexp(value)
@@ -58,13 +58,13 @@ def to_fraction(text, dotcount=None):
 
     For example::
 
-    >>> from quickly.duration import to_fraction
-    >>> to_fraction('8')
-    Fraction(1, 8)
-    >>> to_fraction('8..')
-    Fraction(7, 32)
-    >>> to_fraction('8', dotcount=2)
-    Fraction(7, 32)
+        >>> from quickly.duration import to_fraction
+        >>> to_fraction('8')
+        Fraction(1, 8)
+        >>> to_fraction('8..')
+        Fraction(7, 32)
+        >>> to_fraction('8', dotcount=2)
+        Fraction(7, 32)
 
     """
     if dotcount is None:
