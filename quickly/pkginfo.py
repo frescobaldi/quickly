@@ -33,7 +33,7 @@ Version = collections.namedtuple("Version", "major minor patch")
 name = "quickly"
 
 #: the current version
-version = Version(0, 0, 2)
+version = Version(0, 0, 3)
 version_suffix = ""
 version_string = "{}.{}.{}".format(*version) + version_suffix
 
@@ -58,5 +58,5 @@ url = "https://github.com/frescobaldi/quickly"
 license = "GPL v3"
 
 #: copyright year
-copyright_year = "2020"
+copyright_year = "2020-2021"
 
