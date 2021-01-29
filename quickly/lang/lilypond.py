@@ -261,7 +261,7 @@ class LilyPondTransform(Transform):
                 dots, scaling = i.obj
                 duration.extend(dots)
                 yield from pending_music(scaling)
-            elif i.name == "music":
+            elif i.name is "chord":
                 yield from pending_music()
                 music = i.obj
             elif i.name in ("script", "string", "scheme"):
