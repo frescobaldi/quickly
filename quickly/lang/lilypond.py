@@ -335,7 +335,7 @@ class LilyPondTransform(Transform):
     def pitch(self, items):
         """Octave, Accidental and OctaveCheck after a note name.
 
-        Return a list of elements.
+        Returns a list of elements.
 
         """
         def gen():

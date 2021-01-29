@@ -290,7 +290,11 @@ class RestPositioner(element.TextElement):
     """
 
 class Accidental(element.TextElement):
-    """The accidental after a note."""
+    """The accidental after a note.
+
+    Can be ``?`` or ``!``.
+
+    """
 
 
 class Octave(element.TextElement):
