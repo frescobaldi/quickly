@@ -23,6 +23,8 @@ Elements needed for LilyPond expressions.
 """
 
 
+import fractions
+
 from .. import duration
 from . import base, element
 
@@ -326,7 +328,8 @@ class Duration(element.TextElement):
 class DurationScaling(element.TextElement):
     """An optional scaling after a Duration.
 
-    E.g. ``*1/2``. May contain multiple *n/m parts.
+    E.g. ``*1/2``. May contain multiple ``*n/m`` parts, but the value
+    is stored as a Fraction.
 
     """
     @classmethod
