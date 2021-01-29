@@ -5,6 +5,7 @@ Overview of all modules
    :maxdepth: 2
 
    duration.rst
+   pitch.rst
    dom.rst
    lang.rst
    node.rst
