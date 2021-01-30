@@ -312,6 +312,9 @@ class LilyPondTransform(Transform):
             elif i.name == "markup":
                 for node in self.create_markup(i.obj, items):
                     add_articulation(node)
+            elif isinstance(i.obj, element.Element):
+                yield from pending_music()
+                yield i.obj
             else:
                 # TEMP
                 print("Unknown item:", i)
@@ -327,11 +330,15 @@ class LilyPondTransform(Transform):
     def book(self, items):
         """Create a Book or BookPart node."""
         element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
-        return self.create_block(element_class, items)
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(element_class, head, tail, *self.create_music(items[2:]))
 
     def score(self, items):
         """Create a Score node (can also appear inside Markup and MarkupList)."""
-        return self.create_block(lily.Score, items)
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Score, head, tail, *self.create_music(items[2:]))
 
     def header(self, items):
         """Create a Header node."""
