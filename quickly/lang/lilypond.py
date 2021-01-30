@@ -226,7 +226,7 @@ class LilyPondTransform(Transform):
 
                 # if there are tweaks but no articulations, the tweak
                 # is meant for the next note. Output it now.
-                yield from [e for e in events if isinstance(e, lily.Tweak)]
+                yield from (e for e in events if isinstance(e, lily.Tweak))
                 events.clear()
 
             music = duration = scaling = None
