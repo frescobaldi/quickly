@@ -430,24 +430,35 @@ class Dynamic(element.TextElement):
         return r'\{}'.format(self.head)
 
 
-class Slur(element.TextElement):
-    r"""A slur. (-1 is ``(``, 1 is ``)``."""
+class Spanner(element.TextElement):
+    r"""Base class for spanner elements, that start or stop.
+
+    Specify ``"start"`` or ``"stop"`` to the constructor, and put the texts
+    that are displayed for either in the ``spanner_start`` and ``spanner_stop``
+    attribute.
+
+    """
+    spanner_start = "<start>"
+    spanner_stop = "<stop>"
+
     @classmethod
     def read_head(cls, origin):
-        return -1 if origin[0] == '(' else 1
+        return "start" if origin[0] == cls.spanner_start else "stop"
 
     def write_head(self):
-        return '(' if self.head == -1 else ')'
+        return self.spanner_start if self.head == "start" else self.spanner_stop
 
 
-class PhrasingSlur(element.TextElement):
-    r"""A slur. (-1 is ``\(``, 1 is ``\)``."""
-    @classmethod
-    def read_head(cls, origin):
-        return -1 if origin[0] == '\\(' else 1
+class Slur(Spanner):
+    r"""A slur ``(`` or ``)``."""
+    spanner_start = "("
+    spanner_stop = ")"
 
-    def write_head(self):
-        return '\\(' if self.head == -1 else '\\)'
+
+class PhrasingSlur(Spanner):
+    r"""A phrasing slur ``\(`` or ``\)``."""
+    spanner_start = r"\("
+    spanner_stop = r"\)"
 
 
 class Tie(element.HeadElement):
@@ -455,44 +466,28 @@ class Tie(element.HeadElement):
     head = '~'
 
 
-class Beam(element.TextElement):
-    r"""A beam. (-1 is ``[``, 1 is ``]``."""
-    @classmethod
-    def read_head(cls, origin):
-        return -1 if origin[0] == '[' else 1
-
-    def write_head(self):
-        return '[' if self.head == -1 else ']'
+class Beam(Spanner):
+    r"""A beam ``[`` or ``]``."""
+    spanner_start = "["
+    spanner_stop = "]"
 
 
-class Ligature(element.TextElement):
-    r"""A ligature. (-1 is ``\[``, 1 is ``\]``."""
-    @classmethod
-    def read_head(cls, origin):
-        return -1 if origin[0] == '\\[' else 1
-
-    def write_head(self):
-        return '\\[' if self.head == -1 else '\\]'
+class Ligature(Spanner):
+    r"""A ligature ``\[`` or ``\]``."""
+    spanner_start = r"\["
+    spanner_stop = r"\]"
 
 
-class TextSpanner(element.TextElement):
+class TextSpanner(Spanner):
     r"""A text spanner."""
-    @classmethod
-    def read_head(cls, origin):
-        return -1 if origin[0] == '\\startTextSpan' else 1
-
-    def write_head(self):
-        return '\\startTextSpan' if self.head == -1 else '\\stopTextSpan'
+    spanner_start = r'\startTextSpan'
+    spanner_stop = r'\stopTextSpan'
 
 
-class TrillSpanner(element.TextElement):
+class TrillSpanner(Spanner):
     r"""A trill spanner."""
-    @classmethod
-    def read_head(cls, origin):
-        return -1 if origin[0] == '\\startTrillSpan' else 1
-
-    def write_head(self):
-        return '\\startTrillSpan' if self.head == -1 else '\\stopTrillSpan'
+    spanner_start = r'\startTrillSpan'
+    spanner_stop = r'\stopTrillSpan'
 
 
 class PipeSymbol(element.HeadElement):
