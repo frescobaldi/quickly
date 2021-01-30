@@ -192,21 +192,15 @@ class LilyPondTransform(Transform):
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
-        music = None
-        duration = None
+        music = duration = scaling = None
         events = []         # for direction and spanner-id
         Music = a.Text.Music
         articulations = []
+        comments = []       # for comments between pitch and duration...
 
-        def pending_music(scaling=None):
+        def pending_music():
             """Yield pending music."""
-            nonlocal music, duration
-
-            # blast out complete tweaks before the note.
-            for e in events:
-                if isinstance(e, lily.Tweak):
-                    yield e
-            events.clear()
+            nonlocal music, duration, scaling
 
             if duration:
                 dur = self.factory(lily.Duration, duration)
@@ -219,11 +213,23 @@ class LilyPondTransform(Transform):
                 else:
                     music = lily.Unpitched(dur)
             if music:
+                if comments:
+                    if music.tail:
+                        music = lily.Music(music)
+                    music.extend(comments)
+                comments.clear()
                 if articulations:
                     music.append(lily.Articulations(*articulations))
                     articulations.clear()
+
                 yield music
-            music = duration = None
+
+                # if there are tweaks but no articulations, the tweak
+                # is meant for the next note. Output it now.
+                yield from [e for e in events if isinstance(e, lily.Tweak)]
+                events.clear()
+
+            music = duration = scaling = None
 
         def add_articulation(art):
             """Add an articulation or script."""
@@ -318,7 +324,6 @@ class LilyPondTransform(Transform):
             elif i.name == "duration":
                 dots, scaling = i.obj
                 duration.extend(dots)
-                yield from pending_music(scaling)
             elif i.name == "chord":
                 yield from pending_music()
                 music = i.obj
@@ -342,6 +347,16 @@ class LilyPondTransform(Transform):
                         # toplevel markup item
                         yield from pending_music()
                         yield node
+            elif i.name in ("singleline_comment", "multiline_comment"):
+                if events:
+                    events[-1].append(i.obj)
+                elif articulations:
+                    articulations.append(i.obj)
+                elif not music and not duration:
+                    # no pending music
+                    yield i.obj
+                else:
+                    comments.append(i.obj)  # will be added after the duration
             elif isinstance(i.obj, element.Element):
                 yield from pending_music()
                 yield i.obj
