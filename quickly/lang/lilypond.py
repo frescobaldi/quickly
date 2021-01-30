@@ -213,16 +213,22 @@ class LilyPondTransform(Transform):
                 else:
                     music = lily.Unpitched(dur)
             if music:
-                if comments:
-                    if music.tail:
-                        music = lily.Music(music)
-                    music.extend(comments)
-                comments.clear()
                 if articulations:
+                    if comments:
+                        if music.tail:
+                            music = lily.Music(music)
+                        music.extend(comments)
+                        comments.clear()
                     music.append(lily.Articulations(*articulations))
                     articulations.clear()
+                    # move comments at end of articulations back to toplevel
+                    while isinstance(music[-1][-1], base.Comment):
+                        comments.append(music[-1].pop())
 
                 yield music
+
+                yield from comments
+                comments.clear()
 
                 # if there are tweaks but no articulations, the tweak
                 # is meant for the next note. Output it now.
@@ -263,7 +269,7 @@ class LilyPondTransform(Transform):
                     yield from pending_music()
                     if i.action is Music.Pitch:
                         cls = lily.Q if i == 'q' else lily.Note
-                    elif i.action is Music.Rest:
+                    else: # i.action is Music.Rest:
                         cls = lily.Space if i == 's' else lily.Rest
                     music = self.factory(cls, (i,))
                 elif i.action is a.Number.Duration:
@@ -402,7 +408,10 @@ class LilyPondTransform(Transform):
 
     def midi(self, items):
         """Create a Midi node."""
-        return self.create_block(lily.Midi, items)
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Midi, head, tail,
+            *self.handle_assignments(self.create_music(items[2:])))
 
     def layout_context(self, items):
         """Create a With or LayoutContext node."""
