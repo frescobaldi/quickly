@@ -473,11 +473,37 @@ class Ligature(element.TextElement):
         return '\\[' if self.head == -1 else '\\]'
 
 
-
-
 class PipeSymbol(element.HeadElement):
     r"""A PipeSymbol, most times used as bar check."""
     head = "|"
+
+
+class VoiceSeparator(element.HeadElement):
+    r"""A voice separator."""
+    head = r"\\"
+
+
+class SpannerId(element.HeadElement):
+    r"""A spanner id (``\=``).
+
+    The first child is the id (Number, Symbol, String or Scheme). The second
+    child the attached slur, phrasing slur or other object. (LilyPond only
+    supports slurs).
+
+    """
+    head = r"\="
+
+
+class Tweak(element.HeadElement):
+    r"""A ``\tweak`` command.
+
+    On the music level, this node has two children, a Symbol and an argument.
+    As an event after a note, this node has three children, the symbol,
+    the argument and the object to tweak.
+
+    """
+    _space_after_head = _space_between = _space_after = " "
+    head = r'\tweak'
 
 
 class Mode(element.TextElement):

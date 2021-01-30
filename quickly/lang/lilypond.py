@@ -60,7 +60,7 @@ class LilyPondTransform(Transform):
         a.Text.Music.Pitch.Accidental: lily.Accidental,
     }
 
-    #: mapping for actions in LilyPond.create_music
+    #: mapping for spanners in LilyPond.create_music
     music_mapping = {
         a.Name.Symbol.Spanner.Slur: lily.Slur,
         a.Name.Symbol.Spanner.Slur.Phrasing: lily.PhrasingSlur,
@@ -69,6 +69,11 @@ class LilyPondTransform(Transform):
         a.Name.Symbol.Spanner.Ligature: lily.Ligature,
     }
 
+    #: mapping for separators in LilyPond.create_music
+    separator_mapping = {
+        a.Delimiter.Separator.PipeSymbol: lily.PipeSymbol,
+        a.Delimiter.Separator.VoiceSeparator: lily.VoiceSeparator,
+    }
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -179,13 +184,20 @@ class LilyPondTransform(Transform):
         """Read music from items and yield Element nodes."""
         music = None
         duration = None
-        direction = None
+        events = []         # for direction and spanner-id
         Music = a.Text.Music
         articulations = []
 
         def pending_music(scaling=None):
             """Yield pending music."""
             nonlocal music, duration
+
+            # blast out complete tweaks before the note.
+            for e in events:
+                if isinstance(e, lily.Tweak):
+                    yield e
+            events.clear()
+
             if duration:
                 dur = self.factory(lily.Duration, duration)
                 if scaling:
@@ -205,13 +217,28 @@ class LilyPondTransform(Transform):
 
         def add_articulation(art):
             """Add an articulation or script."""
-            nonlocal direction
-            if direction:
-                direction.append(art)
-                articulations.append(direction)
-                direction = None
-            else:
-                articulations.append(art)
+            if events:
+                events[-1].append(art)
+                art = e = events[0]
+                for f in events[1:]:
+                    e.append(f)
+                    e = f
+                events.clear()
+            articulations.append(art)
+
+        def add_spanner_id(node):
+            """Return True if the node could be added to a spanner id that's being built."""
+            if events and isinstance(events[-1], lily.SpannerId) and len(events[-1]) == 0:
+                events[-1].append(node)
+                return True
+            return False
+
+        def add_tweak(node):
+            """Return True if the node could be added to a Tweak that's being built."""
+            if events and isinstance(events[-1], lily.Tweak) and len(events[-1]) < 2:
+                events[-1].append(node)
+                return True
+            return False
 
         items = iter(items)
         for i in items:
@@ -223,7 +250,7 @@ class LilyPondTransform(Transform):
                     elif i.action is Music.Rest:
                         cls = lily.Space if i == 's' else lily.Rest
                     music = self.factory(cls, (i,))
-                elif i.action is a.Literal.Number.Duration:
+                elif i.action is a.Number.Duration:
                     if duration or articulations:
                         yield from pending_music()
                     duration = [i]
@@ -240,17 +267,30 @@ class LilyPondTransform(Transform):
                         else:
                             music = self.factory(lily.Rest, origin, (), *music)
                         music.append(self.factory(lily.RestModifier, (i,)))
+                elif i == r'\tweak':
+                    events.append(self.factory(lily.Tweak, (i,)))
                 elif i.action is a.Delimiter.Direction:
-                    direction = self.factory(lily.Direction, (i,))
+                    events.append(self.factory(lily.Direction, (i,)))
                 elif i.action is a.Name.Script.Articulation:
                     add_articulation(self.factory(lily.Articulation, (i,)))
                 elif i.action is a.Name.Builtin.Dynamic:
                     add_articulation(self.factory(lily.Dynamic, (i,)))
                 elif i.action in a.Name.Symbol.Spanner:
-                    add_articulation(self.factory(self.music_mapping[i.action], (i,)))
-                elif i.action is a.Delimiter.Separator.PipeSymbol:
+                    if i.action is a.Name.Symbol.Spanner.Id:
+                        events.append(self.factory(lily.SpannerId, (i,)))
+                    else:
+                        add_articulation(self.factory(self.music_mapping[i.action], (i,)))
+                elif i.action in a.Delimiter.Separator:
                     yield from pending_music()
-                    yield self.factory(lily.PipeSymbol, (i,))
+                    yield self.factory(self.separator_mapping[i.action], (i,))
+                elif i.action is a.Number:
+                    elem = self.factory(lily.Number, (i,))
+                    if not add_spanner_id(elem) and not add_tweak(elem):
+                        pass # there was no spanner id, something else?
+                elif i.action in a.Name.Symbol:
+                    elem = self.factory(lily.Symbol, (i,))
+                    if not add_spanner_id(elem) and not add_tweak(elem):
+                        pass # there was no spanner id, something else?
                 else:
                     # TEMP
                     print("Unknown token:", i)
@@ -261,11 +301,14 @@ class LilyPondTransform(Transform):
                 dots, scaling = i.obj
                 duration.extend(dots)
                 yield from pending_music(scaling)
-            elif i.name is "chord":
+            elif i.name == "chord":
                 yield from pending_music()
                 music = i.obj
-            elif i.name in ("script", "string", "scheme"):
+            elif i.name == "script":
                 add_articulation(i.obj)
+            elif i.name in ("string", "scheme"):
+                if not add_spanner_id(i.obj) and not add_tweak(i.obj):
+                    add_articulation(i.obj)
             elif i.name == "markup":
                 for node in self.create_markup(i.obj, items):
                     add_articulation(node)
