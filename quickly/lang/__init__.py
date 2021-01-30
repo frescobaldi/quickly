@@ -19,8 +19,9 @@
 
 
 """
-Language definitions, thay may or may not inherit from parce's language
-definitions.
+Language definitions, thay may or may not inherit from *parce*'s language
+definitions. Also the corresponding Transform classes are defined in these
+modules.
 
 """
 

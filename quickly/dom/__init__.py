@@ -41,9 +41,7 @@ This DOM is used in two ways:
 
 """
 
-## TEMP
-from .util import *
-from .element import *
-from .base import *
 
+from . import lily, scm
+from .util import document, node
 

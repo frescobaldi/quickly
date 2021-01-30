@@ -1,6 +1,11 @@
 The lang package
 ================
 
+.. automodule:: quickly.lang
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Modules in the ``lang`` package:
 
 .. toctree::
@@ -8,9 +13,4 @@ Modules in the ``lang`` package:
 
    lang/lilypond.rst
    lang/scheme.rst
-
-.. automodule:: quickly.lang
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
