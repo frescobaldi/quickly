@@ -67,6 +67,7 @@ class LilyPondTransform(Transform):
         a.Name.Symbol.Spanner.Tie: lily.Tie,
         a.Name.Symbol.Spanner.Beam: lily.Beam,
         a.Name.Symbol.Spanner.Ligature: lily.Ligature,
+        a.Name.Symbol.Spanner.PesOrFlexa: lily.PesOrFlexa,
     }
 
     #: mapping for separators in LilyPond.create_music
@@ -74,6 +75,15 @@ class LilyPondTransform(Transform):
         a.Delimiter.Separator.PipeSymbol: lily.PipeSymbol,
         a.Delimiter.Separator.VoiceSeparator: lily.VoiceSeparator,
     }
+
+    #: articulations that are spanners:
+    articulations_mapping = {
+        r'\startTextSpan': lily.TextSpanner,
+        r'\stopTextSpan': lily.TextSpanner,
+        r'\startTrillSpan': lily.TrillSpanner,
+        r'\stopTrillSpan': lily.TrillSpanner,
+    }
+
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -272,7 +282,8 @@ class LilyPondTransform(Transform):
                 elif i.action is a.Delimiter.Direction:
                     events.append(self.factory(lily.Direction, (i,)))
                 elif i.action is a.Name.Script.Articulation:
-                    add_articulation(self.factory(lily.Articulation, (i,)))
+                    cls = self.articulations_mapping.get(i.text, lily.Articulation)
+                    add_articulation(self.factory(cls, (i,)))
                 elif i.action is a.Name.Builtin.Dynamic:
                     add_articulation(self.factory(lily.Dynamic, (i,)))
                 elif i.action in a.Name.Symbol.Spanner:

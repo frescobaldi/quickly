@@ -475,6 +475,26 @@ class Ligature(element.TextElement):
         return '\\[' if self.head == -1 else '\\]'
 
 
+class TextSpanner(element.TextElement):
+    r"""A text spanner."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '\\startTextSpan' else 1
+
+    def write_head(self):
+        return '\\startTextSpan' if self.head == -1 else '\\stopTextSpan'
+
+
+class TrillSpanner(element.TextElement):
+    r"""A trill spanner."""
+    @classmethod
+    def read_head(cls, origin):
+        return -1 if origin[0] == '\\startTrillSpan' else 1
+
+    def write_head(self):
+        return '\\startTrillSpan' if self.head == -1 else '\\stopTrillSpan'
+
+
 class PipeSymbol(element.HeadElement):
     r"""A PipeSymbol, most times used as bar check."""
     head = "|"
@@ -494,6 +514,11 @@ class SpannerId(element.HeadElement):
 
     """
     head = r"\="
+
+
+class PesOrFlexa(element.HeadElement):
+    r"""A pes-or-flexa event (``\~``)."""
+    head = r"\~"
 
 
 class Tweak(element.HeadElement):
