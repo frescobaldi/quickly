@@ -281,13 +281,15 @@ class Q(element.HeadElement, Music):
     """A ``q``, repeating the previous chord."""
 
 
-class RestModifier(element.TextElement):
+class RestModifier(element.HeadElement):
     r"""A ``\rest`` command after a note.
 
     Is a child of a Rest element that has a pitch name and possibly
     octave information instead of plain "r".
 
     """
+    head = r'\rest'
+
 
 class Accidental(element.TextElement):
     """The accidental after a note.
