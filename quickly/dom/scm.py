@@ -248,7 +248,7 @@ class Bool(Number):
         return '#t'if self.value else '#f'
 
 
-class Dot(element.TextElement):
+class Dot(element.HeadElement):
     """A dot, e.g. in a Scheme pair."""
 
 

@@ -395,7 +395,7 @@ class DurationScaling(element.TextElement):
 
 
 class Articulations(element.Element):
-    r"""A list of elements that are attched to a note or chord."""
+    r"""A list of elements that are attached to a note or chord."""
 
 
 class Direction(element.TextElement):
@@ -548,7 +548,6 @@ class Key(element.HeadElement):
 
     """
     _space_after_head = _space_between = ' '
-
     head = r"\key"
 
 
