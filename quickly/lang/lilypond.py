@@ -291,6 +291,11 @@ class LilyPondTransform(Transform):
                     elem = self.factory(lily.Symbol, (i,))
                     if not add_spanner_id(elem) and not add_tweak(elem):
                         pass # there was no spanner id, something else?
+                elif i.action == a.Operator.Assignment:
+                    if not events:
+                        # '=' has no meaning inside music, but let it through at toplevel
+                        yield from pending_music()
+                        yield self.factory(lily.EqualSign, (i,))
                 else:
                     # TEMP
                     print("Unknown token:", i)
@@ -307,11 +312,23 @@ class LilyPondTransform(Transform):
             elif i.name == "script":
                 add_articulation(i.obj)
             elif i.name in ("string", "scheme"):
-                if not add_spanner_id(i.obj) and not add_tweak(i.obj):
-                    add_articulation(i.obj)
+                if events:
+                    # after a direction: an articulation
+                    if not add_spanner_id(i.obj) and not add_tweak(i.obj):
+                        add_articulation(i.obj)
+                else:
+                    # toplevel expression
+                    yield from pending_music()
+                    yield i.obj
             elif i.name == "markup":
                 for node in self.create_markup(i.obj, items):
-                    add_articulation(node)
+                    if events:
+                        # after a direction: add to the note
+                        add_articulation(node)
+                    else:
+                        # toplevel markup item
+                        yield from pending_music()
+                        yield node
             elif isinstance(i.obj, element.Element):
                 yield from pending_music()
                 yield i.obj
@@ -325,7 +342,7 @@ class LilyPondTransform(Transform):
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
-        return lily.Document(*self.handle_assignments(self.common(items)))
+        return lily.Document(*self.handle_assignments(self.create_music(items)))
 
     def book(self, items):
         """Create a Book or BookPart node."""
@@ -350,7 +367,10 @@ class LilyPondTransform(Transform):
 
     def layout(self, items):
         """Create a Layout node."""
-        return self.create_block(lily.Layout, items)
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Layout, head, tail,
+            *self.handle_assignments(self.create_music(items[2:])))
 
     def midi(self, items):
         """Create a Midi node."""
