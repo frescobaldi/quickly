@@ -416,6 +416,15 @@ class Articulation(element.TextElement):
     r"""An ArticulationEvent."""
 
 
+class Modifier(element.TextElement):
+    r"""A generic modifier that is not an articulation but added to
+    the Articulations after a note.
+
+    For example ``\noBeam``.
+
+    """
+
+
 class Fingering(element.TextElement):
     r"""A FingeringEvent."""
 

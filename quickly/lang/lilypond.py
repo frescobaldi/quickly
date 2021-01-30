@@ -279,6 +279,8 @@ class LilyPondTransform(Transform):
                         music.append(self.factory(lily.RestModifier, (i,)))
                 elif i == r'\tweak':
                     events.append(self.factory(lily.Tweak, (i,)))
+                elif i == r'\noBeam':
+                    add_articulation(self.factory(lily.Modifier, (i,)))
                 elif i.action is a.Delimiter.Direction:
                     events.append(self.factory(lily.Direction, (i,)))
                 elif i.action is a.Name.Script.Articulation:
