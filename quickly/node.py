@@ -341,6 +341,22 @@ class Node(list):
             i = p.index(self)
             yield from reversed(p[:i])
 
+    @property
+    def right_sibling(self):
+        """The right sibling, if any."""
+        p = self.parent
+        if p and p[-1] is not self:
+            i = p.index(self)
+            return p[i+1]
+
+    @property
+    def left_sibling(self):
+        """The left sibling, if any."""
+        p = self.parent
+        if p and p[0] is not self:
+            i = p.index(self)
+            return p[i-1]
+
     def forward(self):
         """Iterate forward from this Node, starting with the right sibling."""
         node = self
