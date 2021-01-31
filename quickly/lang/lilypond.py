@@ -390,7 +390,7 @@ class _dispatcher(dict):
 class MusicBuilder:
     """Helper class that reads and builds music."""
     #: articulations that are spanners:
-    articulations_mapping = {
+    _articulations_mapping = {
         r'\startTextSpan': lily.TextSpanner,
         r'\stopTextSpan': lily.TextSpanner,
         r'\startTrillSpan': lily.TrillSpanner,
@@ -398,7 +398,7 @@ class MusicBuilder:
     }
 
     #: mapping for spanners in LilyPond.create_music
-    music_mapping = {
+    _music_mapping = {
         a.Name.Symbol.Spanner.Slur: lily.Slur,
         a.Name.Symbol.Spanner.Slur.Phrasing: lily.PhrasingSlur,
         a.Name.Symbol.Spanner.Tie: lily.Tie,
@@ -409,6 +409,7 @@ class MusicBuilder:
 
     _token = _dispatcher()
     _action = _dispatcher()
+    _object = _dispatcher()
 
     def __init__(self, transform, items):
         self.transform = transform
@@ -488,7 +489,6 @@ class MusicBuilder:
     def __iter__(self):
         """Yield all the music from the items given at construction."""
         for i in self.items:
-            result = None
             if i.is_token:
                 # dispatch on token (text or action)
                 meth = self._token.get(i.text)
@@ -504,20 +504,18 @@ class MusicBuilder:
                 result = meth(self, i)
             else:
                 # dispatch on object name
-                meth = getattr(self, i.name, None)
-                if meth:
-                    result = meth(i.obj)
-                elif isinstance(i.obj, element.Element):
-                    yield from self.pending_music()
-                    yield i.obj
+                meth = self._object.get(i.name)
+                if not meth:
+                    if isinstance(i.obj, element.Element):
+                        yield from self.pending_music()
+                        yield i.obj
+                    else:
+                        # TEMP
+                        print("Unknown item:", i)
                     continue
-                else:
-                    # TEMP
-                    print("Unknown item:", i)
+                result = meth(self, i.obj)
             if result:
                 yield from result
-
-
 
         # pending stuff
         yield from self.pending_music()
@@ -585,7 +583,7 @@ class MusicBuilder:
     @_action(a.Delimiter.Tremolo)
     def tremolo_action(self, token):
         tremolo = self.factory(lily.Tremolo, (token,))
-        if i.group == 0:
+        if token.group == 0:
             # next item is the duration
             tremolo.append(self.factory(lily.Duration, (next(self.items),)))
         self.add_articulation(tremolo)
@@ -619,24 +617,29 @@ class MusicBuilder:
             yield from self.pending_music()
             yield self.factory(lily.EqualSign, (token,))
 
+    @_object("pitch")
     def pitch(self, obj):
         """pitch context: octave, accidental, octavecheck"""
         self._music.extend(obj)
 
+    @_object("duration")
     def duration(self, obj):
         """duration context: dots, scaling"""
         dots, self._scaling = obj
         self._duration.extend(dots)
 
+    @_object("chord")
     def chord(self, obj):
         """a <chord>"""
         yield from self.pending_music()
         self._music = obj
 
+    @_object("script")
     def script(self, obj):
         """an articulation"""
         self.add_articulation(obj)
 
+    @_object("string", "scheme")
     def string(self, obj):
         """string or scheme"""
         if self._events:
@@ -648,8 +651,7 @@ class MusicBuilder:
             yield from self.pending_music()
             yield obj
 
-    scheme = string
-
+    @_object("markup")
     def markup(self, obj):
         """markup, reads arguments from items"""
         for node in self.transform.create_markup(obj, self.items):
@@ -661,6 +663,7 @@ class MusicBuilder:
                 yield from self.pending_music()
                 yield node
 
+    @_object("singleline_comment", "multiline_comment")
     def singleline_comment(self, obj):
         """comments are preserved as good as possible."""
         if self._events:
@@ -672,6 +675,4 @@ class MusicBuilder:
             yield obj
         else:
             self._comments.append(obj)  # will be added after the duration
-
-    multiline_comment = singleline_comment
 
