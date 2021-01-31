@@ -398,6 +398,25 @@ class DurationScaling(element.TextElement):
         return ""
 
 
+class LyricText(element.TextElement):
+    r"""A word in lyric mode."""
+
+
+class LyricExtender(element.HeadElement):
+    r"""A lyric extender ``__``."""
+    head = "__"
+
+
+class LyricHyphen(element.HeadElement):
+    r"""A lyric hyphen ``--``."""
+    head = "--"
+
+
+class LyricSkip(element.HeadElement):
+    r"""A lyric skip ``_``."""
+    head = "_"
+
+
 class Articulations(element.Element):
     r"""A list of elements that are attached to a note or chord."""
 

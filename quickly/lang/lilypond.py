@@ -283,7 +283,8 @@ class LilyPondTransform(Transform):
         return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
-        return items
+        """Return a ``{``...``}`` or ``<<``...``>>`` construct in lyricmode."""
+        return self.musiclist(items)
 
     def lyricsto(self, items):
         return items
@@ -634,6 +635,30 @@ class MusicBuilder:
             # '=' has no meaning inside music, but let it through at toplevel
             yield from self.pending_music()
             yield self.factory(lily.EqualSign, (token,))
+
+    @_action(a.Text.Lyric.LyricText)
+    def lyric_text_action(self, token):
+        r"""Called for ``Text.Lyric.LyricText``."""
+        yield from self.pending_music()
+        self._music = self.factory(lily.LyricText, (token,))
+
+    @_action(a.Delimiter.Lyric.LyricExtender)
+    def lyric_extender_action(self, token):
+        r"""Called for ``Delimiter.Lyric.LyricExtender``."""
+        yield from self.pending_music()
+        yield self.factory(lily.LyricExtender, (token,))
+
+    @_action(a.Delimiter.Lyric.LyricHyphen)
+    def lyric_hyphen_action(self, token):
+        r"""Called for ``Delimiter.Lyric.LyricHyphen``."""
+        yield from self.pending_music()
+        yield self.factory(lily.LyricHyphen, (token,))
+
+    @_action(a.Delimiter.Lyric.LyricSkip)
+    def lyric_skip_action(self, token):
+        r"""Called for ``Delimiter.Lyric.LyricSkip``."""
+        yield from self.pending_music()
+        yield self.factory(lily.LyricSkip, (token,))
 
     @_context("pitch")
     def pitch(self, obj):
