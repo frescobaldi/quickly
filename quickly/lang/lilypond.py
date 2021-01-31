@@ -121,7 +121,7 @@ class LilyPondTransform(Transform):
     def create_block(self, element_class, items):
         r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
 
-        The items are the contents of a block like \book { }.
+        The items are the contents of a block like ``\book { }``.
         The ``head_origin`` are the first two tokens, the ``tail_origin`` the
         last token, if that is a '``}``'.
 
@@ -283,7 +283,7 @@ class LilyPondTransform(Transform):
         return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
-        """Return a ``{``...``}`` or ``<<``...``>>`` construct in lyricmode."""
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
         return self.musiclist(items)
 
     def lyricsto(self, items):
@@ -293,7 +293,7 @@ class LilyPondTransform(Transform):
         return items
 
     def drummode(self, items):
-        """Return a ``{``...``}`` or ``<<``...``>>`` construct in drummode."""
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
         return self.musiclist(items)
 
     def chordmode(self, items):

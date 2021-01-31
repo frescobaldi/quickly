@@ -99,14 +99,17 @@ class SchemeTransform(Transform):
 
     ### transforming methods
     def root(self, items):
+        """Build a full ``scm.Document``."""
         return scm.Document(*self.common(items))
 
     def list(self, items):
+        """Build a scm.List ``(``  ... ``)``."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ')' else ()
         return self.factory(scm.List, head, tail, *self.common(items[1:]))
 
     def vector(self, items):
+        """Build a scm.Vector ``#(``  ... ``)``."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ')' else ()
         return self.factory(scm.Vector, head, tail, *self.common(items[1:]))
@@ -133,6 +136,7 @@ class SchemeTransform(Transform):
         return scheme
 
     def argument(self, items):
+        """One scheme object, from within LilyPond."""
         for i in self.common(items):
             return i
 
