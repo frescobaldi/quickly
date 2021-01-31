@@ -42,20 +42,18 @@ class LilyPond(parce.lang.lilypond.LilyPond):
         return Scheme.scheme
 
 
-
-
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
 
     ## mappings from action to element
     #: this mapping is used in the identifier method
-    identifier_mapping = {
+    _identifier_mapping = {
         a.Number: lily.Number,
         a.Separator: lily.Separator,
     }
 
     #: mapping for actions in LilyPond.pitch
-    pitch_mapping = {
+    _pitch_mapping = {
         a.Text.Music.Pitch.Octave: lily.Octave,
         a.Text.Music.Pitch.Octave.OctaveCheck: lily.OctaveCheck,
         a.Text.Music.Pitch.Accidental: lily.Accidental,
@@ -259,7 +257,7 @@ class LilyPondTransform(Transform):
         def gen():
             for i in items:
                 if i.is_token:
-                    yield self.factory(self.pitch_mapping[i.action], (i,))
+                    yield self.factory(self._pitch_mapping[i.action], (i,))
                 else:
                     yield i.obj # can only be a comment
         return list(gen())
@@ -305,14 +303,13 @@ class LilyPondTransform(Transform):
     def chord_modifier(self, items):
         return items
 
-
     def identifier(self, items):
         """Return an Identifier item."""
         def nodes():
             for i in items:
                 if i.is_token:
                     yield self.factory(
-                        self.identifier_mapping.get(i.action, lily.Symbol), (i,))
+                        self._identifier_mapping.get(i.action, lily.Symbol), (i,))
                 else:
                     yield i.obj # can be a SchemeExpression or String
         return lily.Identifier(*nodes())
@@ -380,7 +377,12 @@ class LilyPondAdHocTransform(LilyPondTransform):
 
 
 class MusicBuilder:
-    """Helper class that reads and builds music."""
+    """Helper class that reads and builds music.
+
+    An instance of MusicBuilder is created and used in
+    :meth:`LilyPondTransform.create_music`.
+
+    """
     #: articulations that are spanners:
     _articulations_mapping = {
         r'\startTextSpan': lily.TextSpanner,
@@ -526,7 +528,7 @@ class MusicBuilder:
             try:
                 origin = self._music.head_origin
             except AttributeError:
-                self._music = lily.Rest(self._music.head, *music)
+                self._music = lily.Rest(self._music.head, *self._music)
             else:
                 self._music = self.factory(lily.Rest, origin, (), *self._music)
             self._music.append(self.factory(lily.RestModifier, (token,)))
@@ -627,29 +629,29 @@ class MusicBuilder:
 
     @_object("pitch")
     def pitch(self, obj):
-        """pitch context: octave, accidental, octavecheck"""
+        """Called for ``pitch`` context: octave, accidental, octavecheck."""
         self._music.extend(obj)
 
     @_object("duration")
     def duration(self, obj):
-        """duration context: dots, scaling"""
+        """Called for ``duration`` context: dots, scaling."""
         dots, self._scaling = obj
         self._duration.extend(dots)
 
     @_object("chord")
     def chord(self, obj):
-        """chord context: a chord"""
+        """Called for ``chord`` context: a chord."""
         yield from self.pending_music()
         self._music = obj
 
     @_object("script")
     def script(self, obj):
-        """script context: an articulation"""
+        """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
 
     @_object("string", "scheme")
-    def string(self, obj):
-        """string or scheme context"""
+    def string_scheme(self, obj):
+        """Called for ``string`` or ``scheme`` context."""
         if self._events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
@@ -661,7 +663,7 @@ class MusicBuilder:
 
     @_object("markup")
     def markup(self, obj):
-        """markup context: reads arguments from items"""
+        """Called for ``markup`` context: read arguments from items."""
         for node in self.transform.create_markup(obj, self.items):
             if self._events:
                 # after a direction: add to the note
@@ -672,8 +674,12 @@ class MusicBuilder:
                 yield node
 
     @_object("singleline_comment", "multiline_comment")
-    def singleline_comment(self, obj):
-        """comments are preserved as good as possible."""
+    def comment(self, obj):
+        """Called for ``singleline_comment`` and ``multiline_comment`` context.
+
+        Comments are preserved as good as possible.
+
+        """
         if self._events:
             self._events[-1].append(obj)
         elif self._articulations:
