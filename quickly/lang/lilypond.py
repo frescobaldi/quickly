@@ -27,6 +27,7 @@ import itertools
 from parce.transform import Transform
 import parce.lang.lilypond
 import parce.action as a
+from parce.util import Dispatcher
 
 from quickly.dom import base, element, lily, scm
 
@@ -378,18 +379,6 @@ class LilyPondAdHocTransform(LilyPondTransform):
         return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
 
 
-class _dispatcher(dict):
-    """A dictionary that can be called to add a function to certain keys."""
-    def __call__(self, *args):
-        """Return a decorator that adds a function to the dictionary for the specified keys."""
-        def decorator(func):
-            """Add func to the specified keys. Return the function unmodified."""
-            for a in args:
-                self[a] = func
-            return func
-        return decorator
-
-
 class MusicBuilder:
     """Helper class that reads and builds music."""
     #: articulations that are spanners:
@@ -410,9 +399,9 @@ class MusicBuilder:
         a.Name.Symbol.Spanner.PesOrFlexa: lily.PesOrFlexa,
     }
 
-    _token = _dispatcher()
-    _action = _dispatcher()
-    _object = _dispatcher()
+    _token = Dispatcher()
+    _action = Dispatcher()
+    _object = Dispatcher()
 
     def __init__(self, transform, items):
         self.transform = transform
@@ -504,7 +493,7 @@ class MusicBuilder:
                         # TEMP
                         print("Unknown token:", i)
                         continue
-                result = meth(self, i)
+                result = meth(i)
             else:
                 # dispatch on object name
                 meth = self._object.get(i.name)
@@ -516,7 +505,7 @@ class MusicBuilder:
                         # TEMP
                         print("Unknown item:", i)
                     continue
-                result = meth(self, i.obj)
+                result = meth(i.obj)
             if result:
                 yield from result
 
