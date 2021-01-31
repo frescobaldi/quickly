@@ -594,13 +594,13 @@ class MusicBuilder:
         self.add_articulation(tremolo)
 
     @_action(a.Delimiter.Separator.PipeSymbol)
-    def separator_action(self, token):
+    def pipe_symbol_action(self, token):
         r"""Called for ``Delimiter.Separator.PipeSymbol``."""
         yield from self.pending_music()
         yield self.factory(lily.PipeSymbol, (token,))
 
     @_action(a.Delimiter.Separator.VoiceSeparator)
-    def separator_action(self, token):
+    def voice_separator_action(self, token):
         r"""Called for ``Delimiter.Separator.VoiceSeparator``."""
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
