@@ -292,10 +292,8 @@ class LilyPondTransform(Transform):
         return items
 
     def drummode(self, items):
-        return items
-
-    def drummode(self, items):
-        return items
+        """Return a ``{``...``}`` or ``<<``...``>>`` construct in drummode."""
+        return self.musiclist(items)
 
     def chordmode(self, items):
         return items
@@ -543,15 +541,25 @@ class MusicBuilder:
         r"""Called for ``\noBeam``."""
         self.add_articulation(self.factory(lily.Modifier, (token,)))
 
-    @_action(a.Text.Music)
-    def music_action(self, token):
-        r"""Called for ``Text.Music``."""
+    @_action(a.Text.Music.Pitch)
+    def pitch_action(self, token):
+        r"""Called for ``Text.Music.Pitch``."""
         yield from self.pending_music()
-        if token.action is a.Text.Music.Pitch:
-            cls = lily.Q if token == 'q' else lily.Note
-        else: # i.action is Music.Rest:
-            cls = lily.Space if token == 's' else lily.Rest
+        cls = lily.Q if token == 'q' else lily.Note
         self._music = self.factory(cls, (token,))
+
+    @_action(a.Text.Music.Rest)
+    def rest_action(self, token):
+        r"""Called for ``Text.Music.Rest``."""
+        yield from self.pending_music()
+        cls = lily.Space if token == 's' else lily.Rest
+        self._music = self.factory(cls, (token,))
+
+    @_action(a.Text.Music.Pitch.Drum)
+    def drum_action(self, token):
+        r"""Called for ``Text.Music.Pitch.Drum``."""
+        yield from self.pending_music()
+        self._music = self.factory(lily.Drum, (token,))
 
     @_action(a.Number.Duration)
     def duration_action(self, token):

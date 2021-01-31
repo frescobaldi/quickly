@@ -281,6 +281,10 @@ class Q(element.HeadElement, Music):
     """A ``q``, repeating the previous chord."""
 
 
+class Drum(element.TextElement):
+    """A drum note."""
+
+
 class RestModifier(element.HeadElement):
     r"""A ``\rest`` command after a note.
 
