@@ -1,6 +1,19 @@
 ChangeLog
 =========
 
-current: quickly-0.0.2
+2021-01-31: quickly-0.0.3
 
+- still pre-alpha
+- much more robust already
+- dom.element now has the four basic Element node types
+- dom.element can be constructed manually or via LilyPondTransform
+- writing back to document works
+- scheme expressions are fully read/built
+- markup expressions are fully read/built
+- complex articulations, tweak, tremolo etc. work well
+- toplevel and in block assignment is wrapped in Assignment node
+- lyricmode and drummode work
+- todo: music functions
+- some test files were added. todo: more test files
+- module documentation in good shape. todo: user documentation
 
