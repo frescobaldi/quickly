@@ -379,8 +379,11 @@ class LilyPondAdHocTransform(LilyPondTransform):
 
 
 class _dispatcher(dict):
+    """A dictionary that can be called to add a function to certain keys."""
     def __call__(self, *args):
+        """Return a decorator that adds a function to the dictionary for the specified keys."""
         def decorator(func):
+            """Add func to the specified keys. Return the function unmodified."""
             for a in args:
                 self[a] = func
             return func
@@ -522,11 +525,13 @@ class MusicBuilder:
 
     @_token(r'\skip')
     def skip_token(self, token):
+        r"""Called for ``\skip``."""
         yield from self.pending_music()
         self._music = self.factory(lily.Skip, (token,))
 
     @_token(r'\rest')
     def rest_token(self, token):
+        r"""Called for ``\rest``."""
         if isinstance(self._music, lily.Note):
             # make it a positioned rest, reuse old pitch token if possible
             try:
@@ -539,14 +544,17 @@ class MusicBuilder:
 
     @_token(r'\tweak')
     def tweak_token(self, token):
+        r"""Called for ``\tweak``."""
         self._events.append(self.factory(lily.Tweak, (token,)))
 
     @_token(r'\noBeam')
     def nobeam_token(self, token):
+        r"""Called for ``\noBeam``."""
         self.add_articulation(self.factory(lily.Modifier, (token,)))
 
     @_action(a.Text.Music)
     def music_action(self, token):
+        r"""Called for ``Text.Music``."""
         yield from self.pending_music()
         if token.action is a.Text.Music.Pitch:
             cls = lily.Q if token == 'q' else lily.Note
@@ -556,25 +564,30 @@ class MusicBuilder:
 
     @_action(a.Number.Duration)
     def duration_action(self, token):
+        r"""Called for ``Number.Duration``."""
         if self._duration or self._articulations:
             yield from self.pending_music()
         self._duration = [token]
 
     @_action(a.Delimiter.Direction)
     def direction_action(self, token):
+        r"""Called for ``Delimiter.Direction``."""
         self._events.append(self.factory(lily.Direction, (token,)))
 
     @_action(a.Name.Script.Articulation)
     def articulation_action(self, token):
+        r"""Called for ``Name.Script.Articulation``."""
         cls = self._articulations_mapping.get(token.text, lily.Articulation)
         self.add_articulation(self.factory(cls, (token,)))
 
     @_action(a.Name.Builtin.Dynamic)
     def dynamic_action(self, token):
+        r"""Called for ``Name.Builtin.Dynamic``."""
         self.add_articulation(self.factory(lily.Dynamic, (token,)))
 
     @_action(a.Name.Symbol.Spanner)
     def spanner_action(self, token):
+        r"""Called for ``Name.Symbol.Spanner.*``."""
         if token.action is a.Name.Symbol.Spanner.Id:
             self._events.append(self.factory(lily.SpannerId, (token,)))
         else:
@@ -582,6 +595,7 @@ class MusicBuilder:
 
     @_action(a.Delimiter.Tremolo)
     def tremolo_action(self, token):
+        r"""Called for ``Delimiter.Tremolo``."""
         tremolo = self.factory(lily.Tremolo, (token,))
         if token.group == 0:
             # next item is the duration
@@ -590,28 +604,33 @@ class MusicBuilder:
 
     @_action(a.Delimiter.Separator.PipeSymbol)
     def separator_action(self, token):
+        r"""Called for ``Delimiter.Separator.PipeSymbol``."""
         yield from self.pending_music()
         yield self.factory(lily.PipeSymbol, (token,))
 
     @_action(a.Delimiter.Separator.VoiceSeparator)
     def separator_action(self, token):
+        r"""Called for ``Delimiter.Separator.VoiceSeparator``."""
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
 
     @_action(a.Number)
     def number_action(self, token):
+        r"""Called for ``Number``."""
         elem = self.factory(lily.Number, (token,))
         if not self.add_spanner_id(elem) and not self.add_tweak(elem):
             pass # there was no spanner id, something else?
 
     @_action(a.Name.Symbol)
     def symbol_action(self, token):
+        r"""Called for ``Name.Symbol.*``."""
         elem = self.factory(lily.Symbol, (token,))
         if not self.add_spanner_id(elem) and not self.add_tweak(elem):
             pass # there was no spanner id, something else?
 
     @_action(a.Operator.Assignment)
     def assignment_action(self, token):
+        r"""Called for ``Operator.Assignment``."""
         if not self._events:
             # '=' has no meaning inside music, but let it through at toplevel
             yield from self.pending_music()
@@ -630,18 +649,18 @@ class MusicBuilder:
 
     @_object("chord")
     def chord(self, obj):
-        """a <chord>"""
+        """chord context: a chord"""
         yield from self.pending_music()
         self._music = obj
 
     @_object("script")
     def script(self, obj):
-        """an articulation"""
+        """script context: an articulation"""
         self.add_articulation(obj)
 
     @_object("string", "scheme")
     def string(self, obj):
-        """string or scheme"""
+        """string or scheme context"""
         if self._events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
@@ -653,7 +672,7 @@ class MusicBuilder:
 
     @_object("markup")
     def markup(self, obj):
-        """markup, reads arguments from items"""
+        """markup context: reads arguments from items"""
         for node in self.transform.create_markup(obj, self.items):
             if self._events:
                 # after a direction: add to the note
