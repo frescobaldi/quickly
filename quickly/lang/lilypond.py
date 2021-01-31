@@ -305,6 +305,12 @@ class LilyPondTransform(Transform):
                         events.append(self.factory(lily.SpannerId, (i,)))
                     else:
                         add_articulation(self.factory(self.music_mapping[i.action], (i,)))
+                elif i.action is a.Delimiter.Tremolo:
+                    tremolo = self.factory(lily.Tremolo, (i,))
+                    if i.group == 0:
+                        # next item is the duration
+                        tremolo.append(self.factory(lily.Duration, (next(items),)))
+                    add_articulation(tremolo)
                 elif i.action in a.Delimiter.Separator:
                     yield from pending_music()
                     yield self.factory(self.separator_mapping[i.action], (i,))

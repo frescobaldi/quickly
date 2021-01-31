@@ -537,6 +537,11 @@ class Tweak(element.HeadElement):
     head = r'\tweak'
 
 
+class Tremolo(element.HeadElement):
+    r"""A Tremolo (``:``) with an optional Duration child."""
+    head = ":"
+
+
 class Mode(element.TextElement):
     r"""The mode subcommand of the ``\key`` statement."""
 
