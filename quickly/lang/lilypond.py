@@ -403,7 +403,7 @@ class MusicBuilder:
 
     _token = Dispatcher()
     _action = Dispatcher()
-    _object = Dispatcher()
+    _context = Dispatcher()
 
     def __init__(self, transform, items):
         self.transform = transform
@@ -498,7 +498,7 @@ class MusicBuilder:
                 result = meth(i)
             else:
                 # dispatch on object name
-                meth = self._object.get(i.name)
+                meth = self._context.get(i.name)
                 if not meth:
                     if isinstance(i.obj, element.Element):
                         yield from self.pending_music()
@@ -627,29 +627,29 @@ class MusicBuilder:
             yield from self.pending_music()
             yield self.factory(lily.EqualSign, (token,))
 
-    @_object("pitch")
+    @_context("pitch")
     def pitch(self, obj):
         """Called for ``pitch`` context: octave, accidental, octavecheck."""
         self._music.extend(obj)
 
-    @_object("duration")
+    @_context("duration")
     def duration(self, obj):
         """Called for ``duration`` context: dots, scaling."""
         dots, self._scaling = obj
         self._duration.extend(dots)
 
-    @_object("chord")
+    @_context("chord")
     def chord(self, obj):
         """Called for ``chord`` context: a chord."""
         yield from self.pending_music()
         self._music = obj
 
-    @_object("script")
+    @_context("script")
     def script(self, obj):
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
 
-    @_object("string", "scheme")
+    @_context("string", "scheme")
     def string_scheme(self, obj):
         """Called for ``string`` or ``scheme`` context."""
         if self._events:
@@ -661,7 +661,7 @@ class MusicBuilder:
             yield from self.pending_music()
             yield obj
 
-    @_object("markup")
+    @_context("markup")
     def markup(self, obj):
         """Called for ``markup`` context: read arguments from items."""
         for node in self.transform.create_markup(obj, self.items):
@@ -673,7 +673,7 @@ class MusicBuilder:
                 yield from self.pending_music()
                 yield node
 
-    @_object("singleline_comment", "multiline_comment")
+    @_context("singleline_comment", "multiline_comment")
     def comment(self, obj):
         """Called for ``singleline_comment`` and ``multiline_comment`` context.
 
