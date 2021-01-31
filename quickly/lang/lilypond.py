@@ -378,6 +378,15 @@ class LilyPondAdHocTransform(LilyPondTransform):
         return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
 
 
+class _dispatcher(dict):
+    def __call__(self, *args):
+        def decorator(func):
+            for a in args:
+                self[a] = func
+            return func
+        return decorator
+
+
 class MusicBuilder:
     """Helper class that reads and builds music."""
     #: articulations that are spanners:
@@ -398,31 +407,28 @@ class MusicBuilder:
         a.Name.Symbol.Spanner.PesOrFlexa: lily.PesOrFlexa,
     }
 
-    #: mapping for separators in LilyPond.create_music
-    separator_mapping = {
-        a.Delimiter.Separator.PipeSymbol: lily.PipeSymbol,
-        a.Delimiter.Separator.VoiceSeparator: lily.VoiceSeparator,
-    }
+    _token = _dispatcher()
+    _action = _dispatcher()
 
     def __init__(self, transform, items):
         self.transform = transform
         self.factory = transform.factory
         self.items = iter(items)
 
-        self.music = None
-        self.duration = None
-        self.scaling = None
-        self.events = []         # for direction and spanner-id
-        self.articulations = []
-        self.comments = []       # for comments between pitch and duration...
+        self._music = None
+        self._duration = None
+        self._scaling = None
+        self._events = []         # for direction and spanner-id
+        self._articulations = []
+        self._comments = []       # for comments between pitch and duration...
 
     def pending_music(self):
         """Yield pending music."""
-        music = self.music
-        if self.duration:
-            dur = self.factory(lily.Duration, self.duration)
-            if self.scaling:
-                dur.append(self.scaling)
+        music = self._music
+        if self._duration:
+            dur = self.factory(lily.Duration, self._duration)
+            if self._scaling:
+                dur.append(self._scaling)
             if music:
                 if music.tail:
                     music = lily.Music(music)
@@ -430,166 +436,210 @@ class MusicBuilder:
             else:
                 music = lily.Unpitched(dur)
         if music:
-            if self.articulations:
-                if self.comments:
+            if self._articulations:
+                if self._comments:
                     if music.tail:
                         music = lily.Music(music)
-                    music.extend(self.comments)
-                    self.comments.clear()
-                music.append(lily.Articulations(*self.articulations))
-                self.articulations.clear()
+                    music.extend(self._comments)
+                    self._comments.clear()
+                music.append(lily.Articulations(*self._articulations))
+                self._articulations.clear()
                 # move comments at end of articulations back to toplevel
                 while isinstance(music[-1][-1], base.Comment):
-                    self.comments.append(music[-1].pop())
+                    self._comments.append(music[-1].pop())
 
             yield music
 
-            yield from self.comments
-            self.comments.clear()
+            yield from self._comments
+            self._comments.clear()
 
             # if there are tweaks but no articulations, the tweak
             # is meant for the next note. Output it now.
-            yield from (e for e in self.events if isinstance(e, lily.Tweak))
-            self.events.clear()
+            yield from (e for e in self._events if isinstance(e, lily.Tweak))
+            self._events.clear()
 
-        self.music = self.duration = self.scaling = None
+        self._music = self._duration = self._scaling = None
 
     def add_articulation(self, art):
         """Add an articulation or script."""
-        if self.events:
-            self.events[-1].append(art)
-            art = e = self.events[0]
-            for f in self.events[1:]:
+        if self._events:
+            self._events[-1].append(art)
+            art = e = self._events[0]
+            for f in self._events[1:]:
                 e.append(f)
                 e = f
-            self.events.clear()
-        self.articulations.append(art)
+            self._events.clear()
+        self._articulations.append(art)
 
     def add_spanner_id(self, node):
         """Return True if the node could be added to a spanner id that's being built."""
-        if self.events and isinstance(self.events[-1], lily.SpannerId) and len(self.events[-1]) == 0:
-            self.events[-1].append(node)
+        if self._events and isinstance(self._events[-1], lily.SpannerId) and len(self._events[-1]) == 0:
+            self._events[-1].append(node)
             return True
         return False
 
     def add_tweak(self, node):
         """Return True if the node could be added to a Tweak that's being built."""
-        if self.events and isinstance(self.events[-1], lily.Tweak) and len(self.events[-1]) < 2:
-            self.events[-1].append(node)
+        if self._events and isinstance(self._events[-1], lily.Tweak) and len(self._events[-1]) < 2:
+            self._events[-1].append(node)
             return True
         return False
 
     def __iter__(self):
         """Yield all the music from the items given at construction."""
         for i in self.items:
+            result = None
             if i.is_token:
-                if i.action in a.Text.Music:
-                    yield from self.pending_music()
-                    if i.action is a.Text.Music.Pitch:
-                        cls = lily.Q if i == 'q' else lily.Note
-                    else: # i.action is Music.Rest:
-                        cls = lily.Space if i == 's' else lily.Rest
-                    self.music = self.factory(cls, (i,))
-                elif i.action is a.Number.Duration:
-                    if self.duration or self.articulations:
-                        yield from self.pending_music()
-                    self.duration = [i]
-                elif i == r'\skip':
-                    yield from self.pending_music()
-                    self.music = self.factory(lily.Skip, (i,))
-                elif i == r'\rest':
-                    if isinstance(self.music, lily.Note):
-                        # make it a positioned rest, reuse old pitch token if possible
-                        try:
-                            origin = self.music.head_origin
-                        except AttributeError:
-                            self.music = lily.Rest(self.music.head, *music)
-                        else:
-                            self.music = self.factory(lily.Rest, origin, (), *self.music)
-                        self.music.append(self.factory(lily.RestModifier, (i,)))
-                elif i == r'\tweak':
-                    self.events.append(self.factory(lily.Tweak, (i,)))
-                elif i == r'\noBeam':
-                    self.add_articulation(self.factory(lily.Modifier, (i,)))
-                elif i.action is a.Delimiter.Direction:
-                    self.events.append(self.factory(lily.Direction, (i,)))
-                elif i.action is a.Name.Script.Articulation:
-                    cls = self.articulations_mapping.get(i.text, lily.Articulation)
-                    self.add_articulation(self.factory(cls, (i,)))
-                elif i.action is a.Name.Builtin.Dynamic:
-                    self.add_articulation(self.factory(lily.Dynamic, (i,)))
-                elif i.action in a.Name.Symbol.Spanner:
-                    if i.action is a.Name.Symbol.Spanner.Id:
-                        self.events.append(self.factory(lily.SpannerId, (i,)))
+                # dispatch on token (text or action)
+                meth = self._token.get(i.text)
+                if not meth:
+                    for action in i.action:
+                        meth = self._action.get(action)
+                        if meth:
+                            break
                     else:
-                        self.add_articulation(self.factory(self.music_mapping[i.action], (i,)))
-                elif i.action is a.Delimiter.Tremolo:
-                    tremolo = self.factory(lily.Tremolo, (i,))
-                    if i.group == 0:
-                        # next item is the duration
-                        tremolo.append(self.factory(lily.Duration, (next(self.items),)))
-                    self.add_articulation(tremolo)
-                elif i.action in a.Delimiter.Separator:
-                    yield from self.pending_music()
-                    yield self.factory(self.separator_mapping[i.action], (i,))
-                elif i.action is a.Number:
-                    elem = self.factory(lily.Number, (i,))
-                    if not self.add_spanner_id(elem) and not self.add_tweak(elem):
-                        pass # there was no spanner id, something else?
-                elif i.action in a.Name.Symbol:
-                    elem = self.factory(lily.Symbol, (i,))
-                    if not self.add_spanner_id(elem) and not self.add_tweak(elem):
-                        pass # there was no spanner id, something else?
-                elif i.action == a.Operator.Assignment:
-                    if not self.events:
-                        # '=' has no meaning inside music, but let it through at toplevel
-                        yield from self.pending_music()
-                        yield self.factory(lily.EqualSign, (i,))
-                else:
-                    # TEMP
-                    print("Unknown token:", i)
+                        # TEMP
+                        print("Unknown token:", i)
+                        continue
+                result = meth(self, i)
             else:
                 # dispatch on object name
                 meth = getattr(self, i.name, None)
                 if meth:
-                    yield from meth(i.obj)
+                    result = meth(i.obj)
                 elif isinstance(i.obj, element.Element):
                     yield from self.pending_music()
                     yield i.obj
+                    continue
                 else:
                     # TEMP
                     print("Unknown item:", i)
+            if result:
+                yield from result
+
+
 
         # pending stuff
         yield from self.pending_music()
 
+    @_token(r'\skip')
+    def skip_token(self, token):
+        yield from self.pending_music()
+        self._music = self.factory(lily.Skip, (token,))
+
+    @_token(r'\rest')
+    def rest_token(self, token):
+        if isinstance(self._music, lily.Note):
+            # make it a positioned rest, reuse old pitch token if possible
+            try:
+                origin = self._music.head_origin
+            except AttributeError:
+                self._music = lily.Rest(self._music.head, *music)
+            else:
+                self._music = self.factory(lily.Rest, origin, (), *self._music)
+            self._music.append(self.factory(lily.RestModifier, (token,)))
+
+    @_token(r'\tweak')
+    def tweak_token(self, token):
+        self._events.append(self.factory(lily.Tweak, (token,)))
+
+    @_token(r'\noBeam')
+    def nobeam_token(self, token):
+        self.add_articulation(self.factory(lily.Modifier, (token,)))
+
+    @_action(a.Text.Music)
+    def music_action(self, token):
+        yield from self.pending_music()
+        if token.action is a.Text.Music.Pitch:
+            cls = lily.Q if token == 'q' else lily.Note
+        else: # i.action is Music.Rest:
+            cls = lily.Space if token == 's' else lily.Rest
+        self._music = self.factory(cls, (token,))
+
+    @_action(a.Number.Duration)
+    def duration_action(self, token):
+        if self._duration or self._articulations:
+            yield from self.pending_music()
+        self._duration = [token]
+
+    @_action(a.Delimiter.Direction)
+    def direction_action(self, token):
+        self._events.append(self.factory(lily.Direction, (token,)))
+
+    @_action(a.Name.Script.Articulation)
+    def articulation_action(self, token):
+        cls = self._articulations_mapping.get(token.text, lily.Articulation)
+        self.add_articulation(self.factory(cls, (token,)))
+
+    @_action(a.Name.Builtin.Dynamic)
+    def dynamic_action(self, token):
+        self.add_articulation(self.factory(lily.Dynamic, (token,)))
+
+    @_action(a.Name.Symbol.Spanner)
+    def spanner_action(self, token):
+        if token.action is a.Name.Symbol.Spanner.Id:
+            self._events.append(self.factory(lily.SpannerId, (token,)))
+        else:
+            self.add_articulation(self.factory(self._music_mapping[token.action], (token,)))
+
+    @_action(a.Delimiter.Tremolo)
+    def tremolo_action(self, token):
+        tremolo = self.factory(lily.Tremolo, (token,))
+        if i.group == 0:
+            # next item is the duration
+            tremolo.append(self.factory(lily.Duration, (next(self.items),)))
+        self.add_articulation(tremolo)
+
+    @_action(a.Delimiter.Separator.PipeSymbol)
+    def separator_action(self, token):
+        yield from self.pending_music()
+        yield self.factory(lily.PipeSymbol, (token,))
+
+    @_action(a.Delimiter.Separator.VoiceSeparator)
+    def separator_action(self, token):
+        yield from self.pending_music()
+        yield self.factory(lily.VoiceSeparator, (token,))
+
+    @_action(a.Number)
+    def number_action(self, token):
+        elem = self.factory(lily.Number, (token,))
+        if not self.add_spanner_id(elem) and not self.add_tweak(elem):
+            pass # there was no spanner id, something else?
+
+    @_action(a.Name.Symbol)
+    def symbol_action(self, token):
+        elem = self.factory(lily.Symbol, (token,))
+        if not self.add_spanner_id(elem) and not self.add_tweak(elem):
+            pass # there was no spanner id, something else?
+
+    @_action(a.Operator.Assignment)
+    def assignment_action(self, token):
+        if not self._events:
+            # '=' has no meaning inside music, but let it through at toplevel
+            yield from self.pending_music()
+            yield self.factory(lily.EqualSign, (token,))
+
     def pitch(self, obj):
         """pitch context: octave, accidental, octavecheck"""
-        self.music.extend(obj)
-        return
-        yield
+        self._music.extend(obj)
 
     def duration(self, obj):
         """duration context: dots, scaling"""
-        dots, self.scaling = obj
-        self.duration.extend(dots)
-        return
-        yield
+        dots, self._scaling = obj
+        self._duration.extend(dots)
 
     def chord(self, obj):
         """a <chord>"""
         yield from self.pending_music()
-        self.music = obj
+        self._music = obj
 
     def script(self, obj):
         """an articulation"""
         self.add_articulation(obj)
-        return
-        yield
 
     def string(self, obj):
         """string or scheme"""
-        if self.events:
+        if self._events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
                 self.add_articulation(obj)
@@ -603,7 +653,7 @@ class MusicBuilder:
     def markup(self, obj):
         """markup, reads arguments from items"""
         for node in self.transform.create_markup(obj, self.items):
-            if self.events:
+            if self._events:
                 # after a direction: add to the note
                 self.add_articulation(node)
             else:
@@ -613,15 +663,15 @@ class MusicBuilder:
 
     def singleline_comment(self, obj):
         """comments are preserved as good as possible."""
-        if self.events:
-            self.events[-1].append(obj)
-        elif self.articulations:
-            self.articulations.append(obj)
-        elif not self.music and not self.duration:
+        if self._events:
+            self._events[-1].append(obj)
+        elif self._articulations:
+            self._articulations.append(obj)
+        elif not self._music and not self._duration:
             # no pending music
             yield obj
         else:
-            self.comments.append(obj)  # will be added after the duration
+            self._comments.append(obj)  # will be added after the duration
 
     multiline_comment = singleline_comment
 
