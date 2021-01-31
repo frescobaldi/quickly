@@ -564,27 +564,31 @@ class MusicBuilder:
         yield from self.pending_music()
 
     def pitch(self, obj):
-        # pitch context: octave, accidental, octavecheck
+        """pitch context: octave, accidental, octavecheck"""
         self.music.extend(obj)
         return
         yield
 
     def duration(self, obj):
+        """duration context: dots, scaling"""
         dots, self.scaling = obj
         self.duration.extend(dots)
         return
         yield
 
     def chord(self, obj):
+        """a <chord>"""
         yield from self.pending_music()
         self.music = obj
 
     def script(self, obj):
+        """an articulation"""
         self.add_articulation(obj)
         return
         yield
 
     def string(self, obj):
+        """string or scheme"""
         if self.events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
@@ -597,6 +601,7 @@ class MusicBuilder:
     scheme = string
 
     def markup(self, obj):
+        """markup, reads arguments from items"""
         for node in self.transform.create_markup(obj, self.items):
             if self.events:
                 # after a direction: add to the note
@@ -607,6 +612,7 @@ class MusicBuilder:
                 yield node
 
     def singleline_comment(self, obj):
+        """comments are preserved as good as possible."""
         if self.events:
             self.events[-1].append(obj)
         elif self.articulations:
