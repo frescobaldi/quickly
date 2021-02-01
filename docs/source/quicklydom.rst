@@ -26,6 +26,17 @@ Element types:
 All other element types inherit of one of these four, and may bring other
 features.
 
+With the :mod:`quickly.dom` module you can:
+
+* Build a DOM document manually and use it to write out a well-formatted
+  LilyPond (template) score
+
+* Create a DOM document from a LilyPond score, to further analyze or convert
+  the music
+
+* Create a DOM document from a score, manipulate it and then write the
+  changes back to the original text.
+
 
 Building a Document manually
 ----------------------------
@@ -204,11 +215,10 @@ properties are:
 :attr:`~element.Element.space_before_tail` and
 :attr:`~element.Element.space_after`.
 
-A nice detail is that if the whitespace properties have their default value,
-they don't take any memory. Then there is a :meth:`~element.Element.concat`
-method which is called to return the whitespace to use between two child
-elements. Most element types just return the
-:attr:`~element.Element.space_between` there.
+If the whitespace properties have their default value, they don't take any
+memory. Then there is a :meth:`~element.Element.concat` method which is called
+to return the whitespace to use between two child elements. Most element types
+just return the :attr:`~element.Element.space_between` there.
 
 After consulting all the whitespace wishes, the most important whitespace is
 chosen by the :meth:`~element.Element.write` method. E.g. ``"\n"`` prevails
@@ -394,4 +404,156 @@ wrap music in ``(make-music ...)`` calls::
 The same holds true for adding articulations to a chord, be sure it is wrapped
 in a Music element first.
 
+
+Using a DOM document to edit an original document
+-------------------------------------------------
+
+A DOM document that is transformed from a *parce* tree, keeps references to the
+originating tokens in the ``head_origin`` and optionally the ``tail_origin``
+attribute. That's why such a DOM document shows the positions in the text when
+dumping the contents to the console.
+
+When an element is modified by writing to the ``head`` attribute (for
+TextElement), a "modified" flag is set when the new value actually is
+different.
+
+There are two element methods dealing with this:
+
+* :meth:`~element.Element.edits`, which yields a list of three-tuples (pos, end, text)
+  denoting the changes that are made when comparing to the original tree. Although
+  the elements have the originating tokens, the tree is needed as well, to see if
+  contents was removed.
+
+* :meth:`~element.Element.edit`, which directly writes back the changes to a
+  :class:`parce.Document`.
+
+Let's go back to the initial example, but now create a parce Document with the
+LilyPond source, instead of only creating a tree::
+
+    >>> import parce.transform
+    >>> from quickly.lang.lilypond import LilyPond
+    >>> d = parce.Document(LilyPond.root)
+
+We now create the transformer::
+
+    >>> t = parce.transform.Transformer()
+
+But we connect the source document's treebuilder to the transformer (see
+the *parce* documentation)::
+
+    >>> t.connect_treebuilder(d.builder())
+
+Now we set the text, the transformer then automatically builds the resulting
+DOM::
+
+    >>> d.set_text("{ <c' g'>4( a'2) f:16-. }")
+    >>> music = t.result(d.get_root(True))
+    >>> music.dump()
+    <lily.Document (1 child)>
+     ╰╴<lily.SequentialMusic (3 children) [0:25]>
+        ├╴<lily.Music (3 children)>
+        │  ├╴<lily.Chord (2 children) [2:9]>
+        │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
+        │  │  │  ╰╴<lily.Octave 1 [4:5]>
+        │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
+        │  │     ╰╴<lily.Octave 1 [7:8]>
+        │  ├╴<lily.Duration Fraction(1, 4) [9:10]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'start' [10:11]>
+        ├╴<lily.Note 'a' (3 children) [12:13]>
+        │  ├╴<lily.Octave 1 [13:14]>
+        │  ├╴<lily.Duration Fraction(1, 2) [14:15]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'stop' [15:16]>
+        ╰╴<lily.Note 'f' (1 child) [17:18]>
+           ╰╴<lily.Articulations (2 children)>
+              ├╴<lily.Tremolo (1 child) [18:19]>
+              │  ╰╴<lily.Duration Fraction(1, 16) [19:21]>
+              ╰╴<lily.Direction 0 (1 child) [21:22]>
+                 ╰╴<lily.Articulation '.' [22:23]>
+
+.. note::
+
+    We give the root context to the :meth:`parce.transform.Transformer.result`
+    method, because one Transformer can build, update and cache the transformed
+    result for many source documents at once. By giving the root context, we
+    get the correct transformed result.
+
+Now we apply some manipulation to the music. Again add "is" to all the note
+heads::
+
+    >>> from quickly.dom import lily
+    >>> for note in music // lily.Note:
+    ...     note.head += "is"
+    ...
+    >>> list(music.edits(d.get_root()))
+    [(3, 4, 'cis'), (6, 7, 'gis'), (12, 13, 'ais'), (17, 18, 'fis')]
+
+We see the changes. With :meth:`~element.Element.edit` we can directly apply them
+to the original document::
+
+    >>> music.edit(d)
+    4
+    >>> d.text()
+    "{ <cis' gis'>4( ais'2) fis:16-. }"
+
+The document has changed. The :meth:`~element.Element.edit` method returns the
+number of changes that were made. Now that the original document is modified,
+the transformer already has run again in the background to update the nodes
+that were changed. Nodes that didn't change (but maybe changed position) are
+retained and used again. So to start new manipulations on the document, we need
+to request the transformed DOM tree again::
+
+    >>> music = t.result(d.get_root())
+    >>> music.dump()
+    <lily.Document (1 child)>
+     ╰╴<lily.SequentialMusic (3 children) [0:33]>
+        ├╴<lily.Music (3 children)>
+        │  ├╴<lily.Chord (2 children) [2:13]>
+        │  │  ├╴<lily.Note 'cis' (1 child) [3:6]>
+        │  │  │  ╰╴<lily.Octave 1 [6:7]>
+        │  │  ╰╴<lily.Note 'gis' (1 child) [8:11]>
+        │  │     ╰╴<lily.Octave 1 [11:12]>
+        │  ├╴<lily.Duration Fraction(1, 4) [13:14]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'start' [14:15]>
+        ├╴<lily.Note 'ais' (3 children) [16:19]>
+        │  ├╴<lily.Octave 1 [19:20]>
+        │  ├╴<lily.Duration Fraction(1, 2) [20:21]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'stop' [21:22]>
+        ╰╴<lily.Note 'fis' (1 child) [23:26]>
+           ╰╴<lily.Articulations (2 children)>
+              ├╴<lily.Tremolo (1 child) [26:27]>
+              │  ╰╴<lily.Duration Fraction(1, 16) [27:29]>
+              ╰╴<lily.Direction 0 (1 child) [29:30]>
+                 ╰╴<lily.Articulation '.' [30:31]>
+
+Let's apply another change, moving all slurs up::
+
+    >>> for slur in music // lily.Slur:
+    ...     if slur.head == "start":
+    ...         if isinstance(slur.parent, lily.Direction):
+    ...             slur.parent.head = 1
+    ...         else:
+    ...             direction = lily.Direction(1)
+    ...             slur.parent[slur.parent.index(slur)] = direction
+    ...             direction.append(slur)
+    ...
+    >>> list(music.edits(d.get_root()))
+    [(14, 14, '^')]
+
+One ``^`` needs to be added to the original document::
+
+    >>> music.edit(d)
+    1
+    >>> d.text()
+    "{ <cis' gis'>4^( ais'2) fis:16-. }"
+
+We could also write out the music with ``music.write()`` but the clear
+advantage of only applying the changes is that other formatting of the
+document, such as whitespace, newlines, comments etc all are preserved.
+
+So with *quickly* we can perform smart music manipulations without being
+intrusive to the writer of a LilyPond score.
 
