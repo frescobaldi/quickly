@@ -55,13 +55,37 @@ Using the element types in the :mod:`~quickly.dom.lily` and
         ╰╴<lily.Rest 'r' (1 child)>
            ╰╴<lily.Articulations (1 child)>
               ╰╴<lily.Dynamic 'pp'>
+
+Call :meth:`~element.Element.write` to get the music in LilyPond format::
+
     >>> music.write()
     '{ c4 d^. r\\pp }'
 
 Each element node type knows how to display its "head" value. For example, the
 Note element knows the pitch name simply as a letter, but the Direction as a
-number (-1, 0 or 1) and Duration as a fraction. Instead of one long expression,
-nodes may be combined using usual Python methods::
+number (-1, 0 or 1) and Duration as a fraction. For example::
+
+    >>> duration = music[0][0][0]
+    >>> duration.head
+    Fraction(1, 4)
+    >>> duration.write_head()
+    '4'
+
+So the ``head`` attribute is the interpreted value, while
+:meth:`~element.Element.write_head` returns the output in LilyPond syntax.
+For elements that inherit of :class:`~element.TextElement`, the head attribute
+can be changed::
+
+    >>> duration.head = fractions.Fraction(3, 8)
+    >>> duration.write_head()
+    '4.'
+    >>> music.write()
+    '{ c4. d^. r\\pp }'
+
+Note the updated duration in the ``music`` output.
+
+Instead of one long expression, nodes may be combined using usual Python
+methods::
 
     >>> music = lily.Document(lily.SequentialMusic())
     >>> music[0].append(lily.Note('c', lily.Duration(fractions.Fraction(1, 8))))
@@ -83,5 +107,12 @@ know the actual pitch, because the node doesn't know the current pitch
 language. But traversing the nodes is simple, to find a point a pitch language
 or duration is defined.
 
+
+Creating a Document from LilyPond source
+----------------------------------------
+
+Creating a Document from LilyPond source is a two-stage process. The first
+stage is tokenizing the text to a *parce* tree structure. The second stage is
+transforming the tree to a ``quickly.dom`` Document (or any node type).
 
 
