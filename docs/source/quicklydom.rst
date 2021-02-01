@@ -30,9 +30,9 @@ features.
 Building a Document manually
 ----------------------------
 
-Using the element types in the :mod:`lily` and :mod:`scm` modules, a full
-LilyPond source document can be built (theoratically) in one expression.
-For example::
+Using the element types in the :mod:`~quickly.dom.lily` and
+:mod:`~quickly.dom.scm` modules, a full LilyPond source document can be built
+(theoratically) in one expression. For example::
 
     >>> import fractions
     >>> from quickly.dom import lily
@@ -76,5 +76,12 @@ nodes may be combined using usual Python methods::
         ╰╴<lily.Note 'd' (1 child)>
            ╰╴<lily.Direction 1 (1 child)>
               ╰╴<lily.Articulation '.'>
+
+Element nodes are "side-effects free"; i.e. a node knows nothing that's not
+defined in itself. That's why we simply show the pitch name letter(s): we don't
+know the actual pitch, because the node doesn't know the current pitch
+language. But traversing the nodes is simple, to find a point a pitch language
+or duration is defined.
+
 
 
