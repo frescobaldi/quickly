@@ -115,7 +115,8 @@ Creating a Document from LilyPond source is a two-stage process. The first
 stage is tokenizing the text to a *parce* tree structure. The second stage is
 transforming the tree to a ``quickly.dom`` Document (or any node type).
 
-Here is an example, with intermediate results shown::
+Here is an example, with intermediate results shown. First we create a *parce*
+tree::
 
     >>> import parce.transform
     >>> from quickly.lang.lilypond import LilyPond
@@ -147,9 +148,14 @@ Here is an example, with intermediate results shown::
         ├╴<Context LilyPond.script at 22-23 (1 child)>
         │  ╰╴<Token '.' at 22:23 (Literal.Character.Script)>
         ╰╴<Token '}' at 24:25 (Delimiter.Bracket.End)>
-    >>> t = parce.transform.Transformer()   # automagically finds LilyPondTransform
+
+Then we transform the tree to a DOM document. The transformer automagically
+finds :class:`~quickly.lang.lilypond.LilyPondTransform` in the
+:mod:`quickly.lang.lilypond` module::
+
+    >>> t = parce.transform.Transformer()
     >>> music = t.transform_tree(tree)
-    >>> music.dump()    # show the quickly.dom tree
+    >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.SequentialMusic (3 children) [0:25]>
         ├╴<lily.Music (3 children)>
@@ -180,8 +186,8 @@ that later. Just to check if the music was interpreted correctly::
     "{ <c' g'>4( a'2) f:16-. }"
 
 
-Whitespace handling
--------------------
+Intermezzo: Whitespace handling
+-------------------------------
 
 Some elements have whitespace between them, others don't. For example, the
 :class:`lily.SequentialMusic` and the :class:`lily.Chord` element put
@@ -190,7 +196,8 @@ SequentialMusic also puts whitespace after the first brace (the "head") and the
 closing brace ("tail"), but Chord doesn't.
 
 This is handled by five properties that have sensible defaults for every
-element type, but can be modified for every individual element. These properties are:
+element type, but can be modified for every individual element. These
+properties are:
 :attr:`~element.Element.space_before`,
 :attr:`~element.Element.space_after_head`,
 :attr:`~element.Element.space_between`,
@@ -208,4 +215,85 @@ chosen by the :meth:`~element.Element.write` method. E.g. ``"\n"`` prevails
 over ``" "`` and ``"\n\n"`` prevails over ``"\n"``.
 
 Indenting output has yet to be implemented.
+
+
+Modifying a DOM document
+------------------------
+
+A DOM document can be modified by:
+
+* adding or removing element nodes
+
+* (only for elements that inherit :class:`~element.TextElement`)
+  by changing the ``head`` attribute. Some element types have more fine-grained
+  control, for example the :class:`~scm.Number` types. But essentially
+  everything that the element's methods may do is changing the head attribute.
+
+.. note::
+
+    When modifying a DOM document, you must take care that you produce a valid
+    LilyPond document. The ``quickly.dom`` module doesn't enfore validity.
+    Maybe in the future element types could provide some type hints or checks
+    as per the child elements they allow, and in what particular order.
+
+Consider these examples (using the same music as above):
+
+Add a note::
+
+    >>> from quickly.dom import lily
+    >>> music[0].append(lily.Note('e'))
+    >>> music.write()
+    "{ <c' g'>4( a'2) f:16-. e }"
+
+Remove all octave marks::
+
+    >>> for node in music // lily.Octave:
+    ...     node.parent.remove(node)
+    ...
+    >>> music.write()
+    '{ <c g>4( a2) f:16-. e }'
+
+Using ``//`` you can iterate over all descendant elements of a node
+that are an instance of the specified type. See for more information
+the :mod:`~quickly.node` module.
+
+Add an octave mark to all notes that don't have one::
+
+    >>> for node in music // lily.Note:
+    ...     if not any(node / lily.Octave):
+    ...         node.insert(0, lily.Octave(2))
+    ...
+    >>> music.write()
+    "{ <c'' g''>4( a''2) f'':16-. e'' }"
+
+Change the note names::
+
+    >>> for node in music // lily.Note:
+    ...     node.head += 'is'
+    ...
+    >>> music.write()
+    "{ <cis'' gis''>4( ais''2) fis'':16-. eis'' }"
+
+TODO: Really understanding the pitches and modifying them in a musical manner
+(e.g. transposing) will be implemented using a helper class that holds track of
+the current pitch language, and the last duration etc.
+
+Move all slurs up (only where they start)::
+
+    >>> for slur in music // lily.Slur:
+    ...     if slur.head == "start":
+    ...         if isinstance(slur.parent, lily.Direction):
+    ...             slur.parent.head = 1
+    ...         else:
+    ...             direction = lily.Direction(1)
+    ...             slur.parent[slur.parent.index(slur)] = direction
+    ...             direction.append(slur)
+    ...
+    >>> music.write()
+    "{ <cis'' gis''>4^( ais''2) fis'':16-. eis'' }"
+
+The above example iterates over all slur events, and selects those that are a
+start event (``(``). If they already have a :class:`lily.Direction` parent, its
+direction is set to 1 (up). Otherwise, a Direction element is created and the
+slur appended to it (and thus reparented).
 
