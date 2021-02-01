@@ -402,12 +402,14 @@ class MusicBuilder:
 
     _token = Dispatcher()
     _action = Dispatcher()
+    _builtin = Dispatcher()
     _context = Dispatcher()
 
     def __init__(self, transform, items):
         self.transform = transform
         self.factory = transform.factory
         self.items = iter(items)
+        print(items)
 
         self._music = None
         self._duration = None
@@ -542,12 +544,24 @@ class MusicBuilder:
         r"""Called for ``\noBeam``."""
         self.add_articulation(self.factory(lily.Modifier, (token,)))
 
-    @_action(a.Text.Music.Pitch)
+    @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):
-        r"""Called for ``Text.Music.Pitch``."""
+        r"""Called for ``Text.Music.Pitch (or Name.Pitch)``."""
         yield from self.pending_music()
         cls = lily.Q if token == 'q' else lily.Note
         self._music = self.factory(cls, (token,))
+
+    @_action(a.Text.Music.Pitch.Octave)
+    def octave_action(self, token):
+        r"""Called for ``Text.Music.Pitch.Octave``.
+
+        This happens for \\relative, \\transpose, \\fixed etc.
+        The previous item then was a Name.Pitch, which created a note.
+        Just append the octave.
+
+        """
+        octave = self.factory(lily.Octave, (token,))
+        self._music.append(octave)
 
     @_action(a.Text.Music.Rest)
     def rest_action(self, token):
@@ -659,6 +673,39 @@ class MusicBuilder:
         r"""Called for ``Delimiter.Lyric.LyricSkip``."""
         yield from self.pending_music()
         yield self.factory(lily.LyricSkip, (token,))
+
+    @_action(a.Name.Builtin)
+    def name_builtin_action(self, token):
+        """Called for any Name.Builtin token.
+
+        Dispatches further to :meth:`_builtin`.
+
+        """
+        return self._builtin(token.text, token)
+
+    @_builtin(r'\relative')
+    def builtin_relative(self, token):
+        r"""Called for Name.Builtin ``\relative``."""
+        yield from self.pending_music()
+        yield self.factory(lily.RelativeMusic, (token,))
+
+    @_builtin(r'\absolute')
+    def builtin_absolute(self, token):
+        r"""Called for Name.Builtin ``\absolute``."""
+        yield from self.pending_music()
+        yield self.factory(lily.AbsoluteMusic, (token,))
+
+    @_builtin(r'\fixed')
+    def builtin_fixed(self, token):
+        r"""Called for Name.Builtin ``\fixed``."""
+        yield from self.pending_music()
+        yield self.factory(lily.FixedMusic, (token,))
+
+    @_builtin(r'\transpose')
+    def builtin_relative(self, token):
+        r"""Called for Name.Builtin ``\transpose``."""
+        yield from self.pending_music()
+        yield self.factory(lily.TransposedMusic, (token,))
 
     @_context("pitch")
     def pitch(self, obj):

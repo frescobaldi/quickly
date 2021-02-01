@@ -49,8 +49,7 @@ Using the element types in the :mod:`~quickly.dom.lily` and
     >>> from quickly.dom import lily
     >>> music = lily.Document(lily.SequentialMusic(
     ... lily.Note('c', lily.Duration(fractions.Fraction(1, 4))),
-    ... lily.Note('d', lily.Articulations(lily.Direction(1, lily.Articulation
-    ... (".")))),
+    ... lily.Note('d', lily.Articulations(lily.Direction(1, lily.Articulation(".")))),
     ... lily.Rest('r', lily.Articulations(lily.Dynamic("pp")))))
     >>> music
     <lily.Document (1 child)>
@@ -347,7 +346,7 @@ Intermezzo: Validity
 --------------------
 
 Note that, when modifying a DOM document, you must take care that you produce a
-valid LilyPond document. The ``quickly.dom`` module doesn't enfore validity.
+valid LilyPond document. The ``quickly.dom`` module doesn't enforce validity.
 Maybe in the future element types could provide some type hints or checks as
 per the child elements they allow, and in what particular order.
 

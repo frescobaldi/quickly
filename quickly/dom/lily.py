@@ -237,6 +237,30 @@ class Music(element.Element):
     """
 
 
+class RelativeMusic(element.HeadElement, Music):
+    """Relative music."""
+    head = r'\relative'
+    _space_between = _space_after_head = " "
+
+
+class AbsoluteMusic(element.HeadElement, Music):
+    """Absolute music."""
+    head = r'\absolute'
+    _space_between = _space_after_head = " "
+
+
+class FixedMusic(element.HeadElement, Music):
+    """Fixed music."""
+    head = r'\fixed'
+    _space_between = _space_after_head = " "
+
+
+class TransposedMusic(element.HeadElement, Music):
+    """Transposed music."""
+    head = r'\transpose'
+    _space_between = _space_after_head = " "
+
+
 class MusicList(element.BlockElement, Music):
     """Base class for a music list ``{`` ... ``}`` or ``<<`` ... ``>>``."""
     _space_after_head = _space_before_tail = _space_between = " "
