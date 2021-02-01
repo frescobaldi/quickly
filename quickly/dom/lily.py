@@ -230,7 +230,11 @@ class Identifier(element.Element):
 
 
 class Music(element.Element):
-    """Base mixin class for musical elements."""
+    """A basic music element.
+
+    This is also the base class for other elements that contain music.
+
+    """
 
 
 class MusicList(element.BlockElement, Music):
@@ -257,28 +261,31 @@ class Chord(element.BlockElement, Music):
     tail = ">"
 
 
-class Note(element.TextElement):
+class Note(element.TextElement, Music):
     """A pitch note name."""
 
 
-class Unpitched(element.Element):
+class Unpitched(Music):
     """An unpitched note, always has a Duration child."""
 
 
-class Rest(element.TextElement):
+class Rest(element.TextElement, Music):
     """A rest (``r`` or ``R``)."""
 
 
-class Space(element.TextElement):
+class Space(element.HeadElement, Music):
     """A space (``s``)."""
+    head = "s"
 
 
-class Skip(element.TextElement):
+class Skip(element.HeadElement, Music):
     r"""A ``\skip``. Must have a Duration child."""
+    head = r'\skip'
 
 
 class Q(element.HeadElement, Music):
     """A ``q``, repeating the previous chord."""
+    head = 'q'
 
 
 class Drum(element.TextElement):
@@ -350,15 +357,27 @@ class OctaveCheck(element.TextElement):
 class Duration(element.TextElement):
     """A duration after a note.
 
-    Can contain dots, e.g. ``2..``.
+    To the constructor the duration is specified using a numerical value, which
+    can be a Fraction. A whole note is 1, a breve 2, etc; a quarter note or
+    crotchet 1/4, etc.
+
+    The value must be expressable (is that English?:-) in a length value
+    and zero or more dots. Examples::
+
+        >>> from quickly.dom.lily import Duration
+        >>> Duration(2).write()
+        '\\breve'
+        >>> Duration(3/2).write()
+        '1.'
+        >>> Duration(7/4).write()
+        '1..'
+        >>> Duration(7/16).write()
+        '4..'
 
     """
     def duration(self):
-        """Return the duration.
-
-        Also obeys scaling if a DurationScaling child is present.
-
-        """
+        """Return our duration value, including scaling if a DurationScaling
+        child is present. """
         duration = self.head
         for e in self / DurationScaling:
             duration *= e.head
@@ -378,8 +397,10 @@ class Duration(element.TextElement):
 class DurationScaling(element.TextElement):
     """An optional scaling after a Duration.
 
-    E.g. ``*1/2``. May contain multiple ``*n/m`` parts, but the value
-    is stored as a Fraction.
+    E.g. ``*1/2``. May be read from multiple ``*n/m`` parts, but always outputs
+    a single ``*n/d`` value, or ``*n`` when the denominator is 1. To the
+    constructor any numerical value may be given, but the value is always
+    represented as a fraction (omitting the denominator if 1).
 
     """
     @classmethod
@@ -394,7 +415,7 @@ class DurationScaling(element.TextElement):
     def write_head(self):
         """Write back the scaling to a string like ``*1/2``."""
         if self.head != 1:
-            return "*{}".format(self.head)
+            return "*{}".format(fractions.Fraction(self.head))
         return ""
 
 
