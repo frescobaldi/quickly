@@ -32,7 +32,7 @@ Building a Document manually
 
 Using the element types in the :mod:`~quickly.dom.lily` and
 :mod:`~quickly.dom.scm` modules, a full LilyPond source document can be built
-(theoratically) in one expression. For example::
+(theoretically) in one expression. For example::
 
     >>> import fractions
     >>> from quickly.dom import lily
