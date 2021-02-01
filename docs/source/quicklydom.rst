@@ -115,4 +115,97 @@ Creating a Document from LilyPond source is a two-stage process. The first
 stage is tokenizing the text to a *parce* tree structure. The second stage is
 transforming the tree to a ``quickly.dom`` Document (or any node type).
 
+Here is an example, with intermediate results shown::
+
+    >>> import parce.transform
+    >>> from quickly.lang.lilypond import LilyPond
+    >>> tree = parce.root(LilyPond.root, "{ <c' g'>4( a'2) f:16-. }")
+    >>> tree.dump()     # show the parce tree
+    <Context LilyPond.root at 0-25 (1 child)>
+     ╰╴<Context LilyPond.musiclist* at 0-25 (14 children)>
+        ├╴<Token '{' at 0:1 (Delimiter.Bracket.Start)>
+        ├╴<Context LilyPond.chord at 2-9 (6 children)>
+        │  ├╴<Token '<' at 2:3 (Delimiter.Chord.Start)>
+        │  ├╴<Token 'c' at 3:4 (Text.Music.Pitch)>
+        │  ├╴<Context LilyPond.pitch at 4-5 (1 child)>
+        │  │  ╰╴<Token "'" at 4:5 (Text.Music.Pitch.Octave)>
+        │  ├╴<Token 'g' at 6:7 (Text.Music.Pitch)>
+        │  ├╴<Context LilyPond.pitch at 7-8 (1 child)>
+        │  │  ╰╴<Token "'" at 7:8 (Text.Music.Pitch.Octave)>
+        │  ╰╴<Token '>' at 8:9 (Delimiter.Chord.End)>
+        ├╴<Token '4' at 9:10 (Literal.Number.Duration)>
+        ├╴<Token '(' at 10:11 (Name.Symbol.Spanner.Slur)>
+        ├╴<Token 'a' at 12:13 (Text.Music.Pitch)>
+        ├╴<Context LilyPond.pitch at 13-14 (1 child)>
+        │  ╰╴<Token "'" at 13:14 (Text.Music.Pitch.Octave)>
+        ├╴<Token '2' at 14:15 (Literal.Number.Duration)>
+        ├╴<Token ')' at 15:16 (Name.Symbol.Spanner.Slur)>
+        ├╴<Token 'f' at 17:18 (Text.Music.Pitch)>
+        ├╴<Token ':' at 18:19 (Delimiter.Tremolo)>
+        ├╴<Token '16' at 19:21 (Literal.Number.Duration.Tremolo)>
+        ├╴<Token '-' at 21:22 (Delimiter.Direction)>
+        ├╴<Context LilyPond.script at 22-23 (1 child)>
+        │  ╰╴<Token '.' at 22:23 (Literal.Character.Script)>
+        ╰╴<Token '}' at 24:25 (Delimiter.Bracket.End)>
+    >>> t = parce.transform.Transformer()   # automagically finds LilyPondTransform
+    >>> music = t.transform_tree(tree)
+    >>> music.dump()    # show the quickly.dom tree
+    <lily.Document (1 child)>
+     ╰╴<lily.SequentialMusic (3 children) [0:25]>
+        ├╴<lily.Music (3 children)>
+        │  ├╴<lily.Chord (2 children) [2:9]>
+        │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
+        │  │  │  ╰╴<lily.Octave 1 [4:5]>
+        │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
+        │  │     ╰╴<lily.Octave 1 [7:8]>
+        │  ├╴<lily.Duration Fraction(1, 4) [9:10]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'start' [10:11]>
+        ├╴<lily.Note 'a' (3 children) [12:13]>
+        │  ├╴<lily.Octave 1 [13:14]>
+        │  ├╴<lily.Duration Fraction(1, 2) [14:15]>
+        │  ╰╴<lily.Articulations (1 child)>
+        │     ╰╴<lily.Slur 'stop' [15:16]>
+        ╰╴<lily.Note 'f' (1 child) [17:18]>
+           ╰╴<lily.Articulations (2 children)>
+              ├╴<lily.Tremolo (1 child) [18:19]>
+              │  ╰╴<lily.Duration Fraction(1, 16) [19:21]>
+              ╰╴<lily.Direction 0 (1 child) [21:22]>
+                 ╰╴<lily.Articulation '.' [22:23]>
+
+Note that the elements now show their position in the original text. More about
+that later. Just to check if the music was interpreted correctly::
+
+    >>> music.write()
+    "{ <c' g'>4( a'2) f:16-. }"
+
+
+Whitespace handling
+-------------------
+
+Some elements have whitespace between them, others don't. For example, the
+:class:`lily.SequentialMusic` and the :class:`lily.Chord` element put
+whitespace between their children, but :class:`lily.Note` doesn't.
+SequentialMusic also puts whitespace after the first brace (the "head") and the
+closing brace ("tail"), but Chord doesn't.
+
+This is handled by five properties that have sensible defaults for every
+element type, but can be modified for every individual element. These properties are:
+:attr:`~element.Element.space_before`,
+:attr:`~element.Element.space_after_head`,
+:attr:`~element.Element.space_between`,
+:attr:`~element.Element.space_before_tail` and
+:attr:`~element.Element.space_after`.
+
+A nice detail is that if the whitespace properties have their default value,
+they don't take any memory. Then there is a :meth:`~element.Element.concat`
+method which is called to return the whitespace to use between two child
+elements. Most element types just return the
+:attr:`~element.Element.space_between` there.
+
+After consulting all the whitespace wishes, the most important whitespace is
+chosen by the :meth:`~element.Element.write` method. E.g. ``"\n"`` prevails
+over ``" "`` and ``"\n\n"`` prevails over ``"\n"``.
+
+Indenting output has yet to be implemented.
 
