@@ -315,7 +315,6 @@ note::
         │  ╰╴<lily.Duration Fraction(1, 16) [22:24]>
         ╰╴<lily.Unpitched (1 child)>
            ╰╴<lily.Duration Fraction(1, 8) [25:26]>
-    >>>
     >>> prev = None
     >>> for node in music[0] / lily.Music:
     ...     if not isinstance(node, lily.Skip):
