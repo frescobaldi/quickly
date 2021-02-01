@@ -229,13 +229,6 @@ A DOM document can be modified by:
   control, for example the :class:`~scm.Number` types. But essentially
   everything that the element's methods may do is changing the head attribute.
 
-.. note::
-
-    When modifying a DOM document, you must take care that you produce a valid
-    LilyPond document. The ``quickly.dom`` module doesn't enfore validity.
-    Maybe in the future element types could provide some type hints or checks
-    as per the child elements they allow, and in what particular order.
-
 Consider these examples (using the same music as above):
 
 Add a note::
@@ -296,4 +289,110 @@ The above example iterates over all slur events, and selects those that are a
 start event (``(``). If they already have a :class:`lily.Direction` parent, its
 direction is set to 1 (up). Otherwise, a Direction element is created and the
 slur appended to it (and thus reparented).
+
+In the following example we remove durations that are the same as the previous
+note::
+
+    >>> tree = parce.root(LilyPond.root, "{ <c' g'>4 e8 e8 g16 g16 8 }")
+    >>> music = t.transform_tree(tree)
+    >>> music.dump()
+    <lily.Document (1 child)>
+     ╰╴<lily.SequentialMusic (6 children) [0:28]>
+        ├╴<lily.Music (2 children)>
+        │  ├╴<lily.Chord (2 children) [2:9]>
+        │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
+        │  │  │  ╰╴<lily.Octave 1 [4:5]>
+        │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
+        │  │     ╰╴<lily.Octave 1 [7:8]>
+        │  ╰╴<lily.Duration Fraction(1, 4) [9:10]>
+        ├╴<lily.Note 'e' (1 child) [11:12]>
+        │  ╰╴<lily.Duration Fraction(1, 8) [12:13]>
+        ├╴<lily.Note 'e' (1 child) [14:15]>
+        │  ╰╴<lily.Duration Fraction(1, 8) [15:16]>
+        ├╴<lily.Note 'g' (1 child) [17:18]>
+        │  ╰╴<lily.Duration Fraction(1, 16) [18:20]>
+        ├╴<lily.Note 'g' (1 child) [21:22]>
+        │  ╰╴<lily.Duration Fraction(1, 16) [22:24]>
+        ╰╴<lily.Unpitched (1 child)>
+           ╰╴<lily.Duration Fraction(1, 8) [25:26]>
+    >>>
+    >>> prev = None
+    >>> for node in music[0] / lily.Music:
+    ...     if not isinstance(node, lily.Skip):
+    ...         for dur in node / lily.Duration:
+    ...             if dur.duration() == prev:
+    ...                 if not isinstance(node, lily.Unpitched):
+    ...                     node.remove(dur)
+    ...             else:
+    ...                 prev = dur.duration()
+    ...
+    >>> music.write()
+    "{ <c' g'>4 e8 e g16 g 8 }"
+
+Unpitched and Skip *must* have a duration child. A Skip (``\skip``) does not
+change the "current" duration in LilyPond however, while an unpitched note
+(indicated by a sole duration) does.
+
+
+Intermezzo: Validity
+--------------------
+
+Note that, when modifying a DOM document, you must take care that you produce a
+valid LilyPond document. The ``quickly.dom`` module doesn't enfore validity.
+Maybe in the future element types could provide some type hints or checks as
+per the child elements they allow, and in what particular order.
+
+The behaviour of all element types is very predictable: they print their head
+value, and then the output of the child elements, and then the tail value if
+there is one. All output interpersed with whitespace according to well-defined
+rules.
+
+But that predictability can lead to unexpected results. For example, adding a
+duration to a note is straightforward::
+
+    >>> from quickly.dom import lily
+    >>> note = lily.Note('c')
+    >>> note.append(lily.Duration(1/2))
+    >>> note.write()
+    'c2'
+
+But when adding a duration to a chord, care must be taken to put the
+duration not before the chord's tail (``>``)::
+
+    >>> chord = lily.Chord(*map(lily.Note, 'cega'))
+    >>> chord.write()
+    '<c e g a>'
+    >>> chord.append(lily.Duration(1/4))
+    >>> chord.write()
+    '<c e g a 4>'       # erroneous!!
+
+In ``python-ly`` this was tackled by making the duration an attribute instead
+of a child; but that made handling of the music tree more difficult and the
+class definitions unpredictable and complicated.
+
+What makes ``quickly.dom`` special is that it *both* tries to be a semantical
+structure that's easy to create, query and manipulate, *and* on the other hand
+still strictly follows the printing order of the original document. Which makes
+creating and adapting new element types with new output easy.
+
+Another reason to adopt the very same behaviour everywhere is that all element
+nodes can keep references to the parce tokens they were transformed from.
+Modifications to a transformed DOM document can be collected and written back
+to the original source text. More about that later.
+
+So, how do we correctly add a duration to a chord? By wrapping the chord in a
+generic :class:`lily.Music` element, much like LilyPond itself can endlessly
+wrap music in ``(make-music ...)`` calls::
+
+    >>> chord = lily.Chord(lily.Note('c'), lily.Note('e'), lily.Note('g'), lily.Note('c', lily.Octave(1)))
+    >>> chord.write()
+    "<c e g c'>"
+    >>> chord = lily.Music(chord)
+    >>> chord.append(lily.Duration(1/4))
+    >>> chord.write()
+    "<c e g c'>4"       # valid :-)
+
+The same holds true for adding articulations to a chord, be sure it is wrapped
+in a Music element first.
+
 
