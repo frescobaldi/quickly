@@ -702,9 +702,9 @@ class MusicBuilder:
                 # after a direction: add to the note
                 self.add_articulation(node)
             else:
-                # toplevel markup item
+                # toplevel markup item (in lyricmode possible)
                 yield from self.pending_music()
-                yield node
+                self._music = node
 
     @_context("singleline_comment", "multiline_comment")
     def comment(self, obj):
