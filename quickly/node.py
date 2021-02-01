@@ -195,7 +195,7 @@ class Node(list):
             for node in old:
                 node._parent = _NO_PARENT
         else:
-            old._parent = None
+            old._parent = _NO_PARENT
         list.__delitem__(self, k)
 
     def clear(self):
