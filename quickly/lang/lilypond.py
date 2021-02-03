@@ -221,7 +221,7 @@ class LilyPondTransform(Transform):
         """
         head = items[:1]
         tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
-        element_class = lily.SequentialMusic if items[0] == '{' else lily.SimultaneousMusic
+        element_class = lily.MusicList if items[0] == '{' else lily.SimultaneousMusicList
         return self.factory(element_class, head, tail, *self.create_music(items[1:]))
 
     def chord(self, items):
@@ -230,16 +230,16 @@ class LilyPondTransform(Transform):
         tail = (items.pop(),) if items[-1] == '>' else ()
         return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
 
-    def tempo(self, items):
+    def property_set(self, items):
         return items
 
-    def context(self, items):
+    def property(self, items):
         return items
 
-    def set_unset(self, items):
+    def repeat(self, items):
         return items
 
-    def override(self, items):
+    def translator(self, items):
         return items
 
     def script(self, items):
@@ -283,23 +283,43 @@ class LilyPondTransform(Transform):
         return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
-        return self.musiclist(items)
+        return items
 
     def lyricsto(self, items):
         return items
 
-    def notemode(self, items):
+    def lyriclist(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
+        return self.musiclist(items)
+
+    def drummmode(self, items):
         return items
 
-    def drummode(self, items):
+    def drummlist(self, items):
         """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
         return self.musiclist(items)
 
     def chordmode(self, items):
         return items
 
+    def chordlist(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in chordmode."""
+        return self.musiclist(items)
+
     def chord_modifier(self, items):
+        return items
+
+    def notemode(self, items):
+        return items
+
+    def figuremode(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in figuremode."""
+        return self.musiclist(items)
+
+    def figurelist(self, items):
+        return items
+
+    def figure(self, items):
         return items
 
     def identifier(self, items):
@@ -409,7 +429,6 @@ class MusicBuilder:
         self.transform = transform
         self.factory = transform.factory
         self.items = iter(items)
-        print(items)
 
         self._music = None
         self._duration = None
@@ -702,7 +721,7 @@ class MusicBuilder:
         yield self.factory(lily.FixedMusic, (token,))
 
     @_builtin(r'\transpose')
-    def builtin_relative(self, token):
+    def builtin_transpose(self, token):
         r"""Called for Name.Builtin ``\transpose``."""
         yield from self.pending_music()
         yield self.factory(lily.TransposedMusic, (token,))

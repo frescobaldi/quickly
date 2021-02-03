@@ -262,20 +262,45 @@ class TransposedMusic(element.HeadElement, Music):
 
 
 class MusicList(element.BlockElement, Music):
-    """Base class for a music list ``{`` ... ``}`` or ``<<`` ... ``>>``."""
+    """A list of music items between ``{`` ... ``}``."""
     _space_after_head = _space_before_tail = _space_between = " "
     head = "{"
     tail = "}"
 
 
-class SequentialMusic(MusicList):
-    """Music between ``{`` ... ``}``."""
-
-
-class SimultaneousMusic(MusicList):
-    """Music between ``<<`` ... ``>>``."""
+class SimultaneousMusicList(MusicList):
+    """A list of music items between ``<<`` ... ``>>``."""
     head = "<<"
     tail = ">>"
+
+
+class SequentialMusic(element.HeadElement, Music):
+    r"""Music after ``\sequential``."""
+    head = r'\sequential'
+    _space_between = _space_after_head = " "
+
+
+class SimultaneousMusic(element.HeadElement, Music):
+    r"""Music after ``\simultaneous``."""
+    head = r'\simultaneous'
+    _space_between = _space_after_head = " "
+
+
+class LyricMode(element.TextElement, Music):
+    r"""``\lyricmode``, ``\lyrics`` or ``\lyricsto``."""
+
+
+class ChordMode(element.TextElement, Music):
+    r"""``\chordmode`` or ``\chords``."""
+
+
+class NoteMode(element.HeadElement, Music):
+    r"""``\notemode``."""
+    head = r'\notemode'
+
+
+class FigureMode(element.TextElement, Music):
+    r"""``\figuremode`` or ``\figures``."""
 
 
 class Chord(element.BlockElement, Music):
@@ -312,7 +337,7 @@ class Q(element.HeadElement, Music):
     head = 'q'
 
 
-class Drum(element.TextElement):
+class Drum(element.TextElement, Music):
     """A drum note."""
 
 
@@ -443,7 +468,7 @@ class DurationScaling(element.TextElement):
         return ""
 
 
-class LyricText(element.TextElement):
+class LyricText(element.TextElement, Music):
     r"""A word in lyric mode."""
 
 
@@ -457,7 +482,7 @@ class LyricHyphen(element.HeadElement):
     head = "--"
 
 
-class LyricSkip(element.HeadElement):
+class LyricSkip(element.HeadElement, Music):
     r"""A lyric skip ``_``."""
     head = "_"
 
