@@ -423,6 +423,7 @@ class MusicBuilder:
     _token = Dispatcher()
     _action = Dispatcher()
     _builtin = Dispatcher()
+    _keyword = Dispatcher()
     _context = Dispatcher()
 
     def __init__(self, transform, items):
@@ -701,6 +702,63 @@ class MusicBuilder:
 
         """
         return self._builtin(token.text, token)
+
+    @_action(a.Keyword)
+    def name_builtin_action(self, token):
+        """Called for any Keyword token.
+
+        Dispatches further to :meth:`_builtin`.
+
+        """
+        return self._keyword(token.text, token)
+
+    @_keyword(r'\sequential')
+    def keyword_sequential(self, token):
+        r"""Called for Keyword ``\sequential``."""
+        yield from self.pending_music()
+        yield self.factory(lily.SequentialMusic, (token,))
+
+    @_keyword(r'\simultaneous')
+    def keyword_simultaneous(self, token):
+        r"""Called for Keyword ``\simultaneous``."""
+        yield from self.pending_music()
+        yield self.factory(lily.SimultaneousMusic, (token,))
+
+    @_keyword(r'\lyricmode', r'\lyrics', r'\lyricsto')
+    def keyword_lyricmode(self, token):
+        r"""Called for Keyword ``\lyricmode``, ``\lyrics`` and ``\lyricsto``."""
+        yield from self.pending_music()
+        yield self.factory(lily.LyricMode, (token,))
+
+    @_keyword(r'\addlyrics')
+    def keyword_addlyrics(self, token):
+        r"""Called for Keyword ``\addlyrics``."""
+        yield from self.pending_music()
+        yield self.factory(lily.LyricMode, (token,))
+
+    @_keyword(r'\chordmode', '\chords')
+    def keyword_chordmode(self, token):
+        r"""Called for Keyword ``\chordmode`` and ``\chords``."""
+        yield from self.pending_music()
+        yield self.factory(lily.ChordMode, (token,))
+
+    @_keyword(r'\figuremode', r'\figures')
+    def keyword_figure(self, token):
+        r"""Called for Keyword ``\figuremode`` and ``\figures``."""
+        yield from self.pending_music()
+        yield self.factory(lily.FigureMode, (token,))
+
+    @_keyword(r'\drummode', r'\drums')
+    def keyword_simultaneous(self, token):
+        r"""Called for Keyword ``\drummode`` and ``\drums``."""
+        yield from self.pending_music()
+        yield self.factory(lily.DrumMode, (token,))
+
+    @_keyword(r'\notemode')
+    def keyword_notemode(self, token):
+        r"""Called for Keyword ``\notemode``."""
+        yield from self.pending_music()
+        yield self.factory(lily.SimultaneousMusic, (token,))
 
     @_builtin(r'\relative')
     def builtin_relative(self, token):

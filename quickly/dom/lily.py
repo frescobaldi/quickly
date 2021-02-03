@@ -294,6 +294,10 @@ class ChordMode(element.TextElement, Music):
     r"""``\chordmode`` or ``\chords``."""
 
 
+class DrumMode(element.TextElement, Music):
+    r"""``\drummode`` or ``\drums``."""
+
+
 class NoteMode(element.HeadElement, Music):
     r"""``\notemode``."""
     head = r'\notemode'
