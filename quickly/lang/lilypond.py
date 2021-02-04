@@ -659,6 +659,12 @@ class MusicBuilder:
         if not self.add_spanner_id(elem) and not self.add_tweak(elem):
             pass # there was no spanner id, something else?
 
+    @_action(a.Number.Fraction)
+    def number_action(self, token):
+        r"""Called for ``Number.Fraction``."""
+        yield from self.pending_music()
+        yield self.factory(lily.Fraction, (token,))
+
     @_action(a.Name.Symbol)
     def symbol_action(self, token):
         r"""Called for ``Name.Symbol.*``."""

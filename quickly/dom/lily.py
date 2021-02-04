@@ -154,6 +154,13 @@ class NumberList(element.TextElement):
         return ','.join(map(str, self.head))
 
 
+class Fraction(Number):
+    """A fraction, like ``1/2``."""
+    @classmethod
+    def read_head(cls, origin):
+        return fractions.Fraction(origin[0].text)
+
+
 class Unit(element.TextElement):
     r"""A unit, like ``\cm``, after a numerical value in a paper block."""
 
