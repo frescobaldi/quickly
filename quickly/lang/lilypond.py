@@ -322,6 +322,10 @@ class LilyPondTransform(Transform):
     def figure(self, items):
         return items
 
+    def numberlist(self, items):
+        """A comma-separated list of numbers."""
+        return self.factory(lily.NumberList, tuple(items.tokens()))
+
     def identifier(self, items):
         """Return an Identifier item."""
         def nodes():

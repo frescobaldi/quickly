@@ -144,6 +144,16 @@ class Number(element.TextElement):
         return str(self.head)
 
 
+class NumberList(element.TextElement):
+    r"""A comma-separated list of unsigned integers, like ``2,2,3``."""
+    @classmethod
+    def read_head(cls, origin):
+        return [int(t.text) for t in origin if t != ',']
+
+    def write_head(self):
+        return ','.join(map(str, self.head))
+
+
 class Unit(element.TextElement):
     r"""A unit, like ``\cm``, after a numerical value in a paper block."""
 
