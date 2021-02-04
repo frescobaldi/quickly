@@ -24,6 +24,7 @@ Elements needed for LilyPond expressions.
 
 
 import fractions
+import re
 
 from .. import duration, pitch
 from . import base, element
@@ -155,6 +156,44 @@ class Symbol(element.TextElement):
     """A symbol (unquoted text piece)."""
 
 
+class List(element.Element):
+    """A list consisting of String, Scheme, Number or Symbol elements.
+
+    Separated by Separator elements; may also contain Comment nodes.
+
+    """
+    def get_list(self):
+        """Convenience method to get a tuples with the contents of the list.
+
+        Comment and Scheme nodes are ignored; for Symbol and String elements
+        Python strings are returned, and for Number elements integer values.
+
+        """
+        return tuple(node.head for node in self / (Symbol, String, Number))
+
+    def set_list(self, iterable):
+        """Replaces the contents of this List with nodes converted
+        from the iterable.
+
+        Strings are converted to Symbol if possible, else String, and integers
+        to Number nodes.
+
+        """
+        def nodes():
+            for n in iterable:
+                if type(n) is str:
+                    yield (Symbol if re.fullmatch(r"[^\W\d_]+(?:[_-][^\W\d_]+)*", n) else String)(n)
+                elif type(n) is int:
+                    yield Number(n)
+        self.clear()
+        nodes = nodes()
+        for n in nodes:
+            self.append(n)
+            for n in nodes:
+                self.append(Separator(',' if isinstance(n, Number) else '.'))
+                self.append(n)
+
+
 class Assignment(element.Element):
     """A variable = value construct.
 
@@ -176,7 +215,7 @@ class Assignment(element.Element):
         return cls(Identifier.with_name(name), EqualSign(), node)
 
 
-class Identifier(element.Element):
+class Identifier(List):
     """A variable name, the first node is always a Symbol or String.
 
     Further contains Symbol, String, Separator, Number or SchemeExpression.
@@ -198,7 +237,7 @@ class Identifier(element.Element):
         numbers.
 
         """
-        heads = tuple(n.head for n in self/(String, Symbol, Number))
+        heads = self.get_list()
         if len(heads) == 1:
             return heads[0]
         return heads
@@ -217,19 +256,7 @@ class Identifier(element.Element):
         """
         if type(name) is str:
             name = name,
-        def nodes():
-            for n in name:
-                if type(n) is str:
-                    yield (Symbol if n.isalpha() else String)(n)
-                elif type(n) is int:
-                    yield Number(n)
-        self.clear()
-        nodes = nodes()
-        for n in nodes:
-            self.append(n)
-            for n in nodes:
-                self.append(Separator('.'))
-                self.append(n)
+        self.set_list(name)
 
 
 class Music(element.Element):
