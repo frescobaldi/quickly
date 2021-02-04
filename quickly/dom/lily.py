@@ -162,6 +162,11 @@ class List(element.Element):
     Separated by Separator elements; may also contain Comment nodes.
 
     """
+    def concat(self, n, m):
+        if isinstance(n, SchemeExpression):
+            return " "
+        return super().concat(n, m)
+
     def get_list(self):
         """Convenience method to get a tuples with the contents of the list.
 
@@ -746,4 +751,12 @@ class MarkupCommand(element.TextElement):
 class SchemeExpression(element.TextElement):
     """A Scheme expression in LilyPond."""
 
+
+def make_symbol_or_string(text):
+    """Return a Symbol if the text can be a LilyPond symbol, otherwise a String."""
+    from parce.lang import lilypond, lilypond_words
+    if (re.fullmatch(lilypond.RE_LILYPOND_SYMBOL, text) and
+            text not in lilypond_words.all_pitch_names):
+        return Symbol(text)
+    return String(text)
 

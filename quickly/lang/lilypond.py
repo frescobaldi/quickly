@@ -315,7 +315,16 @@ class LilyPondTransform(Transform):
 
     def list(self, items):
         """A list of numbers, symbols, strings and scheme expressions."""
-        return items #TODO
+        nodes = []
+        for i in items:
+            if i.is_token:
+                node = self.factory(
+                    self._identifier_mapping.get(i.action, lily.Symbol), (i,))
+            else:
+                node = i.obj # can be a SchemeExpression or String
+            nodes.append(node)
+        return node if len(nodes) == 1 else lily.List(*nodes)
+
 
     start_list = None   # lexicon never creates tokens
 
