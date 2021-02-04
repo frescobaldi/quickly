@@ -230,16 +230,7 @@ class LilyPondTransform(Transform):
         tail = (items.pop(),) if items[-1] == '>' else ()
         return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
 
-    def property_set(self, items):
-        return items
-
-    def property(self, items):
-        return items
-
     def repeat(self, items):
-        return items
-
-    def translator(self, items):
         return items
 
     def script(self, items):
@@ -322,9 +313,11 @@ class LilyPondTransform(Transform):
     def figure(self, items):
         return items
 
-    def numberlist(self, items):
-        """A comma-separated list of numbers."""
-        return self.factory(lily.NumberList, tuple(items.tokens()))
+    def list(self, items):
+        """A list of numbers, symbols, strings and scheme expressions."""
+        return items #TODO
+
+    start_list = None   # lexicon never creates tokens
 
     def identifier(self, items):
         """Return an Identifier item."""
@@ -336,13 +329,6 @@ class LilyPondTransform(Transform):
                 else:
                     yield i.obj # can be a SchemeExpression or String
         return lily.Identifier(*nodes())
-
-    def unit(self, items):
-        """A numerical value with possible unit in a paper block."""
-        number = self.factory(lily.Number, items[:1])
-        if len(items) > 1:
-            number.append(self.factory(lily.Unit, items[1:]))
-        return number
 
     def markup(self, items):
         """Simply return the flattened contents, the markup will be constructed later."""
