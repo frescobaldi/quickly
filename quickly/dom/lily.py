@@ -34,6 +34,41 @@ class Document(base.Document):
     """A full LilyPond source document."""
 
 
+class Number(element.TextElement):
+    """Base class for numeric values."""
+    def write_head(self):
+        return str(self.head)
+
+
+class Int(Number):
+    """An integer number."""
+    @classmethod
+    def read_head(cls, origin):
+        return int(origin[0].text)
+
+
+class Fraction(Number):
+    """A fraction, like ``1/2``."""
+    @classmethod
+    def read_head(cls, origin):
+        return fractions.Fraction(origin[0].text)
+
+
+class Float(Number):
+    """A floating point number."""
+    @classmethod
+    def read_head(cls, origin):
+        return float(origin[0].text)
+
+
+class Symbol(element.TextElement):
+    """A symbol (unquoted text piece)."""
+
+
+class String(base.String):
+    r"""A quoted string."""
+
+
 class Block(element.BlockElement):
     """Base class for a block, e.g. score, paper, etc.
 
@@ -133,37 +168,6 @@ class EqualSign(element.HeadElement):
 
 class Separator(element.TextElement):
     """A separator."""
-
-
-class Number(element.TextElement):
-    """Base class for numeric values."""
-    def write_head(self):
-        return str(self.head)
-
-
-class Int(Number):
-    """An integer number."""
-    @classmethod
-    def read_head(cls, origin):
-        return int(origin[0].text)
-
-
-class Fraction(Number):
-    """A fraction, like ``1/2``."""
-    @classmethod
-    def read_head(cls, origin):
-        return fractions.Fraction(origin[0].text)
-
-
-class Float(Number):
-    """A floating point number."""
-    @classmethod
-    def read_head(cls, origin):
-        return float(origin[0].text)
-
-
-class Symbol(element.TextElement):
-    """A symbol (unquoted text piece)."""
 
 
 class List(element.Element):
@@ -789,8 +793,14 @@ class Clef(element.HeadElement):
     head = r"\clef"
 
 
-class String(base.String):
-    r"""A quoted string."""
+class Time(element.HeadElement):
+    r"""A ``\time`` statement.
+
+    Has an optional List child and a Fraction child.
+
+    """
+    _space_after_head = " "
+    head = r"\time"
 
 
 class MultilineComment(base.MultilineComment):

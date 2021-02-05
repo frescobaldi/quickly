@@ -666,16 +666,16 @@ class MusicBuilder:
         r"""Called for ``Delimiter.Direction``."""
         self._events.append(self.factory(lily.Direction, (token,)))
 
+    @_action(a.Name.Builtin.Dynamic)
+    def dynamic_action(self, token):
+        r"""Called for ``Name.Builtin.Dynamic``."""
+        self.add_articulation(self.factory(lily.Dynamic, (token,)))
+
     @_action(a.Name.Script.Articulation)
     def articulation_action(self, token):
         r"""Called for ``Name.Script.Articulation``."""
         cls = self._articulations_mapping.get(token.text, lily.Articulation)
         self.add_articulation(self.factory(cls, (token,)))
-
-    @_action(a.Name.Builtin.Dynamic)
-    def dynamic_action(self, token):
-        r"""Called for ``Name.Builtin.Dynamic``."""
-        self.add_articulation(self.factory(lily.Dynamic, (token,)))
 
     @_action(a.Name.Symbol.Spanner)
     def spanner_action(self, token):
@@ -684,6 +684,12 @@ class MusicBuilder:
             self._events.append(self.factory(lily.SpannerId, (token,)))
         else:
             self.add_articulation(self.factory(self._music_mapping[token.action], (token,)))
+
+    @_action(a.Name.Type)
+    def dynamic_action(self, token):
+        r"""Called for ``Name.Type``, e.g. a key signature mode."""
+        yield from self.pending_music()
+        yield self.factory(lily.Mode, (token,))
 
     @_action(a.Delimiter.Tremolo)
     def tremolo_action(self, token):
@@ -782,7 +788,7 @@ class MusicBuilder:
         Dispatches further to :meth:`_builtin`.
 
         """
-        return self._keyword(token.text, token)
+        return self._builtin(token.text, token)
 
     @_keyword(r'\sequential')
     def keyword_sequential(self, token):
@@ -831,6 +837,24 @@ class MusicBuilder:
         r"""Called for Keyword ``\notemode``."""
         yield from self.pending_music()
         yield self.factory(lily.SimultaneousMusic, (token,))
+
+    @_builtin(r'\key')
+    def builtin_key(self, token):
+        r"""Called for Name.Builtin ``\key``."""
+        yield from self.pending_music()
+        yield self.factory(lily.Key, (token,))
+
+    @_builtin(r'\clef')
+    def builtin_clef(self, token):
+        r"""Called for Name.Builtin ``\clef``."""
+        yield from self.pending_music()
+        yield self.factory(lily.Clef, (token,))
+
+    @_builtin(r'\time')
+    def builtin_time(self, token):
+        r"""Called for Name.Builtin ``\time``."""
+        yield from self.pending_music()
+        yield self.factory(lily.Time, (token,))
 
     @_builtin(r'\relative')
     def builtin_relative(self, token):
