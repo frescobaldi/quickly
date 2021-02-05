@@ -184,14 +184,8 @@ class List(element.Element):
         to Number nodes.
 
         """
-        def nodes():
-            for n in iterable:
-                if type(n) is str:
-                    yield (Symbol if re.fullmatch(r"[^\W\d_]+(?:[_-][^\W\d_]+)*", n) else String)(n)
-                elif type(n) is int:
-                    yield Number(n)
         self.clear()
-        nodes = nodes()
+        nodes = make_list_nodes(iterable)
         for n in nodes:
             self.append(n)
             for n in nodes:
@@ -262,6 +256,93 @@ class Identifier(List):
         if type(name) is str:
             name = name,
         self.set_list(name)
+
+
+class IdentifierRef(element.TextElement):
+    r"""A ``\variable`` name.
+
+    The first symbol part is in the head of this element. Additional nodes can
+    be Symbol, String, Separator, Number or SchemeExpression.
+
+    For the ``\"name"``, construct, head is the empty string, and the first
+    child is a String. Otherwise, if there are child nodes, the first child is
+    a Separator.
+
+    For the constructor, the backslash is not needed::
+
+        >>> from quickly.dom.lily import *
+        >>> var = IdentifierRef('music')
+        >>> var.write()
+        '\\music'
+        >>> var = IdentifierRef.with_name(('music', 1))
+        >>> var.write()
+        '\\music.1'
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text.lstrip('\\')
+
+    def write_head(self):
+        return '\\' + self.head
+
+    @classmethod
+    def with_name(cls, name):
+        """Convenience method to create a Identifier with specified name.
+
+        This is especially useful with complicated names that are not a
+        simple symbol.
+
+        """
+        v = cls()
+        v.set_name(name)
+        return v
+
+    def get_name(self):
+        """Convenience method to get the name of this variable.
+
+        The backslash is not returned. The name can be a plain string or a
+        tuple. It is a tuple when the variable name consists of multiple parts,
+        separated by dots. The first item in the tuple is always a string, but
+        the other items might also be numbers.
+
+        """
+        names = []
+        if self.head:
+            names.append(self.head)
+        for n in self / (Symbol, String, Number):
+            names.append(n.head)
+        if len(names) == 1:
+            return names[0]
+        return tuple(names)
+
+    def set_name(self, name):
+        """Convenience method to set the name of this variable.
+
+        In most cases the name is an alphanumeric identifier, but it can be any
+        string (in that case it is automatically quoted) or a tuple of names,
+        strings and even numbers. The first item in the tuple always must be a
+        name or string. An alphanumeric string is turned into a :class:`Symbol`
+        element, a string containing "illegal" characters into a
+        :class:`String` element, and an integer value into a :class:`Number`
+        element.
+
+        A backslash need not to be prepended.
+
+        """
+        if type(name) is str:
+            name = name,
+        nodes = make_list_nodes(name)
+        self.clear()
+        for n in nodes:
+            if isinstance(n, Symbol):
+                self.head = n.head
+            else:
+                self.head = ''
+                self.append(n)
+            for n in nodes:
+                self.append(Separator('.'))
+                self.append(n)
 
 
 class Music(element.Element):
@@ -752,11 +833,32 @@ class SchemeExpression(element.TextElement):
     """A Scheme expression in LilyPond."""
 
 
-def make_symbol_or_string(text):
-    """Return a Symbol if the text can be a LilyPond symbol, otherwise a String."""
+def is_symbol(text):
+    """Return True is text is a valid LilyPond symbol."""
     from parce.lang import lilypond, lilypond_words
-    if (re.fullmatch(lilypond.RE_LILYPOND_SYMBOL, text) and
-            text not in lilypond_words.all_pitch_names):
-        return Symbol(text)
-    return String(text)
+    return (re.fullmatch(lilypond.RE_LILYPOND_SYMBOL, text) and
+            text not in lilypond_words.all_pitch_names)
+
+def make_list_node(value):
+    """Return an element node corresponding to the value.
+
+    If value is a string, a Symbol is returned if it's valid LilyPond identifier.
+    otherwise String. If value is an integer, a Number is returned.
+
+    If no suitable node type could be returned, None is returned.
+
+    """
+    if isinstance(value, str):
+        return Symbol(value) if is_symbol(value) else String(value)
+    elif isinstance(value, int):
+        return Number(value)
+
+
+def make_list_nodes(iterable):
+    """Return a generator yielding nodes created :func:`make_list_node`."""
+    for value in iterable:
+        node = make_list_node(value)
+        if node:
+            yield node
+
 
