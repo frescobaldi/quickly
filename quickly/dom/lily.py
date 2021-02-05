@@ -367,6 +367,46 @@ class Music(element.Element):
     """
 
 
+class MusicFunction(element.TextElement, Music):
+    r"""A generic music function with a backslash, like ``\stemUp``
+
+    To be used is there is no special Element type for the music function.
+    When manually constructing this element, the initial backslash need not
+    to be given. Example::
+
+    >>> from quickly.dom.lily import MusicFunction
+    >>> MusicFunction('stemUp').write()
+    '\\stemUp'
+
+    """
+    _space_between = _space_after_head = " "
+
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text[1:]
+
+    def write_head(self):
+        return '\\' + self.head
+
+
+class New(Music):
+    r"""``\new ...``."""
+    _space_between = _space_after_head = " "
+    head = r'\new'
+
+
+class Context(Music):
+    r"""``\context ...``."""
+    _space_between = _space_after_head = " "
+    head = r'\context'
+
+
+class Change(Music):
+    r"""``\change ...``."""
+    _space_between = _space_after_head = " "
+    head = r'\change'
+
+
 class RelativeMusic(element.HeadElement, Music):
     """Relative music."""
     head = r'\relative'
