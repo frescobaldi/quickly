@@ -80,9 +80,9 @@ class LilyPondTransform(Transform):
         items = iter(items)
         for i in items:
             if i.is_token:
-                meth = self._action.get(i.action)
-                if meth:
-                    yield meth(i)
+                result = self._action(i.action, i)
+                if result:
+                    yield result
             elif isinstance(i.obj, element.Element):
                 yield i.obj
             elif i.name == "markup":
@@ -382,8 +382,9 @@ class LilyPondTransform(Transform):
         return self.factory(lily.SinglelineComment, items)
 
     # dispatchers for common types
-    _action = Dispatcher()
     _pitch = Dispatcher()
+    _action = Dispatcher()
+    _keyword = Dispatcher()
 
     @Dispatcher
     def _id(self, action, token):
@@ -416,6 +417,11 @@ class LilyPondTransform(Transform):
         r"""Called for ``Operator.Assignment``."""
         return self.factory(lily.EqualSign, (token,))
 
+    @_action(a.Keyword)
+    def keyword_action(self, token):
+        r"""Called for ``Keyword``."""
+        return self._keyword(token.text, token)
+
     @_pitch(a.Text.Music.Pitch.Octave)
     def pitch_octave_action(self, token):
         r"""Called for ``Text.Music.Pitch.Octave``."""
@@ -431,12 +437,40 @@ class LilyPondTransform(Transform):
         r"""Called for ``Text.Music.Pitch.Accidental``."""
         return self.factory(lily.Accidental, (token,))
 
-    #TEMP
-    @_keyword(r'\new')
-    def keyword_new(self, token):
-        r"""Called for Keyword ``\new``."""
-        yield self.factory(lily.New, (token,))
+    @_keyword(r'\accepts')
+    def keyword_accepts(self, token):
+        r"""Called for Keyword ``\accepts``."""
+        return self.factory(lily.Accepts, (token,))
 
+    @_keyword(r'\denies')
+    def keyword_denies(self, token):
+        r"""Called for Keyword ``\denies``."""
+        return self.factory(lily.Denies, (token,))
+
+    @_keyword(r'\name')
+    def keyword_name(self, token):
+        r"""Called for Keyword ``\name``."""
+        return self.factory(lily.Name, (token,))
+
+    @_keyword(r'\alias')
+    def keyword_alias(self, token):
+        r"""Called for Keyword ``\alias``."""
+        return self.factory(lily.Alias, (token,))
+
+    @_keyword(r'\consists')
+    def keyword_consists(self, token):
+        r"""Called for Keyword ``\consists``."""
+        return self.factory(lily.Consists, (token,))
+
+    @_keyword(r'\remove')
+    def keyword_remove(self, token):
+        r"""Called for Keyword ``\remove``."""
+        return self.factory(lily.Remove, (token,))
+
+    @_keyword(r'\defaultchild')
+    def keyword_defaultchild(self, token):
+        r"""Called for Keyword ``\defaultchild``."""
+        return self.factory(lily.DefaultChild, (token,))
 
 
 class LilyPondAdHocTransform(LilyPondTransform):
