@@ -47,7 +47,7 @@ Using the element types in the :mod:`~quickly.dom.lily` and
 
     >>> import fractions
     >>> from quickly.dom import lily
-    >>> music = lily.Document(lily.SequentialMusic(
+    >>> music = lily.Document(lily.MusicList(
     ... lily.Note('c', lily.Duration(fractions.Fraction(1, 4))),
     ... lily.Note('d', lily.Articulations(lily.Direction(1, lily.Articulation(".")))),
     ... lily.Rest('r', lily.Articulations(lily.Dynamic("pp")))))
@@ -55,7 +55,7 @@ Using the element types in the :mod:`~quickly.dom.lily` and
     <lily.Document (1 child)>
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (3 children)>
+     ╰╴<lily.MusicList (3 children)>
         ├╴<lily.Note 'c' (1 child)>
         │  ╰╴<lily.Duration Fraction(1, 4)>
         ├╴<lily.Note 'd' (1 child)>
@@ -97,14 +97,14 @@ Note the updated duration in the ``music`` output.
 Instead of one long expression, nodes may be combined using usual Python
 methods::
 
-    >>> music = lily.Document(lily.SequentialMusic())
+    >>> music = lily.Document(lily.MusicList())
     >>> music[0].append(lily.Note('c', lily.Duration(fractions.Fraction(1, 8))))
     >>> music[0].append(lily.Note('d'))
     >>> stacc = lily.Direction(1, lily.Articulation('.'))
     >>> music[0][-1].append(stacc)
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (2 children)>
+     ╰╴<lily.MusicList (2 children)>
         ├╴<lily.Note 'c' (1 child)>
         │  ╰╴<lily.Duration Fraction(1, 8)>
         ╰╴<lily.Note 'd' (1 child)>
@@ -167,7 +167,7 @@ finds :class:`~quickly.lang.lilypond.LilyPondTransform` in the
     >>> music = t.transform_tree(tree)
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (3 children) [0:25]>
+     ╰╴<lily.MusicList (3 children) [0:25]>
         ├╴<lily.Music (3 children)>
         │  ├╴<lily.Chord (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
@@ -306,7 +306,7 @@ note::
     >>> music = t.transform_tree(tree)
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (6 children) [0:28]>
+     ╰╴<lily.MusicList (6 children) [0:28]>
         ├╴<lily.Music (2 children)>
         │  ├╴<lily.Chord (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
@@ -449,7 +449,7 @@ DOM::
     >>> music = t.result(d.get_root(True))
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (3 children) [0:25]>
+     ╰╴<lily.MusicList (3 children) [0:25]>
         ├╴<lily.Music (3 children)>
         │  ├╴<lily.Chord (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
@@ -506,7 +506,7 @@ to request the transformed DOM tree again::
     >>> music = t.result(d.get_root())
     >>> music.dump()
     <lily.Document (1 child)>
-     ╰╴<lily.SequentialMusic (3 children) [0:33]>
+     ╰╴<lily.MusicList (3 children) [0:33]>
         ├╴<lily.Music (3 children)>
         │  ├╴<lily.Chord (2 children) [2:13]>
         │  │  ├╴<lily.Note 'cis' (1 child) [3:6]>
