@@ -80,8 +80,9 @@ class LilyPondTransform(Transform):
         items = iter(items)
         for i in items:
             if i.is_token:
-                if i.action == a.Operator.Assignment:
-                    yield self.factory(lily.EqualSign, (i,))
+                meth = self._action.get(i.action)
+                if meth:
+                    yield meth(i)
             elif isinstance(i.obj, element.Element):
                 yield i.obj
             elif i.name == "markup":
@@ -378,22 +379,23 @@ class LilyPondTransform(Transform):
         return self.factory(lily.SinglelineComment, items)
 
     # dispatchers for common types
+    _action = Dispatcher()
+
     @Dispatcher
     def _id(self, action, token):
         """Dispatches for identifiers. By default, return a Symbol."""
         return self.factory(lily.Symbol, (token,))
 
     @_id(a.Number)
+    @_action(a.Number)
     def number_action(self, token):
-        r"""Called for ``Number`` in list, identifier and identifier_ref."""
+        r"""Called for ``Number``."""
         return self.factory(lily.Int, (token,))
 
     @_id(a.Separator)
     def separator_action(self, token):
         r"""Called for ``Delimiter.Separator``."""
         return self.factory(lily.Separator, (token,))
-
-    _action = Dispatcher()
 
     @_action(a.Number.Float)
     def float_action(self, token):
@@ -405,6 +407,9 @@ class LilyPondTransform(Transform):
         r"""Called for ``Number.Fraction``."""
         return self.factory(lily.Fraction, (token,))
 
+    @_action(a.Operator.Assignment)
+    def assignment_action(self, token):
+        return self.factory(lily.EqualSign, (token,))
 
 
 
