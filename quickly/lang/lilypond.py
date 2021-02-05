@@ -72,7 +72,7 @@ class LilyPondTransform(Transform):
         return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     def common(self, items):
-        """Find comment, string, scheme and markup.
+        """Find comment, string, scheme, markup and common tokens.
 
         Yields Element objects.
 
@@ -153,7 +153,7 @@ class LilyPondTransform(Transform):
                 if i.action is a.Text:
                     yield self.factory(lily.MarkupWord, (i,))
                 elif i.action in a.Name.Function:
-                    nargs = LilyPond.get_markup_argument_count(i.text[1:])
+                    nargs = self.get_markup_argument_count(i.text[1:])
                     args = []
                     if nargs:
                         for arg in self.read_markup_arguments(items):
@@ -165,6 +165,15 @@ class LilyPondTransform(Transform):
                     yield self.factory(lily.MarkupCommand, (i,), (), *args)
             elif isinstance(i.obj, element.Element):
                 yield i.obj
+
+    def get_markup_argument_count(self, command):
+        r"""Return the number of arguments of the markup command (without ``\``).
+
+        Re-implement this method if you want to add your own markup commands.
+        The default implementation consults :meth:`LilyPond.get_markup_argument_count`.
+
+        """
+        return LilyPond.get_markup_argument_count(command)
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
@@ -212,7 +221,7 @@ class LilyPondTransform(Transform):
 
     def layout_context(self, items):
         """Create a With or LayoutContext node."""
-        element_class = lily.With if items[1] == r'\with' else lily.LayoutContext
+        element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
         return self.create_block(element_class, items)
 
     def musiclist(self, items):
@@ -240,12 +249,6 @@ class LilyPondTransform(Transform):
             return self.factory(lily.Fingering, items)
         return self.factory(lily.Articulation, items)
 
-    _pitch_mapping = {
-        a.Text.Music.Pitch.Octave: lily.Octave,
-        a.Text.Music.Pitch.Octave.OctaveCheck: lily.OctaveCheck,
-        a.Text.Music.Pitch.Accidental: lily.Accidental,
-    }
-
     def pitch(self, items):
         """Octave, Accidental and OctaveCheck after a note name.
 
@@ -255,7 +258,7 @@ class LilyPondTransform(Transform):
         def gen():
             for i in items:
                 if i.is_token:
-                    yield self.factory(self._pitch_mapping[i.action], (i,))
+                    yield self._pitch(i.action, i)
                 else:
                     yield i.obj # can only be a comment
         return list(gen())
@@ -380,6 +383,7 @@ class LilyPondTransform(Transform):
 
     # dispatchers for common types
     _action = Dispatcher()
+    _pitch = Dispatcher()
 
     @Dispatcher
     def _id(self, action, token):
@@ -409,8 +413,23 @@ class LilyPondTransform(Transform):
 
     @_action(a.Operator.Assignment)
     def assignment_action(self, token):
+        r"""Called for ``Operator.Assignment``."""
         return self.factory(lily.EqualSign, (token,))
 
+    @_pitch(a.Text.Music.Pitch.Octave)
+    def pitch_octave_action(self, token):
+        r"""Called for ``Text.Music.Pitch.Octave``."""
+        return self.factory(lily.Octave, (token,))
+
+    @_pitch(a.Text.Music.Pitch.Octave.OctaveCheck)
+    def pitch_octavecheck_action(self, token):
+        r"""Called for ``Text.Music.Pitch.Octave.OctaveCheck``."""
+        return self.factory(lily.OctaveCheck, (token,))
+
+    @_pitch(a.Text.Music.Pitch.Accidental)
+    def pitch_accidental_action(self, token):
+        r"""Called for ``Text.Music.Pitch.Accidental``."""
+        return self.factory(lily.Accidental, (token,))
 
 
 class LilyPondAdHocTransform(LilyPondTransform):
