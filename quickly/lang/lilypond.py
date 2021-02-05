@@ -45,20 +45,6 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
 
-    ## mappings from action to element
-    #: this mapping is used in the identifier method
-    _identifier_mapping = {
-        a.Number: lily.Int,
-        a.Separator: lily.Separator,
-    }
-
-    #: mapping for actions in LilyPond.pitch
-    _pitch_mapping = {
-        a.Text.Music.Pitch.Octave: lily.Octave,
-        a.Text.Music.Pitch.Octave.OctaveCheck: lily.OctaveCheck,
-        a.Text.Music.Pitch.Accidental: lily.Accidental,
-    }
-
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -241,7 +227,8 @@ class LilyPondTransform(Transform):
         return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
 
     def repeat(self, items):
-        return items
+        """Contents of ``repeat`` context."""
+        return list(self.common(items))
 
     def script(self, items):
         """Contains one Fingering or Articulation event."""
@@ -284,24 +271,28 @@ class LilyPondTransform(Transform):
         return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
-        return items
+        """Contents of ``lyricmode`` context."""
+        return list(self.common(items))
 
     def lyricsto(self, items):
-        return items
+        """Contents of ``lyricsto`` context."""
+        return list(self.common(items))
 
     def lyriclist(self, items):
         """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
         return self.musiclist(items)
 
     def drummmode(self, items):
-        return items
+        """Contents of ``drummode`` context."""
+        return list(self.common(items))
 
     def drummlist(self, items):
         """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
         return self.musiclist(items)
 
     def chordmode(self, items):
-        return items
+        """Contents of ``chordmode`` context."""
+        return list(self.common(items))
 
     def chordlist(self, items):
         """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in chordmode."""
@@ -311,14 +302,16 @@ class LilyPondTransform(Transform):
         return items
 
     def notemode(self, items):
-        return items
+        """Contents of ``notemode`` context."""
+        return list(self.common(items))
 
     def figuremode(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in figuremode."""
-        return self.musiclist(items)
+        """Contents of ``notemode`` context."""
+        return list(self.common(items))
 
     def figurelist(self, items):
-        return items
+        """Return a ``{`` ... ``}`` construct in figuremode."""
+        return self.musiclist(items)
 
     def figure(self, items):
         return items
@@ -332,7 +325,11 @@ class LilyPondTransform(Transform):
                 yield i.obj # can be a SchemeExpression or String
 
     def list(self, items):
-        """A list of numbers, symbols, strings and scheme expressions."""
+        """A list of numbers, symbols, strings and scheme expressions.
+
+        Returns a List, String, Int, Symbol, or SchemeExpression element.
+
+        """
         nodes = list(self._list_nodes(items))
         return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
 
@@ -421,6 +418,11 @@ class LilyPondTransform(Transform):
     def keyword_action(self, token):
         r"""Called for ``Keyword``."""
         return self._keyword(token.text, token)
+
+    @_action(a.Name.Type)
+    def name_type_action(self, token):
+        r"""Called for ``Name.Type``(repeat mode)."""
+        return self.factory(lily.Symbol, (token,))
 
     @_pitch(a.Text.Music.Pitch.Octave)
     def pitch_octave_action(self, token):
@@ -828,7 +830,7 @@ class MusicBuilder:
             yield self.factory(lily.MusicFunction, (token,))
 
     @_action(a.Keyword)
-    def name_keyword_action(self, token):
+    def keyword_action(self, token):
         """Called for any Keyword token.
 
         Dispatches further to :meth:`_keyword`.
@@ -855,12 +857,12 @@ class MusicBuilder:
     @_keyword(r'\sequential')
     def keyword_sequential(self, token):
         r"""Called for Keyword ``\sequential``."""
-        yield self.factory(lily.SequentialMusic, (token,))
+        yield self.factory(lily.Sequential, (token,))
 
     @_keyword(r'\simultaneous')
     def keyword_simultaneous(self, token):
         r"""Called for Keyword ``\simultaneous``."""
-        yield self.factory(lily.SimultaneousMusic, (token,))
+        yield self.factory(lily.Simultaneous, (token,))
 
     @_keyword(r'\lyricmode', r'\lyrics', r'\lyricsto')
     def keyword_lyricmode(self, token):
@@ -890,7 +892,17 @@ class MusicBuilder:
     @_keyword(r'\notemode')
     def keyword_notemode(self, token):
         r"""Called for Keyword ``\notemode``."""
-        yield self.factory(lily.SimultaneousMusic, (token,))
+        yield self.factory(lily.NoteMode, (token,))
+
+    @_keyword(r'\repeat')
+    def keyword_repeat(self, token):
+        r"""Called for Keyword ``\repeat``."""
+        yield self.factory(lily.Repeat, (token,))
+
+    @_builtin(r'\alternative')
+    def builtin_alternative(self, token):
+        r"""Called for Keyword ``\repeat``."""
+        yield self.factory(lily.Alternative, (token,))
 
     @_builtin(r'\key')
     def builtin_key(self, token):
@@ -910,22 +922,32 @@ class MusicBuilder:
     @_builtin(r'\relative')
     def builtin_relative(self, token):
         r"""Called for Name.Builtin ``\relative``."""
-        yield self.factory(lily.RelativeMusic, (token,))
+        yield self.factory(lily.Relative, (token,))
 
     @_builtin(r'\absolute')
     def builtin_absolute(self, token):
         r"""Called for Name.Builtin ``\absolute``."""
-        yield self.factory(lily.AbsoluteMusic, (token,))
+        yield self.factory(lily.Absolute, (token,))
 
     @_builtin(r'\fixed')
     def builtin_fixed(self, token):
         r"""Called for Name.Builtin ``\fixed``."""
-        yield self.factory(lily.FixedMusic, (token,))
+        yield self.factory(lily.Fixed, (token,))
 
     @_builtin(r'\transpose')
     def builtin_transpose(self, token):
         r"""Called for Name.Builtin ``\transpose``."""
-        yield self.factory(lily.TransposedMusic, (token,))
+        yield self.factory(lily.Transpose, (token,))
+
+    @_context("repeat")
+    def repeat(self, obj):
+        """Called for ``repeat`` context."""
+        yield from obj
+
+    @_context("lyricsto")
+    def repeat(self, obj):
+        """Called for ``lyricsto`` context."""
+        yield from obj
 
     @_context("pitch")
     def pitch(self, obj):

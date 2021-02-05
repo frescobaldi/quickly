@@ -407,27 +407,39 @@ class Change(element.HeadElement, Music):
     head = r'\change'
 
 
-class RelativeMusic(element.HeadElement, Music):
+class Relative(element.HeadElement, Music):
     """Relative music."""
     head = r'\relative'
     _space_between = _space_after_head = " "
 
 
-class AbsoluteMusic(element.HeadElement, Music):
+class Absolute(element.HeadElement, Music):
     """Absolute music."""
     head = r'\absolute'
     _space_between = _space_after_head = " "
 
 
-class FixedMusic(element.HeadElement, Music):
+class Fixed(element.HeadElement, Music):
     """Fixed music."""
     head = r'\fixed'
     _space_between = _space_after_head = " "
 
 
-class TransposedMusic(element.HeadElement, Music):
+class Transpose(element.HeadElement, Music):
     """Transposed music."""
     head = r'\transpose'
+    _space_between = _space_after_head = " "
+
+
+class Repeat(element.HeadElement, Music):
+    """Repeated music."""
+    head = r'\repeat'
+    _space_between = _space_after_head = " "
+
+
+class Alternative(element.HeadElement, Music):
+    """Alternative music for repeats."""
+    head = r'\alternative'
     _space_between = _space_after_head = " "
 
 
@@ -444,13 +456,13 @@ class SimultaneousMusicList(MusicList):
     tail = ">>"
 
 
-class SequentialMusic(element.HeadElement, Music):
+class Sequential(element.HeadElement, Music):
     r"""Music after ``\sequential``."""
     head = r'\sequential'
     _space_between = _space_after_head = " "
 
 
-class SimultaneousMusic(element.HeadElement, Music):
+class Simultaneous(element.HeadElement, Music):
     r"""Music after ``\simultaneous``."""
     head = r'\simultaneous'
     _space_between = _space_after_head = " "
