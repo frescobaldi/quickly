@@ -136,13 +136,16 @@ class Separator(element.TextElement):
 
 
 class Number(element.TextElement):
-    """A number."""
+    """Base class for numeric values."""
+    def write_head(self):
+        return str(self.head)
+
+
+class Int(Number):
+    """An integer number."""
     @classmethod
     def read_head(cls, origin):
         return int(origin[0].text)
-
-    def write_head(self):
-        return str(self.head)
 
 
 class Fraction(Number):
@@ -152,12 +155,19 @@ class Fraction(Number):
         return fractions.Fraction(origin[0].text)
 
 
+class Float(Number):
+    """A floating point number."""
+    @classmethod
+    def read_head(cls, origin):
+        return float(origin[0].text)
+
+
 class Symbol(element.TextElement):
     """A symbol (unquoted text piece)."""
 
 
 class List(element.Element):
-    """A list consisting of String, Scheme, Number or Symbol elements.
+    """A list consisting of String, Scheme, Int or Symbol elements.
 
     Separated by Separator elements; may also contain Comment nodes.
 
@@ -171,17 +181,17 @@ class List(element.Element):
         """Convenience method to get a tuples with the contents of the list.
 
         Comment and Scheme nodes are ignored; for Symbol and String elements
-        Python strings are returned, and for Number elements integer values.
+        Python strings are returned, and for Int elements integer values.
 
         """
-        return tuple(node.head for node in self / (Symbol, String, Number))
+        return tuple(node.head for node in self / (Symbol, String, Int))
 
     def set_list(self, iterable):
         """Replaces the contents of this List with nodes converted
         from the iterable.
 
         Strings are converted to Symbol if possible, else String, and integers
-        to Number nodes.
+        to Int nodes.
 
         """
         self.clear()
@@ -189,7 +199,7 @@ class List(element.Element):
         for n in nodes:
             self.append(n)
             for n in nodes:
-                self.append(Separator(',' if isinstance(n, Number) else '.'))
+                self.append(Separator(',' if isinstance(n, Int) else '.'))
                 self.append(n)
 
 
@@ -217,7 +227,7 @@ class Assignment(element.Element):
 class Identifier(List):
     """A variable name, the first node is always a Symbol or String.
 
-    Further contains Symbol, String, Separator, Number or SchemeExpression.
+    Further contains Symbol, String, Separator, Int or SchemeExpression.
 
     """
     @classmethod
@@ -249,7 +259,7 @@ class Identifier(List):
         strings and even numbers. The first item in the tuple always must be a
         name or string. An alphanumeric string is turned into a :class:`Symbol`
         element, a string containing "illegal" characters into a
-        :class:`String` element, and an integer value into a :class:`Number`
+        :class:`String` element, and an integer value into a :class:`Int`
         element.
 
         """
@@ -262,7 +272,7 @@ class IdentifierRef(element.TextElement):
     r"""A ``\variable`` name.
 
     The first symbol part is in the head of this element. Additional nodes can
-    be Symbol, String, Separator, Number or SchemeExpression.
+    be Symbol, String, Separator, Int or SchemeExpression.
 
     For the ``\"name"``, construct, head is the empty string, and the first
     child is a String. Otherwise, if there are child nodes, the first child is
@@ -310,7 +320,7 @@ class IdentifierRef(element.TextElement):
         names = []
         if self.head:
             names.append(self.head)
-        for n in self / (Symbol, String, Number):
+        for n in self / (Symbol, String, Int):
             names.append(n.head)
         if len(names) == 1:
             return names[0]
@@ -324,7 +334,7 @@ class IdentifierRef(element.TextElement):
         strings and even numbers. The first item in the tuple always must be a
         name or string. An alphanumeric string is turned into a :class:`Symbol`
         element, a string containing "illegal" characters into a
-        :class:`String` element, and an integer value into a :class:`Number`
+        :class:`String` element, and an integer value into a :class:`Int`
         element.
 
         A backslash need not to be prepended.
@@ -725,7 +735,7 @@ class VoiceSeparator(element.HeadElement):
 class SpannerId(element.HeadElement):
     r"""A spanner id (``\=``).
 
-    The first child is the id (Number, Symbol, String or Scheme). The second
+    The first child is the id (Int, Symbol, String or Scheme). The second
     child the attached slur, phrasing slur or other object. (LilyPond only
     supports slurs).
 
@@ -843,7 +853,7 @@ def make_list_node(value):
     """Return an element node corresponding to the value.
 
     If value is a string, a Symbol is returned if it's valid LilyPond identifier.
-    otherwise String. If value is an integer, a Number is returned.
+    otherwise String. If value is an integer, a Int is returned.
 
     If no suitable node type could be returned, None is returned.
 
@@ -851,7 +861,7 @@ def make_list_node(value):
     if isinstance(value, str):
         return Symbol(value) if is_symbol(value) else String(value)
     elif isinstance(value, int):
-        return Number(value)
+        return Int(value)
 
 
 def make_list_nodes(iterable):

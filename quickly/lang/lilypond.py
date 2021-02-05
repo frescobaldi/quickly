@@ -48,7 +48,7 @@ class LilyPondTransform(Transform):
     ## mappings from action to element
     #: this mapping is used in the identifier method
     _identifier_mapping = {
-        a.Number: lily.Number,
+        a.Number: lily.Int,
         a.Separator: lily.Separator,
     }
 
@@ -239,6 +239,12 @@ class LilyPondTransform(Transform):
             return self.factory(lily.Fingering, items)
         return self.factory(lily.Articulation, items)
 
+    _pitch_mapping = {
+        a.Text.Music.Pitch.Octave: lily.Octave,
+        a.Text.Music.Pitch.Octave.OctaveCheck: lily.OctaveCheck,
+        a.Text.Music.Pitch.Accidental: lily.Accidental,
+    }
+
     def pitch(self, items):
         """Octave, Accidental and OctaveCheck after a note name.
 
@@ -313,41 +319,29 @@ class LilyPondTransform(Transform):
     def figure(self, items):
         return items
 
-    def list(self, items):
-        """A list of numbers, symbols, strings and scheme expressions."""
-        nodes = []
+    def _list_nodes(self, items):
+        """Yield element nodes for List, Identifier or IdentifierRef."""
         for i in items:
             if i.is_token:
-                node = self.factory(
-                    self._identifier_mapping.get(i.action, lily.Symbol), (i,))
+                yield self._id(i.action, i) # String, Int, Symbol, Separator
             else:
-                node = i.obj # can be a SchemeExpression or String
-            nodes.append(node)
-        return node if len(nodes) == 1 else lily.List(*nodes)
+                yield i.obj # can be a SchemeExpression or String
 
+    def list(self, items):
+        """A list of numbers, symbols, strings and scheme expressions."""
+        nodes = list(self._list_nodes(items))
+        return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
 
     start_list = None   # lexicon never creates tokens
 
     def identifier(self, items):
         """Return an Identifier item."""
-        def nodes():
-            for i in items:
-                if i.is_token:
-                    yield self.factory(
-                        self._identifier_mapping.get(i.action, lily.Symbol), (i,))
-                else:
-                    yield i.obj # can be a SchemeExpression or String
-        return lily.Identifier(*nodes())
+        return lily.Identifier(*self._list_nodes(items))
 
     def identifier_ref(self, items):
         """Return an IdentifierRef item."""
         node = self.factory(lily.IdentifierRef, items[:1])
-        for i in items[1:]:
-            if i.is_token:
-                node.append(self.factory(
-                    self._identifier_mapping.get(i.action, lily.Symbol), (i,)))
-            else:
-                node.append(i.obj) # can be a SchemeExpression or String
+        node.extend(self._list_nodes(items[1:]))
         return node
 
     def markup(self, items):
@@ -382,6 +376,36 @@ class LilyPondTransform(Transform):
     def singleline_comment(self, items):
         """Create a SinglelineComment node."""
         return self.factory(lily.SinglelineComment, items)
+
+    # dispatchers for common types
+    @Dispatcher
+    def _id(self, action, token):
+        """Dispatches for identifiers. By default, return a Symbol."""
+        return self.factory(lily.Symbol, (token,))
+
+    @_id(a.Number)
+    def number_action(self, token):
+        r"""Called for ``Number`` in list, identifier and identifier_ref."""
+        return self.factory(lily.Int, (token,))
+
+    @_id(a.Separator)
+    def separator_action(self, token):
+        r"""Called for ``Delimiter.Separator``."""
+        return self.factory(lily.Separator, (token,))
+
+    _action = Dispatcher()
+
+    @_action(a.Number.Float)
+    def float_action(self, token):
+        r"""Called for ``Number.Float``."""
+        return self.factory(lily.Float, (token,))
+
+    @_action(a.Number.Fraction)
+    def fraction_action(self, token):
+        r"""Called for ``Number.Fraction``."""
+        return self.factory(lily.Fraction, (token,))
+
+
 
 
 class LilyPondAdHocTransform(LilyPondTransform):
@@ -661,12 +685,20 @@ class MusicBuilder:
     @_action(a.Number)
     def number_action(self, token):
         r"""Called for ``Number``."""
-        elem = self.factory(lily.Number, (token,))
+        elem = self.factory(lily.Int, (token,))
         if not self.add_spanner_id(elem) and not self.add_tweak(elem):
             pass # there was no spanner id, something else?
 
+    @_action(a.Number.Float)
+    def float_action(self, token):
+        r"""Called for ``Number.Float``."""
+        elem = self.factory(lily.Float, (token,))
+        if not self.add_tweak(elem):
+            yield from self.pending_music()
+            yield elem
+
     @_action(a.Number.Fraction)
-    def number_action(self, token):
+    def fraction_action(self, token):
         r"""Called for ``Number.Fraction``."""
         yield from self.pending_music()
         yield self.factory(lily.Fraction, (token,))
