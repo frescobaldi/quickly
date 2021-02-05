@@ -45,6 +45,221 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
 
+    ## transforming methods
+    def root(self, items):
+        """Concatenate all nodes in a Document object."""
+        return lily.Document(*self.handle_assignments(self.create_music(items)))
+
+    def book(self, items):
+        """Create a Book or BookPart node."""
+        element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(element_class, head, tail, *self.create_music(items[2:]))
+
+    def score(self, items):
+        """Create a Score node (can also appear inside Markup and MarkupList)."""
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Score, head, tail, *self.create_music(items[2:]))
+
+    def header(self, items):
+        """Create a Header node."""
+        return self.create_block(lily.Header, items)
+
+    def paper(self, items):
+        """Create a Paper node."""
+        return self.create_block(lily.Paper, items)
+
+    def layout(self, items):
+        """Create a Layout node."""
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Layout, head, tail,
+            *self.handle_assignments(self.create_music(items[2:])))
+
+    def midi(self, items):
+        """Create a Midi node."""
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(lily.Midi, head, tail,
+            *self.handle_assignments(self.create_music(items[2:])))
+
+    def layout_context(self, items):
+        """Create a With or LayoutContext node."""
+        element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
+        return self.create_block(element_class, items)
+
+    def musiclist(self, items):
+        """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
+        (``<<`` ... ``>>``) node.
+
+        """
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
+        element_class = lily.MusicList if items[0] == '{' else lily.SimultaneousMusicList
+        return self.factory(element_class, head, tail, *self.create_music(items[1:]))
+
+    def chord(self, items):
+        """Create a Chord node (``<`` ... ``>``)."""
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '>' else ()
+        return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
+
+    def repeat(self, items):
+        """Contents of ``repeat`` context."""
+        return list(self.common(items))
+
+    def script(self, items):
+        """Contains one Fingering or Articulation event."""
+        if items[0].action is a.Literal.Number.Fingering:
+            return self.factory(lily.Fingering, items)
+        return self.factory(lily.Articulation, items)
+
+    def pitch(self, items):
+        """Octave, Accidental and OctaveCheck after a note name.
+
+        Returns a list of elements.
+
+        """
+        def gen():
+            for i in items:
+                if i.is_token:
+                    yield self._pitch(i.action, i)
+                else:
+                    yield i.obj # can only be a comment
+        return list(gen())
+
+    def duration(self, items):
+        """Dots after a duration, can include scaling.
+
+        Returns (dots, scaling), where dots is a list of Dot tokens and
+        scaling a DurationScaling node.
+
+        """
+        dots = []
+        scaling = None
+        for i in items:
+            if i == '.':
+                dots.append(i)
+            elif not i.is_token and i.name == 'duration_scaling':
+                scaling = i.obj
+        return dots, scaling
+
+    def duration_scaling(self, items):
+        """Scaling after a duration."""
+        return self.factory(lily.DurationScaling, items)
+
+    def lyricmode(self, items):
+        """Contents of ``lyricmode`` context."""
+        return list(self.create_music(items))
+
+    def lyricsto(self, items):
+        """Contents of ``lyricsto`` context."""
+        return list(self.common(items))
+
+    def lyriclist(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
+        return self.musiclist(items)
+
+    def drummode(self, items):
+        """Contents of ``drummode`` context."""
+        return list(self.create_music(items))
+
+    def drumlist(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
+        return self.musiclist(items)
+
+    def chordmode(self, items):
+        """Contents of ``chordmode`` context."""
+        return list(self.create_music(items))
+
+    def chordlist(self, items):
+        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in chordmode."""
+        return self.musiclist(items)
+
+    def chord_modifier(self, items):
+        # TODO
+        return items
+
+    def notemode(self, items):
+        """Contents of ``notemode`` context."""
+        return list(self.create_music(items))
+
+    def figuremode(self, items):
+        """Contents of ``notemode`` context."""
+        return list(self.create_music(items))
+
+    def figurelist(self, items):
+        """Return a ``{`` ... ``}`` construct in figuremode."""
+        return self.musiclist(items)
+
+    def figure(self, items):
+        # TODO
+        return items
+
+    def _list_nodes(self, items):
+        """Yield element nodes for List, Identifier or IdentifierRef."""
+        for i in items:
+            if i.is_token:
+                yield self._id(i.action, i) # String, Int, Symbol, Separator
+            else:
+                yield i.obj # can be a SchemeExpression or String
+
+    def list(self, items):
+        """A list of numbers, symbols, strings and scheme expressions.
+
+        Returns a List, String, Int, Symbol, or SchemeExpression element.
+
+        """
+        nodes = list(self._list_nodes(items))
+        return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
+
+    start_list = None   # lexicon never creates tokens
+
+    def identifier(self, items):
+        """Return an Identifier item."""
+        return lily.Identifier(*self._list_nodes(items))
+
+    def identifier_ref(self, items):
+        """Return an IdentifierRef item."""
+        node = self.factory(lily.IdentifierRef, items[:1])
+        node.extend(self._list_nodes(items[1:]))
+        return node
+
+    def markup(self, items):
+        """Simply return the flattened contents, the markup will be constructed later."""
+        result = []
+        for i in items:
+            if i.is_token or i.name != "markup":
+                result.append(i)
+            else:
+                result.extend(i.obj)
+        return result
+
+    def markuplist(self, items):
+        """Create a MarkupList node."""
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        return self.factory(lily.MarkupList, head, tail, *self.read_markup_arguments(items[1:]))
+
+    def schemelily(self, items):
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '#}' else ()
+        return self.factory(scm.LilyPond, head, tail, *self.common(items[1:]))
+
+    def string(self, items):
+        """Create a String node."""
+        return self.factory(lily.String, items)
+
+    def multiline_comment(self, items):
+        """Create a MultilineComment node."""
+        return self.factory(lily.MultilineComment, items)
+
+    def singleline_comment(self, items):
+        """Create a SinglelineComment node."""
+        return self.factory(lily.SinglelineComment, items)
+
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create an Element, keeping its origin.
@@ -164,219 +379,6 @@ class LilyPondTransform(Transform):
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
         yield from MusicBuilder(self, items)
-
-    ## transforming methods
-    def root(self, items):
-        """Concatenate all nodes in a Document object."""
-        return lily.Document(*self.handle_assignments(self.create_music(items)))
-
-    def book(self, items):
-        """Create a Book or BookPart node."""
-        element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(element_class, head, tail, *self.create_music(items[2:]))
-
-    def score(self, items):
-        """Create a Score node (can also appear inside Markup and MarkupList)."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(lily.Score, head, tail, *self.create_music(items[2:]))
-
-    def header(self, items):
-        """Create a Header node."""
-        return self.create_block(lily.Header, items)
-
-    def paper(self, items):
-        """Create a Paper node."""
-        return self.create_block(lily.Paper, items)
-
-    def layout(self, items):
-        """Create a Layout node."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(lily.Layout, head, tail,
-            *self.handle_assignments(self.create_music(items[2:])))
-
-    def midi(self, items):
-        """Create a Midi node."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(lily.Midi, head, tail,
-            *self.handle_assignments(self.create_music(items[2:])))
-
-    def layout_context(self, items):
-        """Create a With or LayoutContext node."""
-        element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
-        return self.create_block(element_class, items)
-
-    def musiclist(self, items):
-        """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
-        (``<<`` ... ``>>``) node.
-
-        """
-        head = items[:1]
-        tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
-        element_class = lily.MusicList if items[0] == '{' else lily.SimultaneousMusicList
-        return self.factory(element_class, head, tail, *self.create_music(items[1:]))
-
-    def chord(self, items):
-        """Create a Chord node (``<`` ... ``>``)."""
-        head = items[:1]
-        tail = (items.pop(),) if items[-1] == '>' else ()
-        return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
-
-    def repeat(self, items):
-        """Contents of ``repeat`` context."""
-        return list(self.common(items))
-
-    def script(self, items):
-        """Contains one Fingering or Articulation event."""
-        if items[0].action is a.Literal.Number.Fingering:
-            return self.factory(lily.Fingering, items)
-        return self.factory(lily.Articulation, items)
-
-    def pitch(self, items):
-        """Octave, Accidental and OctaveCheck after a note name.
-
-        Returns a list of elements.
-
-        """
-        def gen():
-            for i in items:
-                if i.is_token:
-                    yield self._pitch(i.action, i)
-                else:
-                    yield i.obj # can only be a comment
-        return list(gen())
-
-    def duration(self, items):
-        """Dots after a duration, can include scaling.
-
-        Returns (dots, scaling), where dots is a list of Dot tokens and
-        scaling a DurationScaling node.
-
-        """
-        dots = []
-        scaling = None
-        for i in items:
-            if i == '.':
-                dots.append(i)
-            elif not i.is_token and i.name == 'duration_scaling':
-                scaling = i.obj
-        return dots, scaling
-
-    def duration_scaling(self, items):
-        """Scaling after a duration."""
-        return self.factory(lily.DurationScaling, items)
-
-    def lyricmode(self, items):
-        """Contents of ``lyricmode`` context."""
-        return list(self.common(items))
-
-    def lyricsto(self, items):
-        """Contents of ``lyricsto`` context."""
-        return list(self.common(items))
-
-    def lyriclist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
-        return self.musiclist(items)
-
-    def drummmode(self, items):
-        """Contents of ``drummode`` context."""
-        return list(self.common(items))
-
-    def drummlist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
-        return self.musiclist(items)
-
-    def chordmode(self, items):
-        """Contents of ``chordmode`` context."""
-        return list(self.common(items))
-
-    def chordlist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in chordmode."""
-        return self.musiclist(items)
-
-    def chord_modifier(self, items):
-        return items
-
-    def notemode(self, items):
-        """Contents of ``notemode`` context."""
-        return list(self.common(items))
-
-    def figuremode(self, items):
-        """Contents of ``notemode`` context."""
-        return list(self.common(items))
-
-    def figurelist(self, items):
-        """Return a ``{`` ... ``}`` construct in figuremode."""
-        return self.musiclist(items)
-
-    def figure(self, items):
-        return items
-
-    def _list_nodes(self, items):
-        """Yield element nodes for List, Identifier or IdentifierRef."""
-        for i in items:
-            if i.is_token:
-                yield self._id(i.action, i) # String, Int, Symbol, Separator
-            else:
-                yield i.obj # can be a SchemeExpression or String
-
-    def list(self, items):
-        """A list of numbers, symbols, strings and scheme expressions.
-
-        Returns a List, String, Int, Symbol, or SchemeExpression element.
-
-        """
-        nodes = list(self._list_nodes(items))
-        return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
-
-    start_list = None   # lexicon never creates tokens
-
-    def identifier(self, items):
-        """Return an Identifier item."""
-        return lily.Identifier(*self._list_nodes(items))
-
-    def identifier_ref(self, items):
-        """Return an IdentifierRef item."""
-        node = self.factory(lily.IdentifierRef, items[:1])
-        node.extend(self._list_nodes(items[1:]))
-        return node
-
-    def markup(self, items):
-        """Simply return the flattened contents, the markup will be constructed later."""
-        result = []
-        for i in items:
-            if i.is_token or i.name != "markup":
-                result.append(i)
-            else:
-                result.extend(i.obj)
-        return result
-
-    def markuplist(self, items):
-        """Create a MarkupList node."""
-        head = items[:1]
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        return self.factory(lily.MarkupList, head, tail, *self.read_markup_arguments(items[1:]))
-
-    def schemelily(self, items):
-        head = items[:1]
-        tail = (items.pop(),) if items[-1] == '#}' else ()
-        return self.factory(scm.LilyPond, head, tail, *self.common(items[1:]))
-
-    def string(self, items):
-        """Create a String node."""
-        return self.factory(lily.String, items)
-
-    def multiline_comment(self, items):
-        """Create a MultilineComment node."""
-        return self.factory(lily.MultilineComment, items)
-
-    def singleline_comment(self, items):
-        """Create a SinglelineComment node."""
-        return self.factory(lily.SinglelineComment, items)
 
     # dispatchers for common types
     _pitch = Dispatcher()
@@ -503,23 +505,6 @@ class MusicBuilder:
     :meth:`LilyPondTransform.create_music`.
 
     """
-    #: articulations that are spanners:
-    _articulations_mapping = {
-        r'\startTextSpan': lily.TextSpanner,
-        r'\stopTextSpan': lily.TextSpanner,
-        r'\startTrillSpan': lily.TrillSpanner,
-        r'\stopTrillSpan': lily.TrillSpanner,
-    }
-
-    #: mapping for spanners in LilyPond.create_music
-    _music_mapping = {
-        a.Name.Symbol.Spanner.Slur: lily.Slur,
-        a.Name.Symbol.Spanner.Slur.Phrasing: lily.PhrasingSlur,
-        a.Name.Symbol.Spanner.Tie: lily.Tie,
-        a.Name.Symbol.Spanner.Beam: lily.Beam,
-        a.Name.Symbol.Spanner.Ligature: lily.Ligature,
-        a.Name.Symbol.Spanner.PesOrFlexa: lily.PesOrFlexa,
-    }
 
     _token = Dispatcher()
     _action = Dispatcher()
@@ -714,11 +699,29 @@ class MusicBuilder:
         r"""Called for ``Name.Builtin.Dynamic``."""
         self.add_articulation(self.factory(lily.Dynamic, (token,)))
 
+    # articulations that are spanners, for articulation_action()
+    _articulations_mapping = {
+        r'\startTextSpan': lily.TextSpanner,
+        r'\stopTextSpan': lily.TextSpanner,
+        r'\startTrillSpan': lily.TrillSpanner,
+        r'\stopTrillSpan': lily.TrillSpanner,
+    }
+
     @_action(a.Name.Script.Articulation)
     def articulation_action(self, token):
         r"""Called for ``Name.Script.Articulation``."""
         cls = self._articulations_mapping.get(token.text, lily.Articulation)
         self.add_articulation(self.factory(cls, (token,)))
+
+    # mapping for spanners in spanner_action()
+    _spanner_mapping = {
+        a.Name.Symbol.Spanner.Slur: lily.Slur,
+        a.Name.Symbol.Spanner.Slur.Phrasing: lily.PhrasingSlur,
+        a.Name.Symbol.Spanner.Tie: lily.Tie,
+        a.Name.Symbol.Spanner.Beam: lily.Beam,
+        a.Name.Symbol.Spanner.Ligature: lily.Ligature,
+        a.Name.Symbol.Spanner.PesOrFlexa: lily.PesOrFlexa,
+    }
 
     @_action(a.Name.Symbol.Spanner)
     def spanner_action(self, token):
@@ -726,7 +729,7 @@ class MusicBuilder:
         if token.action is a.Name.Symbol.Spanner.Id:
             self._events.append(self.factory(lily.SpannerId, (token,)))
         else:
-            self.add_articulation(self.factory(self._music_mapping[token.action], (token,)))
+            self.add_articulation(self.factory(self._spanner_mapping[token.action], (token,)))
 
     @_action(a.Name.Type)
     def dynamic_action(self, token):
@@ -839,6 +842,66 @@ class MusicBuilder:
         yield from self.pending_music()
         yield from self._keyword(token.text, token)
 
+    @_keyword(r'\omit')
+    def keyword_omit(self, token):
+        r"""Called for Keyword ``\omit``."""
+        yield self.factory(lily.Omit, (token,))
+
+    @_keyword(r'\hide')
+    def keyword_hide(self, token):
+        r"""Called for Keyword ``\hide``."""
+        yield self.factory(lily.Hide, (token,))
+
+    @_keyword(r'\undo')
+    def keyword_undo(self, token):
+        r"""Called for Keyword ``\undo``."""
+        yield self.factory(lily.Undo, (token,))
+
+    @_keyword(r'\once')
+    def keyword_once(self, token):
+        r"""Called for Keyword ``\once``."""
+        yield self.factory(lily.Once, (token,))
+
+    @_keyword(r'\temporary')
+    def keyword_temporary(self, token):
+        r"""Called for Keyword ``\temporary``."""
+        yield self.factory(lily.Temporary, (token,))
+
+    @_keyword(r'\override')
+    def keyword_override(self, token):
+        r"""Called for Keyword ``\override``."""
+        yield self.factory(lily.Override, (token,))
+
+    @_keyword(r'\revert')
+    def keyword_revert(self, token):
+        r"""Called for Keyword ``\revert``."""
+        yield self.factory(lily.Revert, (token,))
+
+    @_keyword(r'\set')
+    def keyword_set(self, token):
+        r"""Called for Keyword ``\set``."""
+        yield self.factory(lily.Set, (token,))
+
+    @_keyword(r'\unset')
+    def keyword_unset(self, token):
+        r"""Called for Keyword ``\unset``."""
+        yield self.factory(lily.Unset, (token,))
+
+    @_keyword(r'\version')
+    def keyword_version(self, token):
+        r"""Called for Keyword ``\version``."""
+        yield self.factory(lily.Version, (token,))
+
+    @_keyword(r'\language')
+    def keyword_language(self, token):
+        r"""Called for Keyword ``\language``."""
+        yield self.factory(lily.Language, (token,))
+
+    @_keyword(r'\include')
+    def keyword_include(self, token):
+        r"""Called for Keyword ``\include``."""
+        yield self.factory(lily.Include, (token,))
+
     @_keyword(r'\new')
     def keyword_new(self, token):
         r"""Called for Keyword ``\new``."""
@@ -885,7 +948,7 @@ class MusicBuilder:
         yield self.factory(lily.FigureMode, (token,))
 
     @_keyword(r'\drummode', r'\drums')
-    def keyword_simultaneous(self, token):
+    def keyword_drummode(self, token):
         r"""Called for Keyword ``\drummode`` and ``\drums``."""
         yield self.factory(lily.DrumMode, (token,))
 
@@ -939,14 +1002,10 @@ class MusicBuilder:
         r"""Called for Name.Builtin ``\transpose``."""
         yield self.factory(lily.Transpose, (token,))
 
-    @_context("repeat")
-    def repeat(self, obj):
-        """Called for ``repeat`` context."""
-        yield from obj
-
-    @_context("lyricsto")
-    def repeat(self, obj):
-        """Called for ``lyricsto`` context."""
+    @_context("repeat", "lyricsto", "lyricmode", "drummode", "notemode",
+              "chordmode", "figuremode")
+    def flatten_elements(self, obj):
+        """Called for context that yield lists of Elements; flatten them."""
         yield from obj
 
     @_context("pitch")
@@ -1011,4 +1070,5 @@ class MusicBuilder:
             yield obj
         else:
             self._comments.append(obj)  # will be added after the duration
+
 
