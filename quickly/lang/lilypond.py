@@ -339,6 +339,17 @@ class LilyPondTransform(Transform):
                     yield i.obj # can be a SchemeExpression or String
         return lily.Identifier(*nodes())
 
+    def identifier_ref(self, items):
+        """Return an IdentifierRef item."""
+        node = self.factory(lily.IdentifierRef, items[:1])
+        for i in items[1:]:
+            if i.is_token:
+                node.append(self.factory(
+                    self._identifier_mapping.get(i.action, lily.Symbol), (i,)))
+            else:
+                node.append(i.obj) # can be a SchemeExpression or String
+        return node
+
     def markup(self, items):
         """Simply return the flattened contents, the markup will be constructed later."""
         result = []
