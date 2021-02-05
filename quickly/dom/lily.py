@@ -389,19 +389,19 @@ class MusicFunction(element.TextElement, Music):
         return '\\' + self.head
 
 
-class New(Music):
+class New(element.HeadElement, Music):
     r"""``\new ...``."""
     _space_between = _space_after_head = " "
     head = r'\new'
 
 
-class Context(Music):
+class Context(element.HeadElement, Music):
     r"""``\context ...``."""
     _space_between = _space_after_head = " "
     head = r'\context'
 
 
-class Change(Music):
+class Change(element.HeadElement, Music):
     r"""``\change ...``."""
     _space_between = _space_after_head = " "
     head = r'\change'
@@ -891,6 +891,124 @@ class MarkupCommand(element.TextElement):
 
 class SchemeExpression(element.TextElement):
     """A Scheme expression in LilyPond."""
+
+
+class Accepts(element.HeadElement):
+    r"""The ``\accepts`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\accepts'
+
+
+class Denies(element.HeadElement):
+    r"""The ``\denies`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\denies'
+
+
+class Name(element.HeadElement):
+    r"""The ``\name`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\name'
+
+
+class Alias(element.HeadElement):
+    r"""The ``\alias`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\alias'
+
+
+class Consists(element.HeadElement):
+    r"""The ``\consists`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\consists'
+
+
+class Remove(element.HeadElement):
+    r"""The ``\remove`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\remove'
+
+
+class DefaultChild(element.HeadElement):
+    r"""The ``\defaultchild`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\defaultchild'
+
+
+class Omit(element.HeadElement, Music):
+    r"""The ``\omit`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\omit'
+
+
+class Hide(element.HeadElement, Music):
+    r"""The ``\hide`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\hide'
+
+
+class Undo(element.HeadElement, Music):
+    r"""The ``\undo`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\undo'
+
+
+class Once(element.HeadElement, Music):
+    r"""The ``\once`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\once'
+
+
+class Temporary(element.HeadElement, Music):
+    r"""The ``\temporary`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\temporary'
+
+
+class Override(element.HeadElement, Music):
+    r"""The ``\override`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\override'
+
+
+class Revert(element.HeadElement, Music):
+    r"""The ``\revert`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\revert'
+
+
+class Set(element.HeadElement, Music):
+    r"""The ``\set`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\set'
+
+
+class Unset(element.HeadElement, Music):
+    r"""The ``\unset`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\unset'
+
+
+class Version(element.HeadElement, Music):
+    r"""The ``\version`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\version'
+
+
+class Language(element.HeadElement):
+    r"""The ``\language`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\language'
+
+
+class Include(element.HeadElement):
+    r"""The ``\include`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\include'
+
+
+
+
 
 
 def is_symbol(text):

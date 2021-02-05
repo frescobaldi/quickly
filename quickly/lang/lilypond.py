@@ -431,6 +431,13 @@ class LilyPondTransform(Transform):
         r"""Called for ``Text.Music.Pitch.Accidental``."""
         return self.factory(lily.Accidental, (token,))
 
+    #TEMP
+    @_keyword(r'\new')
+    def keyword_new(self, token):
+        r"""Called for Keyword ``\new``."""
+        yield self.factory(lily.New, (token,))
+
+
 
 class LilyPondAdHocTransform(LilyPondTransform):
     """LilyPondTransform that does not keep the origin tokens.
@@ -779,105 +786,111 @@ class MusicBuilder:
         Dispatches further to :meth:`_builtin`.
 
         """
-        return self._builtin(token.text, token)
+        yield from self.pending_music()
+        result = self._builtin(token.text, token)
+        if result:
+            yield from result
+        else:
+            yield self.factory(lily.MusicFunction, (token,))
 
     @_action(a.Keyword)
-    def name_builtin_action(self, token):
+    def name_keyword_action(self, token):
         """Called for any Keyword token.
 
-        Dispatches further to :meth:`_builtin`.
+        Dispatches further to :meth:`_keyword`.
 
         """
-        return self._builtin(token.text, token)
+        yield from self.pending_music()
+        yield from self._keyword(token.text, token)
+
+    @_keyword(r'\new')
+    def keyword_new(self, token):
+        r"""Called for Keyword ``\new``."""
+        yield self.factory(lily.New, (token,))
+
+    @_keyword(r'\context')
+    def keyword_context(self, token):
+        r"""Called for Keyword ``\context``."""
+        yield self.factory(lily.Context, (token,))
+
+    @_keyword(r'\change')
+    def keyword_change(self, token):
+        r"""Called for Keyword ``\change``."""
+        yield self.factory(lily.Change, (token,))
 
     @_keyword(r'\sequential')
     def keyword_sequential(self, token):
         r"""Called for Keyword ``\sequential``."""
-        yield from self.pending_music()
         yield self.factory(lily.SequentialMusic, (token,))
 
     @_keyword(r'\simultaneous')
     def keyword_simultaneous(self, token):
         r"""Called for Keyword ``\simultaneous``."""
-        yield from self.pending_music()
         yield self.factory(lily.SimultaneousMusic, (token,))
 
     @_keyword(r'\lyricmode', r'\lyrics', r'\lyricsto')
     def keyword_lyricmode(self, token):
         r"""Called for Keyword ``\lyricmode``, ``\lyrics`` and ``\lyricsto``."""
-        yield from self.pending_music()
         yield self.factory(lily.LyricMode, (token,))
 
     @_keyword(r'\addlyrics')
     def keyword_addlyrics(self, token):
         r"""Called for Keyword ``\addlyrics``."""
-        yield from self.pending_music()
         yield self.factory(lily.LyricMode, (token,))
 
     @_keyword(r'\chordmode', '\chords')
     def keyword_chordmode(self, token):
         r"""Called for Keyword ``\chordmode`` and ``\chords``."""
-        yield from self.pending_music()
         yield self.factory(lily.ChordMode, (token,))
 
     @_keyword(r'\figuremode', r'\figures')
     def keyword_figure(self, token):
         r"""Called for Keyword ``\figuremode`` and ``\figures``."""
-        yield from self.pending_music()
         yield self.factory(lily.FigureMode, (token,))
 
     @_keyword(r'\drummode', r'\drums')
     def keyword_simultaneous(self, token):
         r"""Called for Keyword ``\drummode`` and ``\drums``."""
-        yield from self.pending_music()
         yield self.factory(lily.DrumMode, (token,))
 
     @_keyword(r'\notemode')
     def keyword_notemode(self, token):
         r"""Called for Keyword ``\notemode``."""
-        yield from self.pending_music()
         yield self.factory(lily.SimultaneousMusic, (token,))
 
     @_builtin(r'\key')
     def builtin_key(self, token):
         r"""Called for Name.Builtin ``\key``."""
-        yield from self.pending_music()
         yield self.factory(lily.Key, (token,))
 
     @_builtin(r'\clef')
     def builtin_clef(self, token):
         r"""Called for Name.Builtin ``\clef``."""
-        yield from self.pending_music()
         yield self.factory(lily.Clef, (token,))
 
     @_builtin(r'\time')
     def builtin_time(self, token):
         r"""Called for Name.Builtin ``\time``."""
-        yield from self.pending_music()
         yield self.factory(lily.Time, (token,))
 
     @_builtin(r'\relative')
     def builtin_relative(self, token):
         r"""Called for Name.Builtin ``\relative``."""
-        yield from self.pending_music()
         yield self.factory(lily.RelativeMusic, (token,))
 
     @_builtin(r'\absolute')
     def builtin_absolute(self, token):
         r"""Called for Name.Builtin ``\absolute``."""
-        yield from self.pending_music()
         yield self.factory(lily.AbsoluteMusic, (token,))
 
     @_builtin(r'\fixed')
     def builtin_fixed(self, token):
         r"""Called for Name.Builtin ``\fixed``."""
-        yield from self.pending_music()
         yield self.factory(lily.FixedMusic, (token,))
 
     @_builtin(r'\transpose')
     def builtin_transpose(self, token):
         r"""Called for Name.Builtin ``\transpose``."""
-        yield from self.pending_music()
         yield self.factory(lily.TransposedMusic, (token,))
 
     @_context("pitch")
