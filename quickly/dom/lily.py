@@ -1029,6 +1029,7 @@ def is_symbol(text):
     return (re.fullmatch(lilypond.RE_LILYPOND_SYMBOL, text) and
             text not in lilypond_words.all_pitch_names)
 
+
 def make_list_node(value):
     """Return an element node corresponding to the value.
 
@@ -1045,7 +1046,7 @@ def make_list_node(value):
 
 
 def make_list_nodes(iterable):
-    """Return a generator yielding nodes created :func:`make_list_node`."""
+    """Return a generator yielding nodes created by :func:`make_list_node`."""
     for value in iterable:
         node = make_list_node(value)
         if node:
