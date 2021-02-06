@@ -32,6 +32,14 @@ from parce.util import Dispatcher
 from quickly.dom import base, element, lily, scm
 
 
+def _head_mapping(*element_types):
+    """Return a dictionary mapping head text to element type.
+
+    The element types must be HeadElement instances with a fixed head attribute.
+
+    """
+    return dict((cls.head, cls) for cls in element_types)
+
 
 class LilyPond(parce.lang.lilypond.LilyPond):
     """LilyPond language definition."""
@@ -525,7 +533,6 @@ class MusicBuilder:
 
     _token = Dispatcher()
     _action = Dispatcher()
-    _builtin = Dispatcher()
     _keyword = Dispatcher()
     _context = Dispatcher()
 
@@ -731,6 +738,8 @@ class MusicBuilder:
         r'\stopTextSpan': lily.TextSpanner,
         r'\startTrillSpan': lily.TrillSpanner,
         r'\stopTrillSpan': lily.TrillSpanner,
+        r'\laissezVibrer': lily.LaissezVibrer,
+        r'\repeatTie': lily.RepeatTie,
     }
 
     @_action(a.Name.Script.Articulation)
@@ -784,12 +793,8 @@ class MusicBuilder:
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
 
-    _chord_modifier_mapping = {
-        ':': lily.AddSteps,
-        '^': lily.RemoveSteps,
-        '/': lily.Inversion,
-        '/+': lily.AddInversion,
-    }
+    _chord_modifier_mapping = _head_mapping(
+        lily.AddSteps, lily.RemoveSteps, lily.Inversion, lily.AddInversion)
 
     @_action(a.Delimiter.Separator.Chord)
     def chord_modifier_action(self, token):
@@ -862,114 +867,38 @@ class MusicBuilder:
         yield from self.pending_music()
         yield self.factory(lily.LyricSkip, (token,))
 
+    _builtin_mapping = _head_mapping(
+        lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
+        lily.Fixed, lily.Transpose, lily.Times, lily.Tuplet,
+        lily.ScaleDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
+        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace,
+    )
+
     @_action(a.Name.Builtin)
     def name_builtin_action(self, token):
-        """Called for any Name.Builtin token.
-
-        Dispatches further to :meth:`_builtin`.
-
-        """
+        """Called for any Name.Builtin token."""
         yield from self.pending_music()
-        result = self._builtin(token.text, token)
-        if result:
-            yield from result
-        else:
-            yield self.factory(lily.MusicFunction, (token,))
+        cls = self._builtin_mapping.get(token.text, lily.MusicFunction)
+        yield self.factory(cls, (token,))
+
+    _keyword_mapping = _head_mapping(
+        lily.Omit, lily.Hide, lily.Undo, lily.Once, lily.Temporary,
+        lily.Override, lily.Revert, lily.Set, lily.Unset, lily.Version,
+        lily.Language, lily.Include, lily.New, lily.Context, lily.Change,
+        lily.Sequential, lily.Simultaneous, lily.NoteMode, lily.Repeat,
+        lily.Alternative,
+    )
 
     @_action(a.Keyword)
     def keyword_action(self, token):
-        """Called for any Keyword token.
-
-        Dispatches further to :meth:`_keyword`.
-
-        """
+        """Called for any Keyword token."""
         yield from self.pending_music()
-        yield from self._keyword(token.text, token)
-
-    @_keyword(r'\omit')
-    def keyword_omit(self, token):
-        r"""Called for Keyword ``\omit``."""
-        yield self.factory(lily.Omit, (token,))
-
-    @_keyword(r'\hide')
-    def keyword_hide(self, token):
-        r"""Called for Keyword ``\hide``."""
-        yield self.factory(lily.Hide, (token,))
-
-    @_keyword(r'\undo')
-    def keyword_undo(self, token):
-        r"""Called for Keyword ``\undo``."""
-        yield self.factory(lily.Undo, (token,))
-
-    @_keyword(r'\once')
-    def keyword_once(self, token):
-        r"""Called for Keyword ``\once``."""
-        yield self.factory(lily.Once, (token,))
-
-    @_keyword(r'\temporary')
-    def keyword_temporary(self, token):
-        r"""Called for Keyword ``\temporary``."""
-        yield self.factory(lily.Temporary, (token,))
-
-    @_keyword(r'\override')
-    def keyword_override(self, token):
-        r"""Called for Keyword ``\override``."""
-        yield self.factory(lily.Override, (token,))
-
-    @_keyword(r'\revert')
-    def keyword_revert(self, token):
-        r"""Called for Keyword ``\revert``."""
-        yield self.factory(lily.Revert, (token,))
-
-    @_keyword(r'\set')
-    def keyword_set(self, token):
-        r"""Called for Keyword ``\set``."""
-        yield self.factory(lily.Set, (token,))
-
-    @_keyword(r'\unset')
-    def keyword_unset(self, token):
-        r"""Called for Keyword ``\unset``."""
-        yield self.factory(lily.Unset, (token,))
-
-    @_keyword(r'\version')
-    def keyword_version(self, token):
-        r"""Called for Keyword ``\version``."""
-        yield self.factory(lily.Version, (token,))
-
-    @_keyword(r'\language')
-    def keyword_language(self, token):
-        r"""Called for Keyword ``\language``."""
-        yield self.factory(lily.Language, (token,))
-
-    @_keyword(r'\include')
-    def keyword_include(self, token):
-        r"""Called for Keyword ``\include``."""
-        yield self.factory(lily.Include, (token,))
-
-    @_keyword(r'\new')
-    def keyword_new(self, token):
-        r"""Called for Keyword ``\new``."""
-        yield self.factory(lily.New, (token,))
-
-    @_keyword(r'\context')
-    def keyword_context(self, token):
-        r"""Called for Keyword ``\context``."""
-        yield self.factory(lily.Context, (token,))
-
-    @_keyword(r'\change')
-    def keyword_change(self, token):
-        r"""Called for Keyword ``\change``."""
-        yield self.factory(lily.Change, (token,))
-
-    @_keyword(r'\sequential')
-    def keyword_sequential(self, token):
-        r"""Called for Keyword ``\sequential``."""
-        yield self.factory(lily.Sequential, (token,))
-
-    @_keyword(r'\simultaneous')
-    def keyword_simultaneous(self, token):
-        r"""Called for Keyword ``\simultaneous``."""
-        yield self.factory(lily.Simultaneous, (token,))
+        try:
+            cls = self._keyword_mapping[token.text]
+        except KeyError:
+            yield from self._keyword(token.text, token)
+        else:
+            yield self.factory(cls, (token,))
 
     @_keyword(r'\lyricmode', r'\lyrics', r'\lyricsto')
     def keyword_lyricmode(self, token):
@@ -995,56 +924,6 @@ class MusicBuilder:
     def keyword_drummode(self, token):
         r"""Called for Keyword ``\drummode`` and ``\drums``."""
         yield self.factory(lily.DrumMode, (token,))
-
-    @_keyword(r'\notemode')
-    def keyword_notemode(self, token):
-        r"""Called for Keyword ``\notemode``."""
-        yield self.factory(lily.NoteMode, (token,))
-
-    @_keyword(r'\repeat')
-    def keyword_repeat(self, token):
-        r"""Called for Keyword ``\repeat``."""
-        yield self.factory(lily.Repeat, (token,))
-
-    @_builtin(r'\alternative')
-    def builtin_alternative(self, token):
-        r"""Called for Keyword ``\repeat``."""
-        yield self.factory(lily.Alternative, (token,))
-
-    @_builtin(r'\key')
-    def builtin_key(self, token):
-        r"""Called for Name.Builtin ``\key``."""
-        yield self.factory(lily.Key, (token,))
-
-    @_builtin(r'\clef')
-    def builtin_clef(self, token):
-        r"""Called for Name.Builtin ``\clef``."""
-        yield self.factory(lily.Clef, (token,))
-
-    @_builtin(r'\time')
-    def builtin_time(self, token):
-        r"""Called for Name.Builtin ``\time``."""
-        yield self.factory(lily.Time, (token,))
-
-    @_builtin(r'\relative')
-    def builtin_relative(self, token):
-        r"""Called for Name.Builtin ``\relative``."""
-        yield self.factory(lily.Relative, (token,))
-
-    @_builtin(r'\absolute')
-    def builtin_absolute(self, token):
-        r"""Called for Name.Builtin ``\absolute``."""
-        yield self.factory(lily.Absolute, (token,))
-
-    @_builtin(r'\fixed')
-    def builtin_fixed(self, token):
-        r"""Called for Name.Builtin ``\fixed``."""
-        yield self.factory(lily.Fixed, (token,))
-
-    @_builtin(r'\transpose')
-    def builtin_transpose(self, token):
-        r"""Called for Name.Builtin ``\transpose``."""
-        yield self.factory(lily.Transpose, (token,))
 
     @_context("chord_modifier")
     def chord_modifier(self, obj):
@@ -1079,9 +958,9 @@ class MusicBuilder:
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
 
-    @_context("string", "scheme")
+    @_context("string", "scheme", "list")
     def string_scheme(self, obj):
-        """Called for ``string`` or ``scheme`` context."""
+        """Called for ``string``, ``scheme`` or ``list`` context."""
         if self._events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
@@ -1102,6 +981,17 @@ class MusicBuilder:
                 # toplevel markup item (in lyricmode possible)
                 yield from self.pending_music()
                 self._music = node
+
+    @_context("identifier_ref")
+    def identifier_ref(self, obj):
+        """Called for ``identifier_ref`` context: maybe articulation."""
+        if self._events:
+            # after a direction: add as articulation
+            self.add_articulation(obj)
+        else:
+            # toplevel expression
+            yield from self.pending_music()
+            yield obj
 
     @_context("singleline_comment", "multiline_comment")
     def comment(self, obj):
