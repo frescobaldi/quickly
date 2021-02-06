@@ -933,7 +933,7 @@ class MusicBuilder:
         try:
             cls = self._keyword_mapping[token.text]
         except KeyError:
-            yield from self._keyword(token.text, token)
+            yield from self._keyword(token.text, token) or ()
         else:
             yield self.factory(cls, (token,))
 
