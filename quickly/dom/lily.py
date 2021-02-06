@@ -69,6 +69,10 @@ class String(base.String):
     r"""A quoted string."""
 
 
+class SchemeExpression(element.TextElement):
+    """A Scheme expression in LilyPond."""
+
+
 class Music(element.Element):
     """A basic music element.
 
@@ -1158,8 +1162,16 @@ class MarkupScoreLines(MarkupScore):
     head = r"\score-lines {"
 
 
-class SchemeExpression(element.TextElement):
-    """A Scheme expression in LilyPond."""
+class Figure(BlockElement):
+    r"""One ``<`` ... ``>`` figure "chord" in figuremode."""
+    head = '<'
+    tail = '>'
+
+
+class FigureBracket(BlockElement):
+    r"""One ``[`` ... ``]`` bracketed set of figures in figuremode."""
+    head = '['
+    tail = ']'
 
 
 class Accepts(element.HeadElement):

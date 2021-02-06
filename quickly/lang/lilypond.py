@@ -248,8 +248,12 @@ class LilyPondTransform(Transform):
         return self.musiclist(items)
 
     def figure(self, items):
-        # TODO
-        return items
+        """Return a Figure element."""
+        return FigureBuilder(self, items).figure()
+
+    def figurebracket(self, items):
+        """Return a FigureBracket element."""
+        return FigureBuilder(self, items).figure_bracket()
 
     def _list_nodes(self, items):
         """Yield element nodes for List, Identifier or IdentifierRef."""
