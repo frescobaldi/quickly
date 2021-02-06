@@ -296,6 +296,13 @@ class LilyPondTransform(Transform):
         tail = (items.pop(),) if items[-1] == '}' else ()
         return self.factory(lily.MarkupList, head, tail, *self.read_markup_arguments(items[1:]))
 
+    def markupscore(self, items):
+        """Create a MarkupScore node."""
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        cls = lily.MarkupScoreLines if items[0] == r'\score-lines' else lily.MarkupScore
+        return self.factory(cls, head, tail, *self.create_music(items[2:]))
+
     def schemelily(self, items):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '#}' else ()

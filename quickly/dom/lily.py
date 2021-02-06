@@ -1103,6 +1103,16 @@ class MarkupCommand(element.TextElement):
     _space_before = _space_after = _space_between = " "
 
 
+class MarkupScore(Score):
+    r"""A ``\score`` in Markup."""
+    _space_after_head = _space_before_tail = _space_between = " "
+
+
+class MarkupScoreLines(MarkupScore):
+    r"""A ``\score-lines`` in Markup."""
+    head = r"\score-lines {"
+
+
 class SchemeExpression(element.TextElement):
     """A Scheme expression in LilyPond."""
 
