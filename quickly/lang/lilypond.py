@@ -948,7 +948,7 @@ class MusicBuilder:
         r"""Called for Keyword ``\addlyrics``."""
         yield self.factory(lily.LyricMode, (token,))
 
-    @_keyword(r'\chordmode', '\chords')
+    @_keyword(r'\chordmode', r'\chords')
     def keyword_chordmode(self, token):
         r"""Called for Keyword ``\chordmode`` and ``\chords``."""
         yield self.factory(lily.ChordMode, (token,))
