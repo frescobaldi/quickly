@@ -1,6 +1,19 @@
 ChangeLog
 =========
 
+
+2021-02-07: quickly-0.0.4
+
+- still pre-alpha but work in progress
+- quickly.dom.lily now has much more elements
+- correctly parse lists, property paths etc
+- added chordmode and chord modifiers
+- todo: figuremode
+- quickly.lang.lilypond now transforms almost a full document
+- todo: combining commands with their arguments, based on signatures
+- work started on documentation with a quickly.dom explanation
+
+
 2021-01-31: quickly-0.0.3
 
 - still pre-alpha
