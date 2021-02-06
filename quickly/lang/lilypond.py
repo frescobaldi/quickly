@@ -905,10 +905,11 @@ class MusicBuilder:
         lily.Fixed, lily.Transpose, lily.Times, lily.Tuplet,
         lily.ScaleDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
         lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
-        lily.Breathe,
+        lily.Breathe, lily.Mark, lily.Default, lily.Label,
     )
     _builtin_mapping.update(_toggle_mapping(
-        lily.Break, lily.PageBreak, lily.PageTurn,
+        lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
+        lily.EasyHeads, lily.PointAndClick, lily.Sustain, lily.Sostenuto,
     ))
 
     @_action(a.Name.Builtin)

@@ -69,6 +69,52 @@ class String(base.String):
     r"""A quoted string."""
 
 
+class Music(element.Element):
+    """A basic music element.
+
+    This is also the base class for other elements that contain music.
+
+    """
+
+
+class Toggle(element.TextElement, Music):
+    r"""Base class for a toggled item that has two values.
+
+    E.g. ``\break`` or ``\noBreak``, or ``\sustainOn`` and ``\sustainOff``.
+
+    The on-value is represented by head value True, the off value by False.
+
+    """
+    toggle_on = "<on>"
+    toggle_off = "<off>"
+
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0] == cls.toggle_on
+
+    def write_head(self):
+        return self.toggle_on if self.head else self.toggle_off
+
+
+class Spanner(element.TextElement):
+    r"""Base class for spanner elements, that start or stop.
+
+    Specify ``"start"`` or ``"stop"`` to the constructor, and put the texts
+    that are displayed for either in the ``spanner_start`` and ``spanner_stop``
+    attribute.
+
+    """
+    spanner_start = "<start>"
+    spanner_stop = "<stop>"
+
+    @classmethod
+    def read_head(cls, origin):
+        return "start" if origin[0] == cls.spanner_start else "stop"
+
+    def write_head(self):
+        return self.spanner_start if self.head == "start" else self.spanner_stop
+
+
 class Block(element.BlockElement):
     """Base class for a block, e.g. score, paper, etc.
 
@@ -357,14 +403,6 @@ class IdentifierRef(element.TextElement):
             for n in nodes:
                 self.append(Separator('.'))
                 self.append(n)
-
-
-class Music(element.Element):
-    """A basic music element.
-
-    This is also the base class for other elements that contain music.
-
-    """
 
 
 class MusicFunction(element.TextElement, Music):
@@ -754,25 +792,6 @@ class Dynamic(element.TextElement):
         return r'\{}'.format(self.head)
 
 
-class Spanner(element.TextElement):
-    r"""Base class for spanner elements, that start or stop.
-
-    Specify ``"start"`` or ``"stop"`` to the constructor, and put the texts
-    that are displayed for either in the ``spanner_start`` and ``spanner_stop``
-    attribute.
-
-    """
-    spanner_start = "<start>"
-    spanner_stop = "<stop>"
-
-    @classmethod
-    def read_head(cls, origin):
-        return "start" if origin[0] == cls.spanner_start else "stop"
-
-    def write_head(self):
-        return self.spanner_start if self.head == "start" else self.spanner_stop
-
-
 class Slur(Spanner):
     r"""A slur ``(`` or ``)``."""
     spanner_start = "("
@@ -840,6 +859,24 @@ class Glissando(element.HeadElement, Music):
     head = r'\glissando'
 
 
+class AutoBeam(Toggle):
+    r"""An ``\autoBeamOn`` or ``\autoBeamOff`` command."""
+    toggle_on = r'\autoBeamOn'
+    toggle_off = r'\autoBeamOff'
+
+
+class Sostenuto(Toggle):
+    r"""A ``\sostenutoOn`` or ``\sostenutoOff`` command."""
+    toggle_on = r'\sostenutoOn'
+    toggle_off = r'\sostenutoOff'
+
+
+class Sustain(Toggle):
+    r"""A ``\sustainOn`` or ``\sustainOff`` command."""
+    toggle_on = r'\sustainOn'
+    toggle_off = r'\sustainOff'
+
+
 class Bar(element.HeadElement, Music):
     r"""A ``\bar``. Has a String child."""
     head = r'\bar'
@@ -850,29 +887,22 @@ class Breathe(element.HeadElement, Music):
     head = r'\breathe'
 
 
-class Toggle(element.TextElement, Music):
-    r"""Base class for a toggled item that has two values.
-
-    E.g. ``\break`` or ``\noBreak``, or ``\sustainOn`` and ``\sustainOff``.
-
-    The on-value is represented by head value True, the off value by False.
-
-    """
-    toggle_on = "<on>"
-    toggle_off = "<off>"
-
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0] == cls.toggle_on
-
-    def write_head(self):
-        return self.toggle_on if self.head else self.toggle_off
-
-
 class Break(Toggle):
     r"""A ``\break`` or ``\noBreak``. """
     toggle_on = r'\break'
     toggle_off = r'\noBreak'
+
+
+class Cadenza(Toggle):
+    r"""A ``\cadenzaOn`` or ``\cadenzaOff``."""
+    toggle_on = r'\cadenzaOn'
+    toggle_off = r'\cadenzaOff'
+
+
+class EasyHeads(Toggle):
+    r"""An ``\easyHeadsOn`` or ``\easyHeadsOff`` command."""
+    toggle_on = r'\easyHeadsOn'
+    toggle_off = r'\easyHeadsOff'
 
 
 class PageBreak(Toggle):
@@ -895,6 +925,32 @@ class PipeSymbol(element.HeadElement):
 class VoiceSeparator(element.HeadElement):
     r"""A voice separator."""
     head = r"\\"
+
+
+class Label(element.HeadElement, Music):
+    r"""A ``\label`` command. Has one scheme expression child."""
+    head = r'\label'
+
+
+class Mark(element.HeadElement, Music):
+    r"""A ``\mark`` command. Has one child."""
+    head = r'\mark'
+
+
+class Default(element.HeadElement):
+    r"""The ``\default`` mark argument."""
+    head = r'\default'
+
+
+class Tempo(element.HeadElement, Music):
+    r"""A ``\tempo`` command.
+
+    Can have text (symbol, string, markup) child and/or duration, EqualSign and
+    numeric value childs.
+
+    """
+    _space_after_head = " "
+    head = r"\tempo"
 
 
 class SpannerId(element.HeadElement):
@@ -1044,17 +1100,6 @@ class AfterGrace(element.HeadElement, Music):
     """
     _space_after_head = " "
     head = r"\afterGrace"
-
-
-class Tempo(element.HeadElement, Music):
-    r"""A ``\tempo`` command.
-
-    Can have text (symbol, string, markup) child and/or duration, EqualSign and
-    numeric value childs.
-
-    """
-    _space_after_head = " "
-    head = r"\tempo"
 
 
 class MultilineComment(base.MultilineComment):
@@ -1231,8 +1276,10 @@ class Include(element.HeadElement):
     head = r'\include'
 
 
-
-
+class PointAndClick(Toggle):
+    r"""A ``\pointAndClickOn`` or ``\pointAndClickOff`` command."""
+    toggle_on = r'\pointAndClickOn'
+    toggle_off = r'\pointAndClickOff'
 
 
 def is_symbol(text):
