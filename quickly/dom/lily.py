@@ -830,6 +830,16 @@ class Melisma(Spanner):
     spanner_stop = r'\melismaEnd'
 
 
+class Arpeggio(element.HeadElement, Music):
+    r"""An ``\arpeggio``."""
+    head = r'\arpeggio'
+
+
+class Glissando(element.HeadElement, Music):
+    r"""A ``\glissando``."""
+    head = r'\glissando'
+
+
 class Bar(element.HeadElement, Music):
     r"""A ``\bar``. Has a String child."""
     head = r'\bar'

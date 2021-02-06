@@ -765,7 +765,7 @@ class MusicBuilder:
         lily.TextSpanner, lily.TrillSpanner, lily.Melisma,
     )
     _articulations_mapping.update(_head_mapping(
-        lily.LaissezVibrer, lily.RepeatTie,
+        lily.LaissezVibrer, lily.RepeatTie, lily.Arpeggio, lily.Glissando,
     ))
 
     @_action(a.Name.Script.Articulation)
