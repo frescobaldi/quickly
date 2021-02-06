@@ -692,16 +692,21 @@ class Qualifier(element.TextElement):
 
 
 class Inversion(element.HeadElement):
-    r"""Contains the steps to be added in chordmode."""
+    r"""Inversion (``/``) in chordmode."""
     head = '/'
 
 
-class Step(element.TextElement):
+class AddInversion(element.HeadElement):
+    r"""Inversion  adding the bass note (``/+``) in chordmode."""
+    head = '/+'
+
+
+class Step(Int):
     r"""Contains the steps to be added in chordmode."""
 
 
 class Alteration(element.TextElement):
-    r"""Contains the steps to be added in chordmode."""
+    r"""The alteration of a step (``+`` or ``-``)."""
 
 
 class Articulations(element.Element):

@@ -187,8 +187,11 @@ class LilyPondTransform(Transform):
                 # a modifier, such as 'maj'
                 nodes.append(self.factory(lily.Qualifier, (t,)))
             elif t.action is a.Number:
-                t = (t, next(tokens)) if t.group == 0 else t,
-                nodes.append(self.factory(lily.Step, t))
+                step = self.factory(lily.Step, (t,))
+                if t.group == 0:
+                    alteration = self.factory(lily.Alteration, (next(tokens),))
+                    step.append(alteration)
+                nodes.append(step)
             elif t.action is a.Separator.Dot:
                 nodes.append(self.factory(lily.Separator, (t,)))
         return nodes
@@ -775,11 +778,23 @@ class MusicBuilder:
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
 
+    _chord_modifier_mapping = {
+        ':': lily.AddSteps,
+        '^': lily.RemoveSteps,
+        '/': lily.Inversion,
+        '/+': lily.AddInversion,
+    }
+
     @_action(a.Delimiter.Separator.Chord)
     def chord_modifier_action(self, token):
         r"""Called for ``Delimiter.Separator.Chord``, chordmode."""
-        elem_class = lily.AddSteps if token == ':' else lily.RemoveSteps
-        self._chord_modifiers.append(self.factory(elem_class, (token,)))
+        elem = self.factory(self._chord_modifier_mapping[token.text], (token,))
+        if token.group == 0:
+            # next item is the pitch of an inversion
+            note = self.factory(lily.Note, (next(self.items),))
+            elem.append(note)
+        if self._music and not self._articulations:
+            self._chord_modifiers.append(elem)
 
     @_action(a.Number)
     def number_action(self, token):
