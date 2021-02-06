@@ -180,20 +180,23 @@ class LilyPondTransform(Transform):
 
     def chord_modifier(self, items):
         """Contents of ``chord_modifier`` context."""
-        tokens = iter(items.tokens())
+        items = iter(items)
         nodes = []
-        for t in tokens:
-            if t.action is a.Name.Symbol:
-                # a modifier, such as 'maj'
-                nodes.append(self.factory(lily.Qualifier, (t,)))
-            elif t.action is a.Number:
-                step = self.factory(lily.Step, (t,))
-                if t.group == 0:
-                    alteration = self.factory(lily.Alteration, (next(tokens),))
-                    step.append(alteration)
-                nodes.append(step)
-            elif t.action is a.Separator.Dot:
-                nodes.append(self.factory(lily.Separator, (t,)))
+        for i in items:
+            if i.is_token:
+                if i.action is a.Name.Symbol:
+                    # a modifier, such as 'maj'
+                    nodes.append(self.factory(lily.Qualifier, (i,)))
+                elif i.action is a.Number:
+                    step = self.factory(lily.Step, (i,))
+                    if i.group == 0:
+                        alteration = self.factory(lily.Alteration, (next(items),))
+                        step.append(alteration)
+                    nodes.append(step)
+                elif i.action is a.Separator.Dot:
+                    nodes.append(self.factory(lily.Separator, (i,)))
+            else:
+                nodes.append(i.obj)     # can only be comment
         return nodes
 
     def notemode(self, items):
@@ -558,6 +561,9 @@ class MusicBuilder:
                     music = lily.Music(music)
                 music.append(lily.ChordModifiers(*self._chord_modifiers))
                 self._chord_modifiers.clear()
+                # move comments at end of chord modifiers back to toplevel
+                while len(music[-1][-1]) and isinstance(music[-1][-1][-1], base.Comment):
+                    self._comments.append(music[-1][-1].pop())
             if self._articulations:
                 if self._comments:
                     if music.tail:
