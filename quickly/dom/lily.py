@@ -814,6 +814,12 @@ class TrillSpanner(Spanner):
     spanner_stop = r'\stopTrillSpan'
 
 
+class Melisma(Spanner):
+    r"""A melisma spanner."""
+    spanner_start = r'\melisma'
+    spanner_stop = r'\melismaEnd'
+
+
 class PipeSymbol(element.HeadElement):
     r"""A PipeSymbol, most times used as bar check."""
     head = "|"
