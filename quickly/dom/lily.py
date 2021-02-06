@@ -830,6 +830,53 @@ class Melisma(Spanner):
     spanner_stop = r'\melismaEnd'
 
 
+class Bar(element.HeadElement, Music):
+    r"""A ``\bar``. Has a String child."""
+    head = r'\bar'
+
+
+class Breathe(element.HeadElement, Music):
+    r"""A ``\breathe``."""
+    head = r'\breathe'
+
+
+class Toggle(element.TextElement, Music):
+    r"""Base class for a toggled item that has two values.
+
+    E.g. ``\break`` or ``\noBreak``, or ``\sustainOn`` and ``\sustainOff``.
+
+    The on-value is represented by head value True, the off value by False.
+
+    """
+    toggle_on = "<on>"
+    toggle_off = "<off>"
+
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0] == cls.toggle_on
+
+    def write_head(self):
+        return self.toggle_on if self.head else self.toggle_off
+
+
+class Break(Toggle):
+    r"""A ``\break`` or ``\noBreak``. """
+    toggle_on = r'\break'
+    toggle_off = r'\noBreak'
+
+
+class PageBreak(Toggle):
+    r"""A ``\pageBreak`` or ``\noPageBreak``."""
+    toggle_on = r'\pageBreak'
+    toggle_off = r'\noPageBreak'
+
+
+class PageTurn(Toggle):
+    r"""A ``\pageTurn`` or ``\noPageTurn``."""
+    toggle_on = r'\pageTurn'
+    toggle_off = r'\noPageTurn'
+
+
 class PipeSymbol(element.HeadElement):
     r"""A PipeSymbol, most times used as bar check."""
     head = "|"

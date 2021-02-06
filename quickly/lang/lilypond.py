@@ -41,6 +41,34 @@ def _head_mapping(*element_types):
     return dict((cls.head, cls) for cls in element_types)
 
 
+def _spanner_start_stop_mapping(*element_types):
+    """Return a dictionary mapping ``spanner_start`` and ``spanner_stop``
+    to an element type.
+
+    The element types must inherit TextElement.
+
+    """
+    d = {}
+    for cls in element_types:
+        d[cls.spanner_start] = cls
+        d[cls.spanner_stop] = cls
+    return d
+
+
+def _toggle_mapping(*element_types):
+    """Return a dictionary mapping ``toggle_on`` and ``toggle_of``
+    to an element type.
+
+    The element types must inherit TextElement.
+
+    """
+    d = {}
+    for cls in element_types:
+        d[cls.toggle_on] = cls
+        d[cls.toggle_off] = cls
+    return d
+
+
 class LilyPond(parce.lang.lilypond.LilyPond):
     """LilyPond language definition."""
     @classmethod
@@ -733,14 +761,12 @@ class MusicBuilder:
         self.add_articulation(self.factory(lily.Dynamic, (token,)))
 
     # articulations that are spanners, for articulation_action()
-    _articulations_mapping = {
-        r'\startTextSpan': lily.TextSpanner,
-        r'\stopTextSpan': lily.TextSpanner,
-        r'\startTrillSpan': lily.TrillSpanner,
-        r'\stopTrillSpan': lily.TrillSpanner,
-        r'\laissezVibrer': lily.LaissezVibrer,
-        r'\repeatTie': lily.RepeatTie,
-    }
+    _articulations_mapping = _spanner_start_stop_mapping(
+        lily.TextSpanner, lily.TrillSpanner, lily.Melisma,
+    )
+    _articulations_mapping.update(_head_mapping(
+        lily.LaissezVibrer, lily.RepeatTie,
+    ))
 
     @_action(a.Name.Script.Articulation)
     def articulation_action(self, token):
@@ -871,8 +897,12 @@ class MusicBuilder:
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
         lily.Fixed, lily.Transpose, lily.Times, lily.Tuplet,
         lily.ScaleDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
-        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace,
+        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
+        lily.Breathe,
     )
+    _builtin_mapping.update(_toggle_mapping(
+        lily.Break, lily.PageBreak, lily.PageTurn,
+    ))
 
     @_action(a.Name.Builtin)
     def name_builtin_action(self, token):
