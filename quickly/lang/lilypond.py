@@ -683,16 +683,6 @@ class MusicBuilder:
         r"""Called for ``\noBeam``."""
         self.add_articulation(self.factory(lily.Modifier, (token,)))
 
-    @_token(r'\laissezVibrer')
-    def laissizvibrer_token(self, token):
-        r"""Called for ``\laissezVibrer``."""
-        self.add_articulation(self.factory(lily.LaissezVibrer, (token,)))
-
-    @_token(r'\repeatTie')
-    def repeattie_token(self, token):
-        r"""Called for ``\repeatTie``."""
-        self.add_articulation(self.factory(lily.RepeatTie, (token,)))
-
     @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):
         r"""Called for ``Text.Music.Pitch (or Name.Pitch)``."""
@@ -748,6 +738,8 @@ class MusicBuilder:
         r'\stopTextSpan': lily.TextSpanner,
         r'\startTrillSpan': lily.TrillSpanner,
         r'\stopTrillSpan': lily.TrillSpanner,
+        r'\laissezVibrer': lily.LaissezVibrer,
+        r'\repeatTie': lily.RepeatTie,
     }
 
     @_action(a.Name.Script.Articulation)
