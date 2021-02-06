@@ -990,6 +990,17 @@ class MusicBuilder:
                 yield from self.pending_music()
                 self._music = node
 
+    @_context("identifier_ref")
+    def identifier_ref(self, obj):
+        """Called for ``identifier_ref`` context: maybe articulation."""
+        if self._events:
+            # after a direction: add as articulation
+            self.add_articulation(obj)
+        else:
+            # toplevel expression
+            yield from self.pending_music()
+            yield obj
+
     @_context("singleline_comment", "multiline_comment")
     def comment(self, obj):
         """Called for ``singleline_comment`` and ``multiline_comment`` context.
