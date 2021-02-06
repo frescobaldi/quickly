@@ -179,8 +179,19 @@ class LilyPondTransform(Transform):
         return self.musiclist(items)
 
     def chord_modifier(self, items):
-        # TODO
-        return items
+        """Contents of ``chord_modifier`` context."""
+        tokens = iter(items.tokens())
+        nodes = []
+        for t in tokens:
+            if t.action is a.Name.Symbol:
+                # a modifier, such as 'maj'
+                nodes.append(self.factory(lily.Qualifier, (t,)))
+            elif t.action is a.Number:
+                t = (t, next(tokens)) if t.group == 0 else t,
+                nodes.append(self.factory(lily.Step, t))
+            elif t.action is a.Separator.Dot:
+                nodes.append(self.factory(lily.Separator, (t,)))
+        return nodes
 
     def notemode(self, items):
         """Contents of ``notemode`` context."""
@@ -520,6 +531,7 @@ class MusicBuilder:
         self._music = None
         self._duration = None
         self._scaling = None
+        self._chord_modifiers = []
         self._events = []         # for direction and spanner-id
         self._articulations = []
         self._comments = []       # for comments between pitch and duration...
@@ -538,6 +550,11 @@ class MusicBuilder:
             else:
                 music = lily.Unpitched(dur)
         if music:
+            if self._chord_modifiers:
+                if music.tail:
+                    music = lily.Music(music)
+                music.append(lily.ChordModifiers(*self._chord_modifiers))
+                self._chord_modifiers.clear()
             if self._articulations:
                 if self._comments:
                     if music.tail:
@@ -757,6 +774,12 @@ class MusicBuilder:
         r"""Called for ``Delimiter.Separator.VoiceSeparator``."""
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
+
+    @_action(a.Delimiter.Separator.Chord)
+    def chord_modifier_action(self, token):
+        r"""Called for ``Delimiter.Separator.Chord``, chordmode."""
+        elem_class = lily.AddSteps if token == ':' else lily.RemoveSteps
+        self._chord_modifiers.append(self.factory(elem_class, (token,)))
 
     @_action(a.Number)
     def number_action(self, token):
@@ -1002,6 +1025,11 @@ class MusicBuilder:
         r"""Called for Name.Builtin ``\transpose``."""
         yield self.factory(lily.Transpose, (token,))
 
+    @_context("chord_modifier")
+    def chord_modifier(self, obj):
+        """Called with the result of the ``chord_modifier`` context."""
+        self._chord_modifiers[-1].extend(obj)
+
     @_context("repeat", "lyricsto", "lyricmode", "drummode", "notemode",
               "chordmode", "figuremode")
     def flatten_elements(self, obj):
@@ -1061,7 +1089,9 @@ class MusicBuilder:
         Comments are preserved as good as possible.
 
         """
-        if self._events:
+        if self._chord_modifiers:
+            self._chord_modifiers[-1].append(obj)
+        elif self._events:
             self._events[-1].append(obj)
         elif self._articulations:
             self._articulations.append(obj)

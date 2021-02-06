@@ -673,6 +673,37 @@ class LyricSkip(element.HeadElement, Music):
     head = "_"
 
 
+class ChordModifiers(element.Element):
+    r"""A list of elements attachted to a note in chord mode."""
+
+
+class AddSteps(element.HeadElement):
+    r"""Contains the steps to be added in chordmode."""
+    head = ":"
+
+
+class RemoveSteps(element.HeadElement):
+    r"""Contains the steps to be added in chordmode."""
+    head = "^"
+
+
+class Qualifier(element.TextElement):
+    """A qualifier like ``maj`` in chord mode."""
+
+
+class Inversion(element.HeadElement):
+    r"""Contains the steps to be added in chordmode."""
+    head = '/'
+
+
+class Step(element.TextElement):
+    r"""Contains the steps to be added in chordmode."""
+
+
+class Alteration(element.TextElement):
+    r"""Contains the steps to be added in chordmode."""
+
+
 class Articulations(element.Element):
     r"""A list of elements that are attached to a note or chord."""
 
