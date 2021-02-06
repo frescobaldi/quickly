@@ -790,6 +790,16 @@ class Tie(element.HeadElement):
     head = '~'
 
 
+class LaissezVibrer(Tie):
+    r"""A ``\laissezVibrer`` tie."""
+    head = '\\laissezVibrer'
+
+
+class RepeatTie(Tie):
+    r"""A ``\repeatTie`` tie."""
+    head = '\\repeatTie'
+
+
 class Beam(Spanner):
     r"""A beam ``[`` or ``]``."""
     spanner_start = "["
@@ -861,7 +871,7 @@ class Mode(element.TextElement):
     r"""The mode subcommand of the ``\key`` statement."""
 
 
-class Key(element.HeadElement):
+class Key(element.HeadElement, Music):
     r"""A \key statement.
 
     Must have a Pitch and a Mode child.
@@ -871,7 +881,7 @@ class Key(element.HeadElement):
     head = r"\key"
 
 
-class Clef(element.HeadElement):
+class Clef(element.HeadElement, Music):
     r"""A ``\clef`` statement.
 
     Must have a Symbol or String child indicating the clef type.
@@ -881,7 +891,7 @@ class Clef(element.HeadElement):
     head = r"\clef"
 
 
-class Time(element.HeadElement):
+class Time(element.HeadElement, Music):
     r"""A ``\time`` statement.
 
     Has an optional List child and a Fraction child.
@@ -889,6 +899,99 @@ class Time(element.HeadElement):
     """
     _space_after_head = " "
     head = r"\time"
+
+
+class Times(element.HeadElement, Music):
+    r"""A ``\times`` statement.
+
+    Has a Fraction child and a Music child.
+    The ``\times`` command is not documented anymore in LilyPond, but also
+    not deprecated. Using ``\tuplet`` is recommended.
+
+    """
+    _space_after_head = " "
+    head = r"\times"
+
+
+class Tuplet(element.HeadElement, Music):
+    r"""A ``\tuplet`` statement.
+
+    Has a Fraction child, an optional Duration child and a Music child.
+
+    """
+    _space_after_head = " "
+    head = r"\tuplet"
+
+
+class ScaleDurations(element.HeadElement, Music):
+    r"""A ``\scaleDurations`` command.
+
+    Has a Fraction child and a Music child.
+
+    """
+    _space_after_head = " "
+    head = r"\scaleDurations"
+
+
+class Grace(element.HeadElement, Music):
+    r"""A ``\grace`` command.
+
+    Has a Music child.
+
+    """
+    _space_after_head = " "
+    head = r"\grace"
+
+
+class Acciaccatura(element.HeadElement, Music):
+    r"""An ``\acciaccatura`` command.
+
+    Has two Music children.
+
+    """
+    _space_after_head = " "
+    head = r"\acciaccatura"
+
+
+class Appoggiatura(element.HeadElement, Music):
+    r"""An ``\appoggiatura`` command.
+
+    Has two Music children.
+
+    """
+    _space_after_head = " "
+    head = r"\appoggiatura"
+
+
+class SlashedGrace(element.HeadElement, Music):
+    r"""A ``\slashedGrace`` command.
+
+    Has two Music children.
+
+    """
+    _space_after_head = " "
+    head = r"\slashedGrace"
+
+
+class AfterGrace(element.HeadElement, Music):
+    r"""An ``\afterGrace`` command.
+
+    Has an optional Fraction and two Music children.
+
+    """
+    _space_after_head = " "
+    head = r"\afterGrace"
+
+
+class Tempo(element.HeadElement, Music):
+    r"""A ``\tempo`` command.
+
+    Can have text (symbol, string, markup) child and/or duration, EqualSign and
+    numeric value childs.
+
+    """
+    _space_after_head = " "
+    head = r"\tempo"
 
 
 class MultilineComment(base.MultilineComment):
