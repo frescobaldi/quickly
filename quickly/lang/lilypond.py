@@ -966,9 +966,9 @@ class MusicBuilder:
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
 
-    @_context("string", "scheme")
+    @_context("string", "scheme", "list")
     def string_scheme(self, obj):
-        """Called for ``string`` or ``scheme`` context."""
+        """Called for ``string``, ``scheme`` or ``list`` context."""
         if self._events:
             # after a direction: an articulation
             if not self.add_spanner_id(obj) and not self.add_tweak(obj):
