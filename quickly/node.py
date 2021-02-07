@@ -108,9 +108,8 @@ class Node(list):
         self._parent = _NO_PARENT
         if children:
             list.extend(self, children)
-            parent = weakref.ref(self)
             for node in self:
-                node._parent = parent
+                node.parent = self
 
     def copy(self):
         """Return a copy of this Node, with copied children."""
@@ -129,24 +128,23 @@ class Node(list):
     @parent.deleter
     def parent(self):
         """Set the parent to None."""
-        self._parent = _NO_PARENT
+        self.parent = None
 
     def append(self, node):
         """Append node to this node; the parent is set to this node."""
-        node._parent = weakref.ref(self)
+        node.parent = self
         list.append(self, node)
 
     def extend(self, nodes):
         """Append nodes to this node; the parent is set to this node."""
         nodes = list(nodes)
-        parent = weakref.ref(self)
         for node in nodes:
-            node._parent = parent
+            node.parent = self
         list.extend(self, nodes)
 
     def insert(self, index, node):
         """Insert node in this node; the parent is set to this node."""
-        node._parent = weakref.ref(self)
+        node.parent = self
         list.insert(self, index, node)
 
     def remove(self, node):
@@ -157,7 +155,7 @@ class Node(list):
     def pop(self, index=-1):
         """Pop node from this node; the parent is set to None."""
         node = list.pop(self, index)
-        node._parent = _NO_PARENT
+        node.parent = None
         return node
 
     def take(self, start=0, end=None):
@@ -169,23 +167,22 @@ class Node(list):
         k = slice(start, end)
         nodes = self[k]
         for node in nodes:
-            node._parent = _NO_PARENT
+            node.parent = None
         list.__delitem__(self, k)
         return nodes
 
     def __setitem__(self, k, new):
         """Set self[k] to the node(s) in ``new``; the parent is set to this Node."""
         old = self[k]
-        parent = weakref.ref(self)
         if isinstance(k, slice):
             new = tuple(new)
             for node in old:
-                node._parent = _NO_PARENT
+                node.parent = None
             for node in new:
-                node._parent = parent
+                node.parent = self
         else:
-            old._parent = _NO_PARENT
-            new._parent = parent
+            old.parent = None
+            new.parent = self
         list.__setitem__(self, k, new)
 
     def __delitem__(self, k):
@@ -193,15 +190,15 @@ class Node(list):
         old = self[k]
         if isinstance(k, slice):
             for node in old:
-                node._parent = _NO_PARENT
+                node.parent = None
         else:
-            old._parent = _NO_PARENT
+            old.parent = None
         list.__delitem__(self, k)
 
     def clear(self):
         """Remove all child nodes."""
         for node in self:
-            node._parent = _NO_PARENT
+            node.parent = None
         list.clear(self)
 
     def equals(self, other):
