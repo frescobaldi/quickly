@@ -658,14 +658,18 @@ def build_tree(nodes):
     When a node specifies what child element types it can have, and those
     element types follow indeed, they are added as child element.
 
+    Existing children are taken into account.
+
     """
     for node in nodes:
         signatures = node.signatures()
         if signatures:
+            # adjust signatures to exising children, if present
             for c in node:
                 signatures = [s[1:] for s in signatures if isinstance(c, s[0])
                                        and len(s) > 1]
                 if not signatures:
+                    # nothing needs to be added
                     break
             else:
                 for n in build_tree(nodes):
