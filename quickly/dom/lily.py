@@ -982,6 +982,9 @@ class Key(element.HeadElement, Music):
     _space_after_head = _space_between = ' '
     head = r"\key"
 
+    def signatures(self):
+        yield Note, Mode
+
 
 class Clef(element.HeadElement, Music):
     r"""A ``\clef`` statement.
@@ -992,6 +995,9 @@ class Clef(element.HeadElement, Music):
     _space_after_head = " "
     head = r"\clef"
 
+    def signatures(self):
+        yield (Symbol, String),
+
 
 class Time(element.HeadElement, Music):
     r"""A ``\time`` statement.
@@ -1001,6 +1007,10 @@ class Time(element.HeadElement, Music):
     """
     _space_after_head = " "
     head = r"\time"
+
+    def signatures(self):
+        yield List, Fraction
+        yield Fraction,
 
 
 class Times(element.HeadElement, Music):

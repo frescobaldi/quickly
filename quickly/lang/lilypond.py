@@ -477,7 +477,7 @@ class LilyPondTransform(Transform):
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
-        yield from MusicBuilder(self, items)
+        return element.build_tree(MusicBuilder(self, items))
 
     # dispatchers for common types
     _pitch = Dispatcher()
@@ -1094,5 +1094,4 @@ class MusicBuilder:
             yield obj
         else:
             self._comments.append(obj)  # will be added after the duration
-
 

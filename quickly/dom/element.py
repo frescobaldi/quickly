@@ -540,6 +540,16 @@ class Element(Node, metaclass=ElementType):
         except AttributeError:
             pass
 
+    def signatures(self):
+        """Return an iterable of signature tuples.
+
+        A signature is a tuple. Every item in the tuple is an Element type,
+        or a tuple of Element types; and is used with :func:`isinstance` to see
+        whether an element can be a child of this element.
+
+        """
+        return ()
+
 
 class HeadElement(Element):
     """Element that has a fixed head value."""
@@ -639,3 +649,28 @@ class ToggleElement(MappingElement):
         super().__init_subclass__(**kwargs)
 
 
+def build_tree(nodes):
+    """Build a tree of a stream of elements, based on their
+    :meth:`Element.signatures`.
+
+    ``nodes`` must be a generator yielding the nodes. Consumes all nodes, and
+    make some nodes a child of a preceding node. Yields the resulting nodes.
+    When a node specifies what child element types it can have, and those
+    element types follow indeed, they are added as child element.
+
+    """
+    for node in nodes:
+        signatures = node.signatures()
+        if signatures:
+            for n in build_tree(nodes):
+                signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
+                if not signatures:
+                    # node could not be added
+                    yield node
+                    node = n
+                    break
+                node.append(n)
+                signatures = [s for s in signatures if s]
+                if not signatures:
+                    break
+        yield node
