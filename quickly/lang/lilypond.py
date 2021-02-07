@@ -399,7 +399,7 @@ class LilyPondTransform(Transform):
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
         return self.factory(element_class, head_origin, tail_origin,
-            *self.handle_assignments(self.common(items[2:])))
+            *self.handle_assignments(element.build_tree(self.common(items[2:]))))
 
     def create_markup(self, markup, items):
         """Yield zero or one Markup element.
