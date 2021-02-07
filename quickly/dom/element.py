@@ -662,15 +662,21 @@ def build_tree(nodes):
     for node in nodes:
         signatures = node.signatures()
         if signatures:
-            for n in build_tree(nodes):
-                signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
-                if not signatures:
-                    # node could not be added
-                    yield node
-                    node = n
-                    break
-                node.append(n)
-                signatures = [s for s in signatures if s]
+            for c in node:
+                signatures = [s[1:] for s in signatures if isinstance(c, s[0])
+                                       and len(s) > 1]
                 if not signatures:
                     break
+            else:
+                for n in build_tree(nodes):
+                    signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
+                    if not signatures:
+                        # node could not be added
+                        yield node
+                        node = n
+                        break
+                    node.append(n)
+                    signatures = [s for s in signatures if s]
+                    if not signatures:
+                        break
         yield node
