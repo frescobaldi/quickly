@@ -119,6 +119,29 @@ class Spanner(element.TextElement):
         return self.spanner_start if self.head == "start" else self.spanner_stop
 
 
+class Mapper(element.TextElement):
+    r"""Base class for an element with a fixed set of possible head values.
+
+    The ``mapper`` attribute is a dictionay mapping uniq head values to unique
+    outputs.  Other head values can't be used, they result in a KeyError.
+
+    """
+    mapper = {}
+
+    def __init_subclass__(cls, **kwargs):
+        cls.inverted_mapper = {v: k for k, v in cls.mapper.items()}
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def read_head(cls, origin):
+        """Convert the text value to one of our four states."""
+        return cls.mapper[origin[0].text]
+
+    def write_head(self):
+        """Return the text value."""
+        return self.inverted_mapper[self.head]
+
+
 class Block(element.BlockElement):
     """Base class for a block, e.g. score, paper, etc.
 
@@ -1185,47 +1208,35 @@ class FigureSkip(element.HeadElement):
     head = '_'
 
 
-class FigureAccidental(element.TextElement):
+class FigureAccidental(Mapper):
     r"""An accidental in figure mode.
 
     One of: -1, -0.5, 0, 0.5, 1, corresponding to:
      ``'--'``, ``'-'``, ``''``, ``'+'`` or ``'++'``.
 
     """
-    @classmethod
-    def read_head(cls, origin):
-        """Convert the string to an accidental value."""
-        s = origin[0].text
-        return 0.5 * (s.count('+') - s.count('-'))
-
-    def write_head(self):
-        """Write out the accidental value."""
-        return ('--', '-', '', '+', '++')[int(self.head * 2 + 2)]
+    mapper = {
+        '--':  -1,
+        '-':   -0.5,
+        '':     0,
+        '+':    0.5,
+        '++':   1,
+    }
 
 
-class FigureAlteration(element.TextElement):
+class FigureAlteration(Mapper):
     r"""An alteration in figure mode.
 
     One of: "augmented", "diminished", "raised" or "end-of-line", corresponding
     to: `\+`, `/`, `\\` or `\!`.
 
     """
-    _figure_alteration_read = {
+    mapper = {
         r'\+':  "augmented",
         r'/':   "diminished",
         r'\\':  "raised",
         r'\!':  "end-of-line",
     }
-    _figure_alteration_write = {v: k for k, v in _figure_alteration_read.items()}
-
-    @classmethod
-    def read_head(cls, origin):
-        """Convert the text value to one of our four states."""
-        return cls._figure_alteration_read[origin[0].text]
-
-    def write_head(self):
-        """Return the text value."""
-        return self._figure_alteration_write[self.head]
 
 
 class Accepts(element.HeadElement):
