@@ -81,26 +81,7 @@ class Music(element.Element):
     """
 
 
-class Toggle(element.TextElement, Music):
-    r"""Base class for a toggled item that has two values.
-
-    E.g. ``\break`` or ``\noBreak``, or ``\sustainOn`` and ``\sustainOff``.
-
-    The on-value is represented by head value True, the off value by False.
-
-    """
-    toggle_on = "<on>"
-    toggle_off = "<off>"
-
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0] == cls.toggle_on
-
-    def write_head(self):
-        return self.toggle_on if self.head else self.toggle_off
-
-
-class Spanner(element.TextElement):
+class Spanner(element.MappingElement):
     r"""Base class for spanner elements, that start or stop.
 
     Specify ``"start"`` or ``"stop"`` to the constructor, and put the texts
@@ -111,35 +92,10 @@ class Spanner(element.TextElement):
     spanner_start = "<start>"
     spanner_stop = "<stop>"
 
-    @classmethod
-    def read_head(cls, origin):
-        return "start" if origin[0] == cls.spanner_start else "stop"
-
-    def write_head(self):
-        return self.spanner_start if self.head == "start" else self.spanner_stop
-
-
-class Mapper(element.TextElement):
-    r"""Base class for an element with a fixed set of possible head values.
-
-    The ``mapper`` attribute is a dictionay mapping uniq head values to unique
-    outputs.  Other head values can't be used, they result in a KeyError.
-
-    """
-    mapper = {}
-
     def __init_subclass__(cls, **kwargs):
-        cls.inverted_mapper = {v: k for k, v in cls.mapper.items()}
+        cls.mapping = {cls.spanner_start: "start", cls.spanner_stop: "stop"}
         super().__init_subclass__(**kwargs)
 
-    @classmethod
-    def read_head(cls, origin):
-        """Convert the text value to one of our four states."""
-        return cls.mapper[origin[0].text]
-
-    def write_head(self):
-        """Return the text value."""
-        return self.inverted_mapper[self.head]
 
 
 class Block(element.BlockElement):
@@ -886,19 +842,19 @@ class Glissando(element.HeadElement, Music):
     head = r'\glissando'
 
 
-class AutoBeam(Toggle):
+class AutoBeam(element.ToggleElement, Music):
     r"""An ``\autoBeamOn`` or ``\autoBeamOff`` command."""
     toggle_on = r'\autoBeamOn'
     toggle_off = r'\autoBeamOff'
 
 
-class Sostenuto(Toggle):
+class Sostenuto(element.ToggleElement, Music):
     r"""A ``\sostenutoOn`` or ``\sostenutoOff`` command."""
     toggle_on = r'\sostenutoOn'
     toggle_off = r'\sostenutoOff'
 
 
-class Sustain(Toggle):
+class Sustain(element.ToggleElement, Music):
     r"""A ``\sustainOn`` or ``\sustainOff`` command."""
     toggle_on = r'\sustainOn'
     toggle_off = r'\sustainOff'
@@ -914,31 +870,31 @@ class Breathe(element.HeadElement, Music):
     head = r'\breathe'
 
 
-class Break(Toggle):
+class Break(element.ToggleElement):
     r"""A ``\break`` or ``\noBreak``. """
     toggle_on = r'\break'
     toggle_off = r'\noBreak'
 
 
-class Cadenza(Toggle):
+class Cadenza(element.ToggleElement, Music):
     r"""A ``\cadenzaOn`` or ``\cadenzaOff``."""
     toggle_on = r'\cadenzaOn'
     toggle_off = r'\cadenzaOff'
 
 
-class EasyHeads(Toggle):
+class EasyHeads(element.ToggleElement, Music):
     r"""An ``\easyHeadsOn`` or ``\easyHeadsOff`` command."""
     toggle_on = r'\easyHeadsOn'
     toggle_off = r'\easyHeadsOff'
 
 
-class PageBreak(Toggle):
+class PageBreak(element.ToggleElement):
     r"""A ``\pageBreak`` or ``\noPageBreak``."""
     toggle_on = r'\pageBreak'
     toggle_off = r'\noPageBreak'
 
 
-class PageTurn(Toggle):
+class PageTurn(element.ToggleElement):
     r"""A ``\pageTurn`` or ``\noPageTurn``."""
     toggle_on = r'\pageTurn'
     toggle_off = r'\noPageTurn'
@@ -1208,14 +1164,14 @@ class FigureSkip(element.HeadElement):
     head = '_'
 
 
-class FigureAccidental(Mapper):
+class FigureAccidental(element.MappingElement):
     r"""An accidental in figure mode.
 
     One of: -1, -0.5, 0, 0.5, 1, corresponding to:
      ``'--'``, ``'-'``, ``''``, ``'+'`` or ``'++'``.
 
     """
-    mapper = {
+    mapping = {
         '--':  -1,
         '-':   -0.5,
         '':     0,
@@ -1224,14 +1180,14 @@ class FigureAccidental(Mapper):
     }
 
 
-class FigureAlteration(Mapper):
+class FigureAlteration(element.MappingElement):
     r"""An alteration in figure mode.
 
     One of: "augmented", "diminished", "raised" or "end-of-line", corresponding
     to: `\+`, `/`, `\\` or `\!`.
 
     """
-    mapper = {
+    mapping = {
         r'\+':  "augmented",
         r'/':   "diminished",
         r'\\':  "raised",
@@ -1353,7 +1309,7 @@ class Include(element.HeadElement):
     head = r'\include'
 
 
-class PointAndClick(Toggle):
+class PointAndClick(element.ToggleElement):
     r"""A ``\pointAndClickOn`` or ``\pointAndClickOff`` command."""
     toggle_on = r'\pointAndClickOn'
     toggle_off = r'\pointAndClickOff'

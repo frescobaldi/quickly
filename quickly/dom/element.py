@@ -597,3 +597,45 @@ class TextElement(HeadElement):
         children = (n.copy() for n in self)
         return type(self)(self.head, *children, **getattr(self, '_spacing', {}))
 
+
+class MappingElement(TextElement):
+    r"""A TextElement with a fixed set of possible head values.
+
+    The ``mapping`` class attribute is a dictionay mapping unique head values
+    to unique output values.  Other head values can't be used, they result in a
+    KeyError.
+
+    """
+    mapping = {}
+
+    def __init_subclass__(cls, **kwargs):
+        # auto-create the reversed mapping for writing output
+        cls._inverted_mapping = {v: k for k, v in cls.mapping.items()}
+        super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def read_head(cls, origin):
+        """Convert the text value to one of our four states."""
+        return cls.mapping[origin[0].text]
+
+    def write_head(self):
+        """Return the text value."""
+        return self._inverted_mapping[self.head]
+
+
+class ToggleElement(MappingElement):
+    r"""A TextElement for a toggled item that has two possible values.
+
+    E.g. ``\break`` or ``\noBreak``, or ``\sustainOn`` and ``\sustainOff``.
+
+    The on-value is represented by head value True, the off value by False.
+
+    """
+    toggle_on = "<on>"
+    toggle_off = "<off>"
+
+    def __init_subclass__(cls, **kwargs):
+        cls.mapping = {cls.toggle_on: True, cls.toggle_off: False}
+        super().__init_subclass__(**kwargs)
+
+
