@@ -249,11 +249,15 @@ class LilyPondTransform(Transform):
 
     def figure(self, items):
         """Return a Figure element."""
-        return FigureBuilder(self, items).figure()
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == '>' else ()
+        return self.factory(lily.Figure, head, tail, *self.create_figure(items))
 
     def figurebracket(self, items):
         """Return a FigureBracket element."""
-        return FigureBuilder(self, items).figure_bracket()
+        head = items[:1]
+        tail = (items.pop(),) if items[-1] == ']' else ()
+        return self.factory(lily.FigureBracket, head, tail, *self.create_figure(items))
 
     def _list_nodes(self, items):
         """Yield element nodes for List, Identifier or IdentifierRef."""
@@ -439,6 +443,37 @@ class LilyPondTransform(Transform):
 
         """
         return LilyPond.get_markup_argument_count(command)
+
+    def create_figure(self, items):
+        """Yield nodes to be added in a Figure."""
+        step = None
+        items = iter(items)
+        for i in items:
+            if i.is_token:
+                if i.action is a.Text.Music.Pitch.Figure:
+                    if step:
+                        yield step
+                    cls = lily.FigureSkip if i == '_' else lily.FigureStep
+                    step = self.factory(cls, (i,))
+                elif i.action is a.Text.Music.Pitch.Accidental:
+                    if step:
+                        step.append(self.factory(lily.FigureAccidental, (i,)))
+                elif i.action is a.Literal.Character.Alteration:
+                    if step:
+                        step.append(self.factory(lily.FigureAlteration, (i,)))
+            elif i.name == "markup":
+                if step:
+                    yield step
+                for step in self.create_markup(i.obj, items):
+                    break
+                else:
+                    step = None
+            elif isinstance(i.obj, element.Element):
+                if step:
+                    yield step
+                step = i.obj
+        if step:
+            yield step
 
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
@@ -999,6 +1034,12 @@ class MusicBuilder:
     def script(self, obj):
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
+
+    @_context("figure")
+    def figure(self, obj):
+        """Called for ``figure`` context: a Figure."""
+        yield from self.pending_music()
+        self._music = obj
 
     @_context("string", "scheme", "list")
     def string_scheme(self, obj):

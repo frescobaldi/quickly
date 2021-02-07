@@ -1162,16 +1162,70 @@ class MarkupScoreLines(MarkupScore):
     head = r"\score-lines {"
 
 
-class Figure(BlockElement):
+class Figure(element.BlockElement):
     r"""One ``<`` ... ``>`` figure "chord" in figuremode."""
+    _space_between = " "
     head = '<'
     tail = '>'
 
 
-class FigureBracket(BlockElement):
+class FigureBracket(element.BlockElement):
     r"""One ``[`` ... ``]`` bracketed set of figures in figuremode."""
+    _space_between = " "
     head = '['
     tail = ']'
+
+
+class FigureStep(Int):
+    """A step number in figure mode."""
+
+
+class FigureSkip(element.HeadElement):
+    r"""The invisible figure step ``_``."""
+    head = '_'
+
+
+class FigureAccidental(element.TextElement):
+    r"""An accidental in figure mode.
+
+    One of: -1, -0.5, 0, 0.5, 1, corresponding to:
+     ``'--'``, ``'-'``, ``''``, ``'+'`` or ``'++'``.
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        """Convert the string to an accidental value."""
+        s = origin[0].text
+        return 0.5 * (s.count('+') - s.count('-'))
+
+    def write_head(self):
+        """Write out the accidental value."""
+        return ('--', '-', '', '+', '++')[int(self.head * 2 + 2)]
+
+
+class FigureAlteration(element.TextElement):
+    r"""An alteration in figure mode.
+
+    One of: "augmented", "diminished", "raised" or "end-of-line", corresponding
+    to: `\+`, `/`, `\\` or `\!`.
+
+    """
+    _figure_alteration_read = {
+        r'\+':  "augmented",
+        r'/':   "diminished",
+        r'\\':  "raised",
+        r'\!':  "end-of-line",
+    }
+    _figure_alteration_write = {v: k for k, v in _figure_alteration_read.items()}
+
+    @classmethod
+    def read_head(cls, origin):
+        """Convert the text value to one of our four states."""
+        return cls._figure_alteration_read[origin[0].text]
+
+    def write_head(self):
+        """Return the text value."""
+        return self._figure_alteration_write[self.head]
 
 
 class Accepts(element.HeadElement):
