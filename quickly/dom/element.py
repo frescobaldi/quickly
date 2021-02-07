@@ -550,6 +550,16 @@ class Element(Node, metaclass=ElementType):
         """
         return ()
 
+    def add_argument(self, num, node):
+        """Called by :func:`build_tree` to add a child node as argument.
+
+        ``num`` is the index of this node in the current node, ``node`` is the
+        node to be appended. You can reimplement this method to perform some
+        manipulation before appending it.
+
+        """
+        self.append(node)
+
 
 class HeadElement(Element):
     """Element that has a fixed head value."""
@@ -664,7 +674,7 @@ def build_tree(nodes):
     for node in nodes:
         signatures = node.signatures()
         if signatures:
-            # adjust signatures to exising children, if present
+            # adjust signatures to existing children, if present
             for c in node:
                 signatures = [s[1:] for s in signatures if isinstance(c, s[0])
                                        and len(s) > 1]
@@ -672,14 +682,15 @@ def build_tree(nodes):
                     # nothing needs to be added
                     break
             else:
-                for n in build_tree(nodes):
+                # get potential child nodes
+                for num, n in enumerate(build_tree(nodes), len(node)):
                     signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
                     if not signatures:
                         # node could not be added
                         yield node
                         node = n
                         break
-                    node.append(n)
+                    node.add_argument(num, n)
                     signatures = [s for s in signatures if s]
                     if not signatures:
                         break
