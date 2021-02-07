@@ -450,7 +450,7 @@ class Relative(element.HeadElement, Music):
 
     def signatures(self):
         yield Note, Music
-        yield Music
+        yield Music,
 
 
 class Absolute(element.HeadElement, Music):
