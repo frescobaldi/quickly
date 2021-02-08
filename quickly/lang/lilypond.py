@@ -646,9 +646,9 @@ class MusicBuilder:
                 while len(music[-1][-1]) and isinstance(music[-1][-1][-1], base.Comment):
                     self._comments.append(music[-1][-1].pop())
             if self._articulations:
+                if music.tail:
+                    music = lily.Music(music)
                 if self._comments:
-                    if music.tail:
-                        music = lily.Music(music)
                     music.extend(self._comments)
                     self._comments.clear()
                 music.append(lily.Articulations(*self._articulations))
