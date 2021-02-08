@@ -30,7 +30,43 @@ from .. import duration, pitch
 from . import base, element
 
 
-class Document(base.Document):
+class HandleAssignments:
+    """Mixin class to handle Assignment children in a convenient way."""
+    def get_variable(self, name):
+        """Convenience method to find the value of the named variable.
+
+        Finds an Assignment child that assigns a value to a Identifier with the
+        specified ``name``.  Returns the Element node representing the value,
+        or None if no assignment with that name exists.
+
+        """
+        for n in self/Assignment:
+            for v in n/Identifier:
+                if v.get_name() == name:
+                    return n[-1]
+
+    def set_variable(self, name, node):
+        """Convenience method to add or replace a variable assignment.
+
+        If an Assignment exists with the named variable, replaces its node
+        value; otherwise appends a new Assignment.
+
+        """
+        for n in self/Assignment:
+            for v in n/Identifier:
+                if v.get_name() == name:
+                    n.replace(-1, node)
+                    return
+        self.append(Assignment.with_name(name, node))
+
+    def variables(self):
+        """Convenience method to return a list of the available variable names."""
+        return list(v.get_name()
+            for n in self/Assignment
+                for v in n/Identifier)
+
+
+class Document(HandleAssignments, base.Document):
     """A full LilyPond source document."""
 
 
@@ -107,8 +143,7 @@ class Spanner(element.MappingElement):
         super().__init_subclass__(**kwargs)
 
 
-
-class Block(element.BlockElement):
+class Block(HandleAssignments, element.BlockElement):
     """Base class for a block, e.g. score, paper, etc.
 
     Newlines are placed by default between all child nodes. There are
@@ -118,39 +153,6 @@ class Block(element.BlockElement):
     _space_before = _space_after = _space_after_head = _space_before_tail = _space_between = '\n'
     head = '<fill in> {'
     tail = '}'
-
-    def get_variable(self, name):
-        """Convenience method to find the value of the named variable.
-
-        Finds an Assignment child that assigns a value to a Identifier with the
-        specified ``name``.  Returns the Element node representing the value,
-        or None if no assignment with that name exists.
-
-        """
-        for n in self/Assignment:
-            for v in n/Identifier:
-                if v.get_name() == name:
-                    return n[-1]
-
-    def set_variable(self, name, node):
-        """Convenience method to add or replace a variable assignment.
-
-        If an Assignment exists with the named variable, replaces its node
-        value; otherwise appends a new Assignment.
-
-        """
-        for n in self/Assignment:
-            for v in n/Identifier:
-                if v.get_name() == name:
-                    n.replace(-1, node)
-                    return
-        self.append(Assignment.with_name(name, node))
-
-    def variables(self):
-        """Convenience method to return a list of the available variable names."""
-        return list(v.get_name()
-            for n in self/Assignment
-                for v in n/Identifier)
 
 
 class Book(Block):
@@ -257,7 +259,7 @@ class Assignment(element.Element):
 
     @classmethod
     def with_name(cls, name, node):
-        """Convenience class method to create a complete Assignment.
+        """Convenience constructor to create a complete Assignment.
 
         Automatically creates a Identifier child node for the ``name``, an
         EqualSign node, and appends the specified ``node`` as the value of the
