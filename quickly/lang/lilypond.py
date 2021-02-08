@@ -671,14 +671,19 @@ class MusicBuilder:
 
     def add_articulation(self, art):
         """Add an articulation or script."""
-        if self._events:
-            self._events[-1].append(art)
-            art = e = self._events[0]
-            for f in self._events[1:]:
-                e.append(f)
-                e = f
-            self._events.clear()
-        self._articulations.append(art)
+        if self._music:
+            if self._events:
+                self._events[-1].append(art)
+                art = e = self._events[0]
+                for f in self._events[1:]:
+                    e.append(f)
+                    e = f
+                self._events.clear()
+            self._articulations.append(art)
+            return True
+        else:
+            print("Unbound event:", art) # TEMP
+            return False
 
     def add_spanner_id(self, node):
         """Return True if the node could be added to a spanner id that's being built."""
@@ -690,6 +695,13 @@ class MusicBuilder:
     def add_tweak(self, node):
         """Return True if the node could be added to a Tweak that's being built."""
         if self._events and isinstance(self._events[-1], lily.Tweak) and len(self._events[-1]) < 2:
+            self._events[-1].append(node)
+            return True
+        return False
+
+    def add_tag(self, node):
+        r"""Return True if the node could be added to a ``\tag`` command that's being built."""
+        if self._events and isinstance(self._events[-1], lily.Tag):
             self._events[-1].append(node)
             return True
         return False
@@ -756,6 +768,18 @@ class MusicBuilder:
     def nobeam_token(self, token):
         r"""Called for ``\noBeam``."""
         self.add_articulation(self.factory(lily.Modifier, (token,)))
+
+    @_token(r'\tag')
+    def tag_token(self, token):
+        r"""Called for ``\tag``."""
+        elem = self.factory(lily.Tag, (token,))
+        if self._events and isinstance(self._events[-1], lily.Direction):
+            # after a direction it affects the coming articulation
+            self._events.append(elem)
+        else:
+            # otherwise a toplevel tag element
+            yield from self.pending_music()
+            yield elem
 
     @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):
@@ -1048,7 +1072,7 @@ class MusicBuilder:
         """Called for ``string``, ``scheme`` or ``list`` context."""
         if self._events:
             # after a direction: an articulation
-            if not self.add_spanner_id(obj) and not self.add_tweak(obj):
+            if not self.add_spanner_id(obj) and not self.add_tweak(obj) and not self.add_tag(obj):
                 self.add_articulation(obj)
         else:
             # toplevel expression

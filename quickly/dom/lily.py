@@ -1361,7 +1361,7 @@ class Tag(element.HeadElement):
     head = r'\tag'
 
     def signatures(self):
-        yield SchemeExpression, MUSIC
+        yield (Symbol, String, SchemeExpression), MUSIC
 
 
 class Accepts(element.HeadElement):
