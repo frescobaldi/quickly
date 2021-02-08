@@ -404,3 +404,13 @@ class _NodeLister:
             if isinstance(node, other):
                 print(self.format(n, repr(node)))
 
+    def __getitem__(self, key):
+        """Print specified items."""
+        if isinstance(key, slice):
+            indices = itertools.islice(range(len(self.node)), key.start, key.stop, key.step)
+        else:
+            indices = [key]
+        for n in indices:
+            print(self.format(n, repr(self.node[n])))
+
+
