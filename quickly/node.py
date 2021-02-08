@@ -24,6 +24,7 @@ Python lists.
 
 """
 
+import itertools
 import weakref
 
 
@@ -219,21 +220,21 @@ class Node(list):
         """Return True if we and other are equivalent.
 
         This is the case when we and the other have the same class, the same
-        amount of children, :meth:`_equals` returns True, and finally for all
-        the children this method returns True.
+        amount of children, :meth:`body_equals` returns True, and finally for
+        all the children this method returns True.
 
         Before this method is called on all the children, this method calls
-        :meth:`_equals`; implement that method if you want to add more tests,
-        e.g. for certain instance attributes.
+        :meth:`body_equals`; implement that method if you want to add more
+        tests, e.g. for certain instance attributes.
 
         """
         return type(self) is type(other) and len(self) == len(other) and \
-            self._equals(other) and \
+            self.body_equals(other) and \
             all(a.equals(b) for a, b in zip(self, other))
 
-    def _equals(self, other):
-        """Implement this to add more :meth:`equals` tests, before all the children
-        are compared.
+    def body_equals(self, other):
+        """Implement this to add more :meth:`equals` tests, before all the
+        children are compared.
 
         The default implementation returns True.
 
