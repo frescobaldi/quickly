@@ -94,6 +94,20 @@ class Node(list):
         for n in self:
             n.dump(file, style, depth + 1)
 
+    @property
+    def ls(self):
+        """List the children, for debugging purposes.
+
+        You can also narrow down the list of children to certain types,
+        using the ``/`` operator::
+
+            >>> node.ls / Class
+
+        Only the children of node that are an instance of Class are shown.
+
+        """
+        return _NodeLister(self)
+
     def __bool__(self):
         """Always return True."""
         return True
@@ -374,4 +388,18 @@ class Node(list):
                     yield from n.descendants_backward()
             node = node.parent
 
+
+class _NodeLister:
+    """Displays a node for debugging purposes."""
+    def __init__(self, node):
+        self.node = node
+
+    def __repr__(self):
+        return '\n'.join(map(repr, self.node))
+
+    def __truediv__(self, other):
+        """Iterate over children that inherit the specified class."""
+        for i in self.node:
+            if isinstance(i, other):
+                print(repr(i))
 
