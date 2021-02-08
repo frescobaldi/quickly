@@ -659,7 +659,7 @@ class ToggleElement(MappingElement):
         super().__init_subclass__(**kwargs)
 
 
-def build_tree(nodes):
+def build_tree(nodes, ignore_type=None):
     """Build a tree of a stream of elements, based on their
     :meth:`Element.signatures`.
 
@@ -676,22 +676,26 @@ def build_tree(nodes):
         if signatures:
             # adjust signatures to existing children, if present
             for c in node:
-                signatures = [s[1:] for s in signatures if isinstance(c, s[0])
-                                       and len(s) > 1]
-                if not signatures:
-                    # nothing needs to be added
-                    break
+                if not ignore_type or not isinstance(c, ignore_type):
+                    signatures = [s[1:] for s in signatures if isinstance(c, s[0])
+                                           and len(s) > 1]
+                    if not signatures:
+                        # nothing needs to be added
+                        break
             else:
                 # get potential child nodes
                 for num, n in enumerate(build_tree(nodes), len(node)):
-                    signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
-                    if not signatures:
-                        # node could not be added
-                        yield node
-                        node = n
-                        break
-                    node.add_argument(num, n)
-                    signatures = [s for s in signatures if s]
-                    if not signatures:
-                        break
+                    if ignore_type and isinstance(n, ignore_type):
+                        node.add_argument(num, n)
+                    else:
+                        signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
+                        if not signatures:
+                            # node could not be added
+                            yield node
+                            node = n
+                            break
+                        node.add_argument(num, n)
+                        signatures = [s for s in signatures if s]
+                        if not signatures:
+                            break
         yield node
