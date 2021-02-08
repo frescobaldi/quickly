@@ -410,28 +410,21 @@ class MusicFunction(element.TextElement, Music):
         return '\\' + self.head
 
 
-class New(element.HeadElement, Music):
-    r"""``\new ...``."""
-    _space_between = _space_after_head = " "
-    head = r'\new'
-
-    def signatures(self):
-        yield Symbol, Music
-        yield Symbol, With, Music
-        yield Symbol, EqualSign, (String, Symbol), Music
-        yield Symbol, EqualSign, (String, Symbol), With, Music
-
-
 class Context(element.HeadElement, Music):
     r"""``\context ...``."""
     _space_between = _space_after_head = " "
     head = r'\context'
 
     def signatures(self):
-        yield Symbol, Music
-        yield Symbol, With, Music
-        yield Symbol, EqualSign, (String, Symbol), Music
-        yield Symbol, EqualSign, (String, Symbol), With, Music
+        yield Symbol, MUSIC
+        yield Symbol, With, MUSIC
+        yield Symbol, EqualSign, (String, Symbol), MUSIC
+        yield Symbol, EqualSign, (String, Symbol), With, MUSIC
+
+
+class New(Context):
+    r"""``\new ...``."""
+    head = r'\new'
 
 
 class Change(element.HeadElement, Music):
@@ -443,14 +436,32 @@ class Change(element.HeadElement, Music):
         yield Symbol, EqualSign, (String, Symbol)
 
 
+class AddQuote(element.HeadElement):
+    r"""An ``\addQuote`` command, at toplevel."""
+    _space_between = _space_after_head = " "
+    head = r'\addQuote'
+
+    def signatures(self):
+        yield (Identifier, String, Symbol), MUSIC
+
+
+class QuoteDuring(element.HeadElement, Music):
+    r"""A ``\quoteDuring`` command."""
+    _space_between = _space_after_head = " "
+    head = r'\quoteDuring'
+
+    def signatures(self):
+        yield (List, String, Symbol), MUSIC
+
+
 class Relative(element.HeadElement, Music):
     """Relative music."""
     head = r'\relative'
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Note, Music
-        yield Music,
+        yield Note, MUSIC
+        yield MUSIC,
 
 
 class Absolute(element.HeadElement, Music):
@@ -459,7 +470,7 @@ class Absolute(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Fixed(element.HeadElement, Music):
@@ -468,7 +479,7 @@ class Fixed(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Note, Music
+        yield Note, MUSIC
 
 
 class Transpose(element.HeadElement, Music):
@@ -477,7 +488,7 @@ class Transpose(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Note, Note, Music
+        yield Note, Note, MUSIC
 
 
 class Repeat(element.HeadElement, Music):
@@ -486,8 +497,8 @@ class Repeat(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Symbol, Int, Music
-        yield Symbol, Int, Music, Alternative
+        yield Symbol, Int, MUSIC
+        yield Symbol, Int, MUSIC, Alternative
 
 
 class Alternative(element.HeadElement, Music):
@@ -497,6 +508,32 @@ class Alternative(element.HeadElement, Music):
 
     def signatures(self):
         yield MusicList,
+
+
+class UnfoldRepeats(element.HeadElement, Music):
+    r"""The ``\unfoldRepeats`` command."""
+    _space_between = _space_after_head = " "
+    head = r'\unfoldRepeats'
+
+    def signatures(self):
+        yield MUSIC,
+
+
+class Transposition(element.HeadElement, Music):
+    r"""A ``\tranposition`` command."""
+    head = r'\transposition'
+    _space_between = _space_after_head = " "
+
+    def signatures(self):
+        yield Note,
+
+
+class Ottava(element.HeadElement, Music):
+    r"""An ``\ottava`` command."""
+    head = r'\ottava'
+
+    def signatures(self):
+        yield SchemeExpression,
 
 
 class MusicList(element.BlockElement, Music):
@@ -518,7 +555,7 @@ class Sequential(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Simultaneous(element.HeadElement, Music):
@@ -527,7 +564,7 @@ class Simultaneous(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class LyricMode(element.TextElement, Music):
@@ -535,23 +572,23 @@ class LyricMode(element.TextElement, Music):
 
     def signatures(self):
         if self.head == r'\lyricsto':
-            yield (String, Symbol), Music
+            yield (String, Symbol), MUSIC
         else:
-            yield Music,
+            yield MUSIC,
 
 
 class ChordMode(element.TextElement, Music):
     r"""``\chordmode`` or ``\chords``."""
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class DrumMode(element.TextElement, Music):
     r"""``\drummode`` or ``\drums``."""
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class NoteMode(element.HeadElement, Music):
@@ -559,14 +596,14 @@ class NoteMode(element.HeadElement, Music):
     head = r'\notemode'
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class FigureMode(element.TextElement, Music):
     r"""``\figuremode`` or ``\figures``."""
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Chord(element.BlockElement, Music):
@@ -986,7 +1023,7 @@ class Mark(element.HeadElement, Music):
 
     def signatures(self):
         yield Default,
-        yield (String, Symbol, SchemeExpression, Markup),
+        yield VALUE,
 
 
 class Default(element.HeadElement):
@@ -1136,7 +1173,7 @@ class Grace(element.HeadElement, Music):
     head = r"\grace"
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Acciaccatura(element.HeadElement, Music):
@@ -1149,7 +1186,7 @@ class Acciaccatura(element.HeadElement, Music):
     head = r"\acciaccatura"
 
     def signatures(self):
-        yield Music, Music
+        yield MUSIC, MUSIC
 
 
 class Appoggiatura(element.HeadElement, Music):
@@ -1162,7 +1199,7 @@ class Appoggiatura(element.HeadElement, Music):
     head = r"\appoggiatura"
 
     def signatures(self):
-        yield Music, Music
+        yield MUSIC, MUSIC
 
 
 class SlashedGrace(element.HeadElement, Music):
@@ -1175,7 +1212,7 @@ class SlashedGrace(element.HeadElement, Music):
     head = r"\slashedGrace"
 
     def signatures(self):
-        yield Music, Music
+        yield MUSIC, MUSIC
 
 
 class AfterGrace(element.HeadElement, Music):
@@ -1188,8 +1225,8 @@ class AfterGrace(element.HeadElement, Music):
     head = r"\afterGrace"
 
     def signatures(self):
-        yield Fraction, Music, Music
-        yield Music, Music
+        yield Fraction, MUSIC, MUSIC
+        yield MUSIC, MUSIC
 
 
 class MultilineComment(base.MultilineComment):
@@ -1389,7 +1426,7 @@ class Undo(element.HeadElement, Music):
     head = r'\undo'
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Once(element.HeadElement, Music):
@@ -1398,7 +1435,7 @@ class Once(element.HeadElement, Music):
     head = r'\once'
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Temporary(element.HeadElement, Music):
@@ -1407,7 +1444,7 @@ class Temporary(element.HeadElement, Music):
     head = r'\temporary'
 
     def signatures(self):
-        yield Music,
+        yield MUSIC,
 
 
 class Override(element.HeadElement, Music):
@@ -1416,9 +1453,9 @@ class Override(element.HeadElement, Music):
     head = r'\override'
 
     def signatures(self):
-        yield (List, Symbol), EqualSign, (String, SchemeExpression, Markup, Number)
-        yield (List, Symbol), SchemeExpression, EqualSign, (String, SchemeExpression, Markup, Number)
-        yield (List, Symbol), SchemeExpression, SchemeExpression, EqualSign, (String, SchemeExpression, Markup, Number)
+        yield (List, Symbol), EqualSign, VALUE
+        yield (List, Symbol), SchemeExpression, EqualSign, VALUE
+        yield (List, Symbol), SchemeExpression, SchemeExpression, EqualSign, VALUE
 
 
 class Revert(element.HeadElement, Music):
@@ -1438,7 +1475,7 @@ class Set(element.HeadElement, Music):
     head = r'\set'
 
     def signatures(self):
-        yield (List, Symbol), EqualSign, (String, SchemeExpression, Markup, Number)
+        yield (List, Symbol), EqualSign, VALUE
 
 
 class Unset(element.HeadElement, Music):
@@ -1513,4 +1550,8 @@ def make_list_nodes(iterable):
         if node:
             yield node
 
+
+# often used signatures:
+MUSIC = (Music, IdentifierRef)
+VALUE = (List, String, SchemeExpression, Number, Markup)
 

@@ -941,10 +941,12 @@ class MusicBuilder:
 
     _builtin_mapping = _head_mapping(
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
-        lily.Fixed, lily.Transpose, lily.Times, lily.Tuplet,
-        lily.ScaleDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
-        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
-        lily.Breathe, lily.Mark, lily.Default, lily.Label,
+        lily.Fixed, lily.Transpose, lily.Transposition, lily.Ottava,
+        lily.Times, lily.Tuplet, lily.ScaleDurations, lily.Tempo, lily.Grace,
+        lily.Acciaccatura, lily.Appoggiatura, lily.SlashedGrace,
+        lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark, lily.Default,
+        lily.Label, lily.AddQuote, lily.QuoteDuring, lily.UnfoldRepeats,
+        lily.Alternative,
     )
     _builtin_mapping.update(_toggle_mapping(
         lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
