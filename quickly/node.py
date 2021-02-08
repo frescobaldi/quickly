@@ -393,13 +393,14 @@ class _NodeLister:
     """Displays a node for debugging purposes."""
     def __init__(self, node):
         self.node = node
+        self.format = "{{:{}}} {{}}".format(len(str(len(node)))).format
 
     def __repr__(self):
-        return '\n'.join(map(repr, self.node))
+        return '\n'.join(self.format(n, repr(node)) for n, node in enumerate(self.node))
 
     def __truediv__(self, other):
         """Iterate over children that inherit the specified class."""
-        for i in self.node:
-            if isinstance(i, other):
-                print(repr(i))
+        for n, node in enumerate(self.node):
+            if isinstance(node, other):
+                print(self.format(n, repr(node)))
 
