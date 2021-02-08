@@ -268,6 +268,11 @@ class Assignment(element.Element):
         """
         return cls(Identifier.with_name(name), EqualSign(), node)
 
+    def repr_head(self):
+        """If available, show the name of our first identifier."""
+        for child in self / Identifier:
+            return child.get_name()
+
 
 class Identifier(List):
     """A variable name, the first node is always a Symbol or String.
