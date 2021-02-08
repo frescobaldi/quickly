@@ -839,7 +839,7 @@ class MusicBuilder:
             self.add_articulation(self.factory(self._spanner_mapping[token.action], (token,)))
 
     @_action(a.Name.Type)
-    def dynamic_action(self, token):
+    def name_type_action(self, token):
         r"""Called for ``Name.Type``, e.g. a key signature mode."""
         yield from self.pending_music()
         yield self.factory(lily.Mode, (token,))
