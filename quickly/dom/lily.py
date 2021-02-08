@@ -48,10 +48,20 @@ class Int(Number):
 
 
 class Fraction(Number):
-    """A fraction, like ``1/2``."""
+    """A fraction, like ``1/2``.
+
+    The head value is a two-tuple (numerator, denominator).
+
+    """
+    def repr_head(self):
+        return self.write_head()
+
     @classmethod
     def read_head(cls, origin):
-        return fractions.Fraction(origin[0].text)
+        return tuple(map(int, origin[0].text.split('/')))
+
+    def write_head(self):
+        return '/'.join(map(str, self.head))
 
 
 class Float(Number):
