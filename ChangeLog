@@ -7,10 +7,9 @@ ChangeLog
 - still pre-alpha but work in progress
 - quickly.dom.lily now has much more elements
 - correctly parse lists, property paths etc
-- added chordmode and chord modifiers
-- todo: figuremode
+- added chordmode and chord modifiers, figuremode
 - quickly.lang.lilypond now transforms almost a full document
-- todo: combining commands with their arguments, based on signatures
+- commands are combined with their arguments, based on signatures
 - work started on documentation with a quickly.dom explanation
 
 
