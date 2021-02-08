@@ -1356,6 +1356,14 @@ class FigureAlteration(element.MappingElement):
     }
 
 
+class Tag(element.HeadElement):
+    r"""A ``\tag`` command."""
+    head = r'\tag'
+
+    def signatures(self):
+        yield SchemeExpression, MUSIC
+
+
 class Accepts(element.HeadElement):
     r"""The ``\accepts`` command."""
     _space_after_head = _space_between = " "
