@@ -1364,6 +1364,46 @@ class Tag(element.HeadElement):
         yield (Symbol, String, SchemeExpression), MUSIC
 
 
+class KeepWithTag(element.HeadElement):
+    r"""A ``\keepWithTag`` command."""
+    head = r'\keepWithTag'
+
+    def signatures(self):
+        yield (Symbol, String, SchemeExpression), MUSIC
+
+
+class RemoveWithTag(element.HeadElement):
+    r"""A ``\removeWithTag`` command."""
+    head = r'\removeWithTag'
+
+    def signatures(self):
+        yield (Symbol, String, SchemeExpression), MUSIC
+
+
+class TagGroup(element.HeadElement):
+    r"""A ``\tagGroup`` command."""
+    head = r'\tagGroup'
+
+    def signatures(self):
+        yield (Symbol, String, SchemeExpression),
+
+
+class PushToTag(element.HeadElement):
+    r"""A ``\pushToTag`` command."""
+    head = r'\pushToTag'
+
+    def signatures(self):
+        yield (Symbol, String, SchemeExpression), MUSIC
+
+
+class AppendToTag(element.HeadElement):
+    r"""A ``\appendToTag`` command."""
+    head = r'\appendToTag'
+
+    def signatures(self):
+        yield (Symbol, String, SchemeExpression), MUSIC
+
+
 class Accepts(element.HeadElement):
     r"""The ``\accepts`` command."""
     _space_after_head = _space_between = " "

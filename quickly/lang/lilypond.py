@@ -970,7 +970,8 @@ class MusicBuilder:
         lily.Acciaccatura, lily.Appoggiatura, lily.SlashedGrace,
         lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark, lily.Default,
         lily.Label, lily.AddQuote, lily.QuoteDuring, lily.UnfoldRepeats,
-        lily.Alternative,
+        lily.Alternative, lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup,
+        lily.PushToTag, lily.AppendToTag,
     )
     _builtin_mapping.update(_toggle_mapping(
         lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
