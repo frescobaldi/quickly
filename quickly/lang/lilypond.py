@@ -630,9 +630,11 @@ class MusicBuilder:
             yield from self._comments
             self._comments.clear()
 
-            # if there are tweaks but no articulations, the tweak
+            # if there are tweaks or tags but no articulations, the tweak or tag
             # is meant for the next note. Output it now.
-            yield from (e for e in self._events if isinstance(e, lily.Tweak))
+            for e in self._events:
+                if isinstance(e, (lily.Tweak, lily.Tag)):
+                    yield e
             self._events.clear()
 
         self._music = self._duration = self._scaling = None
@@ -655,22 +657,25 @@ class MusicBuilder:
 
     def add_spanner_id(self, node):
         """Return True if the node could be added to a spanner id that's being built."""
-        if self._events and isinstance(self._events[-1], lily.SpannerId) and len(self._events[-1]) == 0:
-            self._events[-1].append(node)
+        e = self._events
+        if e and isinstance(e[-1], lily.SpannerId) and len(e[-1]) == 0:
+            e[-1].append(node)
             return True
         return False
 
     def add_tweak(self, node):
         """Return True if the node could be added to a Tweak that's being built."""
-        if self._events and isinstance(self._events[-1], lily.Tweak) and len(self._events[-1]) < 2:
-            self._events[-1].append(node)
+        e = self._events
+        if e and isinstance(e[-1], lily.Tweak) and len(e[-1]) < 2:
+            e[-1].append(node)
             return True
         return False
 
     def add_tag(self, node):
         r"""Return True if the node could be added to a ``\tag`` command that's being built."""
-        if self._events and isinstance(self._events[-1], lily.Tag):
-            self._events[-1].append(node)
+        e = self._events
+        if e and isinstance(e[-1], lily.Tag) and len(e[-1]) < 1:
+            e[-1].append(node)
             return True
         return False
 
@@ -740,14 +745,7 @@ class MusicBuilder:
     @_token(r'\tag')
     def tag_token(self, token):
         r"""Called for ``\tag``."""
-        elem = self.factory(lily.Tag, (token,))
-        if self._events and isinstance(self._events[-1], lily.Direction):
-            # after a direction it affects the coming articulation
-            self._events.append(elem)
-        else:
-            # otherwise a toplevel tag element
-            yield from self.pending_music()
-            yield elem
+        self._events.append(self.factory(lily.Tag, (token,)))
 
     @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):

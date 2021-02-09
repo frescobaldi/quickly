@@ -633,6 +633,14 @@ class MappingElement(TextElement):
         super().__init_subclass__(**kwargs)
 
     @classmethod
+    def from_mapping(cls, text, *children, **attrs):
+        """Convenience constructor to create this element from a text key
+        that's available in the ``mapping``.
+
+        """
+        return cls(cls.mapping[text], *children, **attrs)
+
+    @classmethod
     def read_head(cls, origin):
         """Convert the text value to one of our four states."""
         return cls.mapping[origin[0].text]

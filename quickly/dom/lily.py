@@ -23,6 +23,7 @@ Elements needed for LilyPond expressions.
 """
 
 
+import collections
 import fractions
 import re
 
@@ -1625,7 +1626,36 @@ class PointAndClick(element.ToggleElement):
 
 
 class GrobDirection(element.MappingElement):
-    """A collection of commands like ``\slurUp``."""
+    """A collection of commands like ``\slurUp``.
+
+    To create a ``\slurUp`` command, use::
+
+        >>> node = lily.GrobDirection(("Slur", 1))
+        >>> node.write()
+        '\\slurUp'
+
+    Or::
+
+        >>> node = lily.GrobDirection.from_mapping(r'\slurUp')
+
+    When reading this node programmatically, the ``grob`` and ``direction``
+    attributes can be read and modified::
+
+        >>> node.grob
+        'Slur'
+        >>> node.direction
+        1
+        >>> node.write()
+        '\\slurUp'
+        >>> node.direction = -1
+        >>> node.write()
+        '\\slurDown'
+
+    The ``grobs`` class attribute is a dictionary mapping each available grob
+    to a tuple of the directions it supports. (Technically not all named
+    objects are grobs (graphical objects).)
+
+    """
     mapping = {
         r'\arpeggioArrowDown': ('ArpeggioArrow', -1),
         r'\arpeggioArrowUp': ('ArpeggioArrow', 1),
@@ -1657,6 +1687,13 @@ class GrobDirection(element.MappingElement):
         r'\tupletNeutral': ('Tuplet', 0),
         r'\tupletUp': ('Tuplet', 1),
     }
+
+    def grobs(mapping):
+        d = collections.defaultdict(list)
+        for grob, direction in mapping.values():
+            d[grob].append(direction)
+        return {grob: tuple(sorted(dirs)) for grob, dirs in d.items()}
+    grobs = grobs(mapping)
 
     @property
     def grob(self):
