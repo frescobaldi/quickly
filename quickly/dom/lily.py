@@ -471,6 +471,33 @@ class QuoteDuring(element.HeadElement, Music):
         yield (List, String, Symbol), MUSIC
 
 
+class ApplyContext(element.HeadElement):
+    r"""The ``\applyContext`` command."""
+    _space_between = _space_after_head = " "
+    head = r'\applyContext'
+
+    def signatures(self):
+        yield SchemeExpression,
+
+
+class ApplyMusic(element.HeadElement):
+    r"""The ``\applyMusic`` function."""
+    _space_between = _space_after_head = " "
+    head = r'\applyMusic'
+
+    def signatures(self):
+        yield SchemeExpression, MUSIC
+
+
+class ApplyOutput(element.HeadElement):
+    r"""The ``\applyOutput`` command."""
+    _space_between = _space_after_head = " "
+    head = r'\applyOutput'
+
+    def signatures(self):
+        yield SYMBOL, SchemeExpression
+
+
 class Relative(element.HeadElement, Music):
     """Relative music."""
     head = r'\relative'
@@ -1010,10 +1037,13 @@ class PageBreak(element.ToggleElement):
     toggle_off = r'\noPageBreak'
 
 
-class PageTurn(element.ToggleElement):
-    r"""A ``\pageTurn`` or ``\noPageTurn``."""
-    toggle_on = r'\pageTurn'
-    toggle_off = r'\noPageTurn'
+class PageTurn(element.MappingElement):
+    r"""A ``\pageTurn``, ``\allowPageTurn`` or ``\noPageTurn``."""
+    mapping = {
+        r'\pageTurn':   '',
+        r'\noPageTurn': 'no',
+        r'\allowPageTurn': 'allow',
+    }
 
 
 class PipeSymbol(element.HeadElement):
@@ -1473,7 +1503,7 @@ class Omit(element.HeadElement, Music):
     head = r'\omit'
 
     def signatures(self):
-        yield (List, Symbol),
+        yield SYMBOL,
 
 
 class Hide(element.HeadElement, Music):
@@ -1482,7 +1512,7 @@ class Hide(element.HeadElement, Music):
     head = r'\hide'
 
     def signatures(self):
-        yield (List, Symbol),
+        yield SYMBOL,
 
 
 class Undo(element.HeadElement, Music):
@@ -1518,9 +1548,9 @@ class Override(element.HeadElement, Music):
     head = r'\override'
 
     def signatures(self):
-        yield (List, Symbol), EqualSign, VALUE
-        yield (List, Symbol), SchemeExpression, EqualSign, VALUE
-        yield (List, Symbol), SchemeExpression, SchemeExpression, EqualSign, VALUE
+        yield SYMBOL, EqualSign, VALUE
+        yield SYMBOL, SchemeExpression, EqualSign, VALUE
+        yield SYMBOL, SchemeExpression, SchemeExpression, EqualSign, VALUE
 
 
 class Revert(element.HeadElement, Music):
@@ -1529,9 +1559,9 @@ class Revert(element.HeadElement, Music):
     head = r'\revert'
 
     def signatures(self):
-        yield (List, Symbol),
-        yield (List, Symbol), SchemeExpression
-        yield (List, Symbol), SchemeExpression, SchemeExpression
+        yield SYMBOL,
+        yield SYMBOL, SchemeExpression
+        yield SYMBOL, SchemeExpression, SchemeExpression
 
 
 class Set(element.HeadElement, Music):
@@ -1540,7 +1570,7 @@ class Set(element.HeadElement, Music):
     head = r'\set'
 
     def signatures(self):
-        yield (List, Symbol), EqualSign, VALUE
+        yield SYMBOL, EqualSign, VALUE
 
 
 class Unset(element.HeadElement, Music):
@@ -1549,7 +1579,7 @@ class Unset(element.HeadElement, Music):
     head = r'\unset'
 
     def signatures(self):
-        yield (List, Symbol),
+        yield SYMBOL,
 
 
 class Version(element.HeadElement, Music):
@@ -1585,6 +1615,58 @@ class PointAndClick(element.ToggleElement):
     toggle_off = r'\pointAndClickOff'
 
 
+class GrobDirection(element.MappingElement):
+    """A collection of commands like ``\slurUp``."""
+    mapping = {
+        r'\arpeggioArrowDown': ('ArpeggioArrow', -1),
+        r'\arpeggioArrowUp': ('ArpeggioArrow', 1),
+        r'\bassFigureStaffAlignmentDown': ('BassFigureStaffAlignment', -1),
+        r'\bassFigureStaffAlignmentNeutral': ('BassFigureStaffAlignment', 0),
+        r'\bassFigureStaffAlignmentUp': ('BassFigureStaffAlignment', 1),
+        r'\dotsDown': ('Dots', -1),
+        r'\dotsNeutral': ('Dots', 0),
+        r'\dotsUp': ('Dots', 1),
+        r'\dynamicDown': ('Dynamic', -1),
+        r'\dynamicNeutral': ('Dynamic', 0),
+        r'\dynamicUp': ('Dynamic', 1),
+        r'\phrasingSlurDown': ('PhrasingSlur', -1),
+        r'\phrasingSlurNeutral': ('PhrasingSlur', 0),
+        r'\phrasingSlurUp': ('PhrasingSlur', 1),
+        r'\slurDown': ('Slur', -1),
+        r'\slurNeutral': ('Slur', 0),
+        r'\slurUp': ('Slur', 1),
+        r'\stemDown': ('Stem', -1),
+        r'\stemNeutral': ('Stem', 0),
+        r'\stemUp': ('Stem', 1),
+        r'\textSpannerDown': ('TextSpanner', -1),
+        r'\textSpannerNeutral': ('TextSpanner', 0),
+        r'\textSpannerUp': ('TextSpanner', 1),
+        r'\tieDown': ('Tie', -1),
+        r'\tieNeutral': ('Tie', 0),
+        r'\tieUp': ('Tie', 1),
+        r'\tupletDown': ('Tuplet', -1),
+        r'\tupletNeutral': ('Tuplet', 0),
+        r'\tupletUp': ('Tuplet', 1),
+    }
+
+    @property
+    def grob(self):
+        """The grob (graphical object), starting with a Capital."""
+        return self.head[0]
+
+    @grob.setter
+    def grob(self, value):
+        self.head = (grob, self.head[1])
+
+    @property
+    def direction(self):
+        """The direction, 1 for up, 0 for neutral, -1 for down."""
+        return self.head[1]
+
+    @direction.setter
+    def direction(self, value):
+        self.head = (self.head[0], value)
+
 
 def is_symbol(text):
     """Return True is text is a valid LilyPond symbol."""
@@ -1619,4 +1701,4 @@ def make_list_nodes(iterable):
 # often used signatures:
 MUSIC = (Music, IdentifierRef)
 VALUE = (List, String, SchemeExpression, Number, Markup)
-
+SYMBOL = (List, Symbol, String)

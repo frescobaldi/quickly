@@ -699,3 +699,22 @@ def build_tree(nodes, ignore_type=None):
                         if not signatures:
                             break
         yield node
+
+
+def head_mapping(*element_types):
+    """Return a dictionary mapping (written out) head text to element type.
+
+    Makes only sense for HeadElement or MappingElement descendants.
+
+    """
+    d = {}
+    for cls in element_types:
+        # we could delegate this to private methods of Element, but I didn't
+        # want to pollute the classes with unimportant logic :-)
+        if issubclass(cls, MappingElement):
+            d.update(dict.fromkeys(cls.mapping, cls))
+        elif issubclass(cls, HeadElement):
+            d[cls.head] = cls
+    return d
+
+

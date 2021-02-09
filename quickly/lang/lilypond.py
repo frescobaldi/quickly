@@ -32,43 +32,6 @@ from parce.util import Dispatcher
 from quickly.dom import base, element, lily, scm
 
 
-def _head_mapping(*element_types):
-    """Return a dictionary mapping head text to element type.
-
-    The element types must be HeadElement instances with a fixed head attribute.
-
-    """
-    return dict((cls.head, cls) for cls in element_types)
-
-
-def _spanner_start_stop_mapping(*element_types):
-    """Return a dictionary mapping ``spanner_start`` and ``spanner_stop``
-    to an element type.
-
-    The element types must inherit TextElement.
-
-    """
-    d = {}
-    for cls in element_types:
-        d[cls.spanner_start] = cls
-        d[cls.spanner_stop] = cls
-    return d
-
-
-def _toggle_mapping(*element_types):
-    """Return a dictionary mapping ``toggle_on`` and ``toggle_of``
-    to an element type.
-
-    The element types must inherit TextElement.
-
-    """
-    d = {}
-    for cls in element_types:
-        d[cls.toggle_on] = cls
-        d[cls.toggle_off] = cls
-    return d
-
-
 class LilyPond(parce.lang.lilypond.LilyPond):
     """LilyPond language definition."""
     @classmethod
@@ -831,12 +794,10 @@ class MusicBuilder:
         self.add_articulation(self.factory(lily.Dynamic, (token,)))
 
     # articulations that are spanners, for articulation_action()
-    _articulations_mapping = _spanner_start_stop_mapping(
-        lily.TextSpanner, lily.TrillSpanner, lily.Melisma,
+    _articulations_mapping = element.head_mapping(
+        lily.TextSpanner, lily.TrillSpanner, lily.Melisma, lily.LaissezVibrer,
+        lily.RepeatTie, lily.Arpeggio, lily.Glissando,
     )
-    _articulations_mapping.update(_head_mapping(
-        lily.LaissezVibrer, lily.RepeatTie, lily.Arpeggio, lily.Glissando,
-    ))
 
     @_action(a.Name.Script.Articulation)
     def articulation_action(self, token):
@@ -889,7 +850,7 @@ class MusicBuilder:
         yield from self.pending_music()
         yield self.factory(lily.VoiceSeparator, (token,))
 
-    _chord_modifier_mapping = _head_mapping(
+    _chord_modifier_mapping = element.head_mapping(
         lily.AddSteps, lily.RemoveSteps, lily.Inversion, lily.AddInversion)
 
     @_action(a.Delimiter.Separator.Chord)
@@ -963,7 +924,7 @@ class MusicBuilder:
         yield from self.pending_music()
         yield self.factory(lily.LyricSkip, (token,))
 
-    _builtin_mapping = _head_mapping(
+    _builtin_mapping = element.head_mapping(
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
         lily.Fixed, lily.Transpose, lily.Transposition, lily.Ottava,
         lily.Times, lily.Tuplet, lily.ScaleDurations, lily.Tempo, lily.Grace,
@@ -971,12 +932,10 @@ class MusicBuilder:
         lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark, lily.Default,
         lily.Label, lily.AddQuote, lily.QuoteDuring, lily.UnfoldRepeats,
         lily.Alternative, lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup,
-        lily.PushToTag, lily.AppendToTag,
+        lily.PushToTag, lily.AppendToTag, lily.AutoBeam, lily.Break,
+        lily.PageBreak, lily.PageTurn, lily.Cadenza, lily.EasyHeads,
+        lily.PointAndClick, lily.Sustain, lily.Sostenuto, lily.GrobDirection,
     )
-    _builtin_mapping.update(_toggle_mapping(
-        lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
-        lily.EasyHeads, lily.PointAndClick, lily.Sustain, lily.Sostenuto,
-    ))
 
     @_action(a.Name.Builtin)
     def name_builtin_action(self, token):
@@ -985,7 +944,7 @@ class MusicBuilder:
         cls = self._builtin_mapping.get(token.text, lily.MusicFunction)
         yield self.factory(cls, (token,))
 
-    _keyword_mapping = _head_mapping(
+    _keyword_mapping = element.head_mapping(
         lily.Omit, lily.Hide, lily.Undo, lily.Once, lily.Temporary,
         lily.Override, lily.Revert, lily.Set, lily.Unset, lily.Version,
         lily.Language, lily.Include, lily.New, lily.Context, lily.Change,
