@@ -271,7 +271,7 @@ class Assignment(element.Element):
     def repr_head(self):
         """If available, show the name of our first identifier."""
         for child in self / Identifier:
-            return child.get_name()
+            return child.write()
 
 
 class Identifier(List):

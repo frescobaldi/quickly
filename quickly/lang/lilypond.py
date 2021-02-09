@@ -244,10 +244,6 @@ class LilyPondTransform(Transform):
 
     start_list = None   # lexicon never creates tokens
 
-    def identifier(self, items):
-        """Return an Identifier item."""
-        return lily.Identifier(*self._list_nodes(items))
-
     def identifier_ref(self, items):
         """Return an IdentifierRef item."""
         node = self.factory(lily.IdentifierRef, items[:1])
@@ -334,7 +330,7 @@ class LilyPondTransform(Transform):
         """
         nodes = iter(nodes)
         for n in nodes:
-            if isinstance(n, lily.Identifier):
+            if isinstance(n, (lily.List, lily.Symbol, lily.String)):
                 variable = [n]
                 equalsign = False
                 for n in nodes:
@@ -342,7 +338,12 @@ class LilyPondTransform(Transform):
                     if not isinstance(n, base.Comment):
                         if equalsign:
                             # gotcha!!
-                            yield lily.Assignment(*variable)
+                            first, *rest = variable
+                            if isinstance(first, lily.List):
+                                identifier = lily.Identifier(*first)
+                            else:
+                                identifier = lily.Identifier(first)
+                            yield lily.Assignment(identifier, *rest)
                             break
                         elif isinstance(n, lily.EqualSign):
                             equalsign = True
