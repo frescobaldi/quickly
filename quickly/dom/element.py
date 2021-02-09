@@ -550,12 +550,11 @@ class Element(Node, metaclass=ElementType):
         """
         return ()
 
-    def add_argument(self, num, node):
+    def add_argument(self, node):
         """Called by :func:`build_tree` to add a child node as argument.
 
-        ``num`` is the index of this node in the current node, ``node`` is the
-        node to be appended. You can reimplement this method to perform some
-        manipulation before appending it.
+        ``node`` is the node to be appended. You can reimplement this method to
+        perform some manipulation before appending it.
 
         """
         self.append(node)
@@ -663,42 +662,73 @@ def build_tree(nodes, ignore_type=None):
     """Build a tree of a stream of elements, based on their
     :meth:`Element.signatures`.
 
-    ``nodes`` must be a generator yielding the nodes. Consumes all nodes, and
-    make some nodes a child of a preceding node. Yields the resulting nodes.
-    When a node specifies what child element types it can have, and those
-    element types follow indeed, they are added as child element.
+    ``nodes`` is an iterable of nodes. Consumes all nodes, and make some nodes
+    a child of a preceding node. Yields the resulting nodes. When a node
+    specifies what child element types it can have, and those element types
+    follow indeed, they are added as child element.
+
+    If ``ignore_type`` is given, it should be an Element type, or a tuple of
+    Element types that are ignored, and added anyway as argument. This can be
+    used to interperse Comment nodes.
 
     Existing children are taken into account.
 
     """
+    stack = []
+
+    if ignore_type:
+        def child_nodes(node):
+            """Iterate over child nodes, skipping ``ignore_type``."""
+            for child in node:
+                if not isinstance(child, ignore_type):
+                    yield child
+    else:
+        def child_nodes(node):
+            """Iterate over child nodes."""
+            return node
+
+    def add(node):
+        """Add a node and yield finished nodes."""
+        pending = [node]
+        while stack and pending:
+            # see if this node fits on top of the stack
+            node = pending.pop()
+            parent, signatures = stack[-1]
+            if ignore_type and isinstance(node, ignore_type):
+                parent.add_argument(node)
+                continue
+            signatures = [s[1:] for s in signatures if isinstance(node, s[0])]
+            if signatures:
+                # this fits
+                parent.add_argument(node)
+                signatures = [s for s in signatures if s]
+                if signatures:
+                    # wait for more arguments
+                    stack[-1] = parent, signatures
+                    continue
+                # the parent is complete!
+            else:
+                # this does not fit, finish this parent and try again
+                pending.append(node)
+            pending.append(stack.pop()[0])
+        yield from reversed(pending)
+
     for node in nodes:
         signatures = node.signatures()
         if signatures:
-            # adjust signatures to existing children, if present
-            for c in node:
-                if not ignore_type or not isinstance(c, ignore_type):
-                    signatures = [s[1:] for s in signatures if isinstance(c, s[0])
-                                           and len(s) > 1]
-                    if not signatures:
-                        # nothing needs to be added
-                        break
+            for c in child_nodes(node):
+                signatures = [s[1:] for s in signatures if isinstance(c, s[0])
+                                       and len(s) > 1]
+                if not signatures:
+                    break
             else:
-                # get potential child nodes
-                for num, n in enumerate(build_tree(nodes), len(node)):
-                    if ignore_type and isinstance(n, ignore_type):
-                        node.add_argument(num, n)
-                    else:
-                        signatures = [s[1:] for s in signatures if isinstance(n, s[0])]
-                        if not signatures:
-                            # node could not be added
-                            yield node
-                            node = n
-                            break
-                        node.add_argument(num, n)
-                        signatures = [s for s in signatures if s]
-                        if not signatures:
-                            break
-        yield node
+                stack.append((node, signatures))
+                continue
+        yield from add(node)
+
+    # yield pending (unfinished) stuff
+    while stack:
+        yield from add(stack.pop()[0])
 
 
 def head_mapping(*element_types):

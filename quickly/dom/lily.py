@@ -1089,16 +1089,16 @@ class Tempo(element.HeadElement, Music):
     head = r"\tempo"
 
     def signatures(self):
-        yield (String, Symbol, Markup),
-        yield (String, Symbol, Markup), Unpitched, EqualSign, Int
+        yield TEXT,
+        yield TEXT, Unpitched, EqualSign, Int
         yield Unpitched, EqualSign, Int
 
-    def add_argument(self, num, node):
+    def add_argument(self, node):
         """Reimplemented to pick the Duration of an Unpitched node."""
         if isinstance(node, Unpitched):
             for node in node:
                 break
-        super().add_argument(num, node)
+        super().add_argument(node)
 
 
 class SpannerId(element.HeadElement):
@@ -1706,3 +1706,4 @@ def make_list_nodes(iterable):
 MUSIC = (Music, IdentifierRef)
 VALUE = (List, String, SchemeExpression, Number, Markup)
 SYMBOL = (List, Symbol, String)
+TEXT = (List, Symbol, String, Markup)
