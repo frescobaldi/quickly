@@ -2,6 +2,19 @@ ChangeLog
 =========
 
 
+current: quickly-0.0.5
+
+- Milestone: quickly correctly parses my Mouvement piece!
+  https://github.com/wbsoft/lilymusic/blob/master/berendsen/mouvement.ly
+- fixed \rest before duration
+- fixed dot missing in scheme pair
+- add space after markup commands
+- fixed dom.element.build_tree, it lost a node after two \repeat nodes
+- parce removed identifier context; we only create Identifier with Assignment
+- smartly support \tag and \tweak without direction prepended
+- fixed documentation build errors.
+
+
 2021-02-07: quickly-0.0.4
 
 - still pre-alpha but work in progress
