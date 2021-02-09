@@ -720,7 +720,7 @@ class MusicBuilder:
                 self._music = lily.Rest(self._music.head, *self._music)
             else:
                 self._music = self.factory(lily.Rest, origin, (), *self._music)
-            self._music.append(self.factory(lily.RestModifier, (token,)))
+            self._articulations.append(self.factory(lily.RestModifier, (token,)))
 
     @_token(r'\tweak')
     def tweak_token(self, token):
