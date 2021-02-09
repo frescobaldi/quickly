@@ -1434,6 +1434,11 @@ class AppendToTag(element.HeadElement):
         yield (Symbol, String, SchemeExpression), MUSIC
 
 
+class Etc(element.HeadElement):
+    r"""The ``\etc`` placeholder."""
+    head = r'\etc'
+
+
 class Accepts(element.HeadElement):
     r"""The ``\accepts`` command."""
     _space_after_head = _space_between = " "
@@ -1703,7 +1708,7 @@ def make_list_nodes(iterable):
 
 
 # often used signatures:
-MUSIC = (Music, IdentifierRef)
-VALUE = (List, String, SchemeExpression, Number, Markup)
+MUSIC = (Music, IdentifierRef, Etc)
+VALUE = (List, String, SchemeExpression, Number, Markup, IdentifierRef, Etc)
 SYMBOL = (List, Symbol, String)
-TEXT = (List, Symbol, String, Markup)
+TEXT = (List, Symbol, String, Markup, IdentifierRef, Etc)

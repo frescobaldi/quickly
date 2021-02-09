@@ -322,10 +322,11 @@ class LilyPondTransform(Transform):
     def handle_assignments(self, nodes):
         """Handle assignments that occur in the Element nodes.
 
-        If a Identifier is encountered and then an EqualSign, it is turned
-        into an Assignment.
+        If a List, Symbol or String is encountered followed by an EqualSign and
+        a third node, it is turned into an Assignment.
 
-        Needed at toplevel and in blocks.
+        Needed at toplevel and in blocks that can contain variable assignments,
+        such as layout, header and paper.
 
         """
         nodes = iter(nodes)
@@ -954,7 +955,7 @@ class MusicBuilder:
         lily.Once, lily.Temporary, lily.Override, lily.Revert, lily.Set,
         lily.Unset, lily.Version, lily.Language, lily.Include, lily.New,
         lily.Context, lily.Change, lily.Sequential, lily.Simultaneous,
-        lily.NoteMode, lily.Repeat, lily.Alternative,
+        lily.NoteMode, lily.Repeat, lily.Alternative, lily.Etc,
     )
 
     @_action(a.Keyword)
