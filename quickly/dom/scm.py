@@ -250,5 +250,5 @@ class Bool(Number):
 
 class Dot(element.HeadElement):
     """A dot, e.g. in a Scheme pair."""
-
+    head = '.'
 
