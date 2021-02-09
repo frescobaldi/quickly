@@ -1319,7 +1319,7 @@ class MarkupList(element.BlockElement):
 
 class MarkupCommand(element.TextElement):
     r"""A markup command, like ``\bold <arg>``."""
-    _space_before = _space_after = _space_between = " "
+    _space_after_head = _space_before_tail = _space_between = " "
 
 
 class MarkupScore(Score):
@@ -1551,6 +1551,8 @@ class Override(element.HeadElement, Music):
         yield SYMBOL, EqualSign, VALUE
         yield SYMBOL, SchemeExpression, EqualSign, VALUE
         yield SYMBOL, SchemeExpression, SchemeExpression, EqualSign, VALUE
+        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, EqualSign, VALUE
+        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, SchemeExpression, EqualSign, VALUE
 
 
 class Revert(element.HeadElement, Music):
@@ -1562,6 +1564,8 @@ class Revert(element.HeadElement, Music):
         yield SYMBOL,
         yield SYMBOL, SchemeExpression
         yield SYMBOL, SchemeExpression, SchemeExpression
+        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression
+        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, SchemeExpression
 
 
 class Set(element.HeadElement, Music):
