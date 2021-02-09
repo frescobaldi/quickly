@@ -413,9 +413,9 @@ class MusicFunction(element.TextElement, Music):
     When manually constructing this element, the initial backslash need not
     to be given. Example::
 
-    >>> from quickly.dom.lily import MusicFunction
-    >>> MusicFunction('stemUp').write()
-    '\\stemUp'
+        >>> from quickly.dom.lily import MusicFunction
+        >>> MusicFunction('stemUp').write()
+        '\\stemUp'
 
     """
     _space_between = _space_after_head = " "

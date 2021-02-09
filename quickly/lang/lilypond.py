@@ -490,7 +490,7 @@ class LilyPondTransform(Transform):
 
     @_action(a.Name.Type)
     def name_type_action(self, token):
-        r"""Called for ``Name.Type``(repeat mode)."""
+        r"""Called for ``Name.Type`` (repeat mode)."""
         return self.factory(lily.Symbol, (token,))
 
     @_pitch(a.Text.Music.Pitch.Octave)
@@ -820,7 +820,7 @@ class MusicBuilder:
 
     @_action(a.Name.Symbol.Spanner)
     def spanner_action(self, token):
-        r"""Called for ``Name.Symbol.Spanner.*``."""
+        r"""Called for ``Name.Symbol.Spanner.\*``."""
         if token.action is a.Name.Symbol.Spanner.Id:
             self._events.append(self.factory(lily.SpannerId, (token,)))
         else:
