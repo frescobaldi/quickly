@@ -1085,7 +1085,7 @@ class Tempo(element.HeadElement, Music):
     numeric value childs.
 
     """
-    _space_after_head = " "
+    _space_after_head = _space_between = " "
     head = r"\tempo"
 
     def signatures(self):

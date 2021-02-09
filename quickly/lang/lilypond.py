@@ -87,7 +87,10 @@ class LilyPondTransform(Transform):
     def layout_context(self, items):
         """Create a With or LayoutContext node."""
         element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
-        return self.create_block(element_class, items)
+        tail = (items.pop(),) if items[-1] == '}' else ()
+        head = items[:2]
+        return self.factory(element_class, head, tail,
+            *self.handle_assignments(self.create_music(items[2:])))
 
     def musiclist(self, items):
         """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
@@ -945,11 +948,12 @@ class MusicBuilder:
         yield self.factory(cls, (token,))
 
     _keyword_mapping = element.head_mapping(
-        lily.Omit, lily.Hide, lily.Undo, lily.Once, lily.Temporary,
-        lily.Override, lily.Revert, lily.Set, lily.Unset, lily.Version,
-        lily.Language, lily.Include, lily.New, lily.Context, lily.Change,
-        lily.Sequential, lily.Simultaneous, lily.NoteMode, lily.Repeat,
-        lily.Alternative,
+        lily.Accepts, lily.Denies, lily.Name, lily.Alias, lily.Consists,
+        lily.Remove, lily.DefaultChild, lily.Omit, lily.Hide, lily.Undo,
+        lily.Once, lily.Temporary, lily.Override, lily.Revert, lily.Set,
+        lily.Unset, lily.Version, lily.Language, lily.Include, lily.New,
+        lily.Context, lily.Change, lily.Sequential, lily.Simultaneous,
+        lily.NoteMode, lily.Repeat, lily.Alternative,
     )
 
     @_action(a.Keyword)
