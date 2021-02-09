@@ -1626,7 +1626,7 @@ class PointAndClick(element.ToggleElement):
 
 
 class GrobDirection(element.MappingElement):
-    """A collection of commands like ``\slurUp``.
+    """A collection of commands concerning direction, like ``\slurUp``.
 
     To create a ``\slurUp`` command, use::
 
@@ -1653,7 +1653,8 @@ class GrobDirection(element.MappingElement):
 
     The ``grobs`` class attribute is a dictionary mapping each available grob
     to a tuple of the directions it supports. (Technically not all named
-    objects are grobs (graphical objects).)
+    objects are grobs (graphical objects).) Most "grobs" support all three
+    directions: Up (1), Neutral (0), Down (-1).
 
     """
     mapping = {
