@@ -952,7 +952,7 @@ class MusicBuilder:
     def lyric_skip_action(self, token):
         r"""Called for ``Delimiter.Lyric.LyricSkip``."""
         yield from self.pending_music()
-        yield self.factory(lily.LyricSkip, (token,))
+        self._music = self.factory(lily.LyricSkip, (token,))
 
     _builtin_mapping = element.head_mapping(
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
