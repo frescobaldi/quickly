@@ -1845,7 +1845,7 @@ class GrobStyle(element.MappingElement):
 
 
 class Shape(element.HeadElement):
-    r"""The `\\shape`` command.
+    r"""The ``\shape`` command.
 
     Has a SchemeExpression and a SYMBOL child. (As articulation, has only a
     SchemeExpression child.)
@@ -1856,6 +1856,15 @@ class Shape(element.HeadElement):
 
     def signatures(self):
         yield SchemeExpression, SYMBOL
+
+
+class StringTuning(element.HeadElement):
+    r"""The ``\stringTuning`` command, with one Chord argument."""
+    _space_after_head = _space_between = " "
+    head = r'\stringTuning'
+
+    def signatures(self):
+        yield MUSIC,
 
 
 def is_symbol(text):
