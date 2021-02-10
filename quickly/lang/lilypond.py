@@ -649,10 +649,10 @@ class MusicBuilder:
             yield from self._comments
             self._comments.clear()
 
-            # if there are tweaks or tags but no articulations, the tweak or tag
-            # is meant for the next note. Output it now.
+            # if there are tweaks, tags or shapes but no articulations, the
+            # tweak, tag or shape is meant for the next note. Output it now.
             for e in self._events:
-                if isinstance(e, (lily.Tweak, lily.Tag)):
+                if isinstance(e, (lily.Tweak, lily.Tag, lily.Shape)):
                     yield e
             self._events.clear()
 
@@ -697,6 +697,21 @@ class MusicBuilder:
             e[-1].append(node)
             return True
         return False
+
+    def add_shape(self, node):
+        r"""Return True if the node could be added to a ``\shape`` command that's being built."""
+        e = self._events
+        if e and isinstance(e[-1], lily.Shape) and len(e[-1]) < 2:
+            e[-1].append(node)
+            return True
+        return False
+
+    def add_event_argument(self, node):
+        r"""Try to add the node as argument to a spanner_id, tweak, tag, or shape."""
+        return self.add_spanner_id(node) or \
+               self.add_tweak(node) or \
+               self.add_tag(node) or \
+               self.add_shape(node)
 
     def __iter__(self):
         """Yield all the music from the items given at construction."""
@@ -765,6 +780,11 @@ class MusicBuilder:
     def tag_token(self, token):
         r"""Called for ``\tag``."""
         self._events.append(self.factory(lily.Tag, (token,)))
+
+    @_token(r'\shape')
+    def shape_token(self, token):
+        r"""Called for ``\shape``."""
+        self._events.append(self.factory(lily.Shape, (token,)))
 
     @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):
@@ -950,14 +970,15 @@ class MusicBuilder:
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
         lily.Fixed, lily.Transpose, lily.Transposition, lily.Ottava,
         lily.OctaveCheck, lily.Times, lily.Tuplet, lily.ScaleDurations,
-        lily.Tempo, lily.Grace, lily.Acciaccatura, lily.Appoggiatura,
-        lily.SlashedGrace, lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark,
-        lily.Default, lily.Label, lily.AddQuote, lily.QuoteDuring,
-        lily.UnfoldRepeats, lily.Alternative, lily.KeepWithTag,
-        lily.RemoveWithTag, lily.TagGroup, lily.PushToTag, lily.AppendToTag,
-        lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
-        lily.EasyHeads, lily.PointAndClick, lily.Sustain, lily.Sostenuto,
-        lily.GrobDirection, lily.GrobStyle,
+        lily.ShiftDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
+        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
+        lily.Breathe, lily.Mark, lily.Default, lily.Label, lily.AddQuote,
+        lily.QuoteDuring, lily.UnfoldRepeats, lily.Alternative,
+        lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
+        lily.AppendToTag, lily.AutoBeam, lily.Break, lily.PageBreak,
+        lily.PageTurn, lily.Cadenza, lily.EasyHeads, lily.PointAndClick,
+        lily.Sustain, lily.Sostenuto, lily.GrobDirection, lily.GrobStyle,
+        lily.Shape,
     )
 
     @_action(a.Name.Builtin)
@@ -1056,7 +1077,7 @@ class MusicBuilder:
         """Called for ``string``, ``scheme`` or ``list`` context."""
         if self._events:
             # after a direction: an articulation
-            if not self.add_spanner_id(obj) and not self.add_tweak(obj) and not self.add_tag(obj):
+            if not self.add_event_argument(obj):
                 self.add_articulation(obj)
         else:
             # toplevel expression

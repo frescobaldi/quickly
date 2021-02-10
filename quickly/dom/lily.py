@@ -1238,6 +1238,19 @@ class ScaleDurations(element.HeadElement, Music):
         yield Fraction, MUSIC
 
 
+class ShiftDurations(element.HeadElement, Music):
+    r"""A ``\shiftDurations`` command.
+
+    Has two SchemeExpression children and a Music child.
+
+    """
+    _space_after_head = _space_between = " "
+    head = r"\shiftDurations"
+
+    def signatures(self):
+        yield SchemeExpression, SchemeExpression, MUSIC
+
+
 class Grace(element.HeadElement, Music):
     r"""A ``\grace`` command.
 
@@ -1810,6 +1823,20 @@ class GrobStyle(element.MappingElement):
     @style.setter
     def style(self, value):
         self.head = (self.head[0], value)
+
+
+class Shape(element.HeadElement):
+    r"""The `\\shape`` command.
+
+    Has a SchemeExpression and a SYMBOL child. (As articulation, has only a
+    SchemeExpression child.)
+
+    """
+    _space_after_head = _space_between = " "
+    head = r'\shape'
+
+    def signatures(self):
+        yield SchemeExpression, SYMBOL
 
 
 def is_symbol(text):
