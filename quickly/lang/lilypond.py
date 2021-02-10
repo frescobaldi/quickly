@@ -181,7 +181,9 @@ class LilyPondTransform(Transform):
 
     def lyriclist(self, items):
         """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
-        return self.musiclist(items)
+        node = self.musiclist(items)
+        node[:] = self.postprocess_lyriclist(node)
+        return node
 
     def drummode(self, items):
         """Contents of ``drummode`` context."""
@@ -465,6 +467,26 @@ class LilyPondTransform(Transform):
     def create_music(self, items):
         """Read music from items and yield Element nodes."""
         return element.build_tree(MusicBuilder(self, items), ignore_type=base.Comment)
+
+    def postprocess_lyriclist(self, nodes):
+        """Yields nodes, combining syllabe nodes with a Duration.
+
+        If a String, Symbol or Scheme expression is followed by an Unpitched,
+        the node is wrapped in a Music node, with the Unpitched's duration.
+        (The Unpitched is then discarded.)
+
+        """
+        p = None
+        for n in nodes:
+            if isinstance(p, (lily.String, lily.Symbol, lily.SchemeExpression)) \
+                    and isinstance(n, lily.Unpitched):
+                yield lily.Music(p, *n)
+                n = None
+            elif p:
+                yield p
+            p = n
+        if p:
+            yield p
 
     # dispatchers for common types
     _pitch = Dispatcher()
