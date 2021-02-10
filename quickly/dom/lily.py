@@ -53,7 +53,7 @@ class _ConvertUnpitchedToNumber:
                     except AttributeError:
                         node = Number(int(dur.write()))
                     else:
-                        node = Number.from_origin(origin)
+                        node = Number.with_origin(origin)
                 except ValueError:
                     pass    # cannot convert
         super().add_argument(node)
@@ -601,12 +601,12 @@ class Transposition(element.HeadElement, Music):
         yield Note,
 
 
-class Ottava(element.HeadElement, Music):
+class Ottava(_ConvertUnpitchedToNumber, element.HeadElement, Music):
     r"""An ``\ottava`` command."""
     head = r'\ottava'
 
     def signatures(self):
-        yield SchemeExpression,
+        yield NUMBER,
 
 
 class MusicList(element.BlockElement, Music):
