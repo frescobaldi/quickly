@@ -31,6 +31,16 @@ from .. import duration, pitch
 from . import base, element
 
 
+class _ConvertUnpitchedToDuration:
+    """Mixin class to convert Unpitched arguments to their Duration."""
+    def add_argument(self, node):
+        """Reimplemented to pick the Duration of an Unpitched node."""
+        if isinstance(node, Unpitched):
+            for node in node:
+                break
+        super().add_argument(node)
+
+
 class HandleAssignments:
     """Mixin class to handle Assignment children in a convenient way."""
     def get_variable(self, name):
@@ -1088,7 +1098,7 @@ class Default(element.HeadElement):
     head = r'\default'
 
 
-class Tempo(element.HeadElement, Music):
+class Tempo(_ConvertUnpitchedToDuration, element.HeadElement, Music):
     r"""A ``\tempo`` command.
 
     Can have text (symbol, string, markup) child and/or duration, EqualSign and
@@ -1102,13 +1112,6 @@ class Tempo(element.HeadElement, Music):
         yield TEXT,
         yield TEXT, Unpitched, EqualSign, Int
         yield Unpitched, EqualSign, Int
-
-    def add_argument(self, node):
-        """Reimplemented to pick the Duration of an Unpitched node."""
-        if isinstance(node, Unpitched):
-            for node in node:
-                break
-        super().add_argument(node)
 
 
 class SpannerId(element.HeadElement):
@@ -1203,7 +1206,7 @@ class Times(element.HeadElement, Music):
         yield Fraction, MUSIC
 
 
-class Tuplet(element.HeadElement, Music):
+class Tuplet(_ConvertUnpitchedToDuration, element.HeadElement, Music):
     r"""A ``\tuplet`` statement.
 
     Has a Fraction child, an optional Duration child and a Music child.
@@ -1216,13 +1219,6 @@ class Tuplet(element.HeadElement, Music):
         yield Fraction, Duration, MUSIC
         yield Fraction, Unpitched, MUSIC
         yield Fraction, MUSIC
-
-    def add_argument(self, node):
-        """When an Unpitched is added, just pick the duration."""
-        if isinstance(node, Unpitched):
-            for node in node:
-                break   # pick the duration child
-        super().add_argument(node)
 
 
 class ScaleDurations(element.HeadElement, Music):
