@@ -127,11 +127,12 @@ class Node(list):
         """List the children, for debugging purposes.
 
         You can also narrow down the list of children to certain types,
-        using the ``/`` operator::
+        using the ``/`` or ``^`` operator::
 
             >>> node.ls / Class
 
-        Only the children of node that are an instance of Class are shown.
+        Only the children of node that are an (or are not) instance of Class
+        are shown.
 
         """
         return _NodeLister(self)
@@ -437,6 +438,12 @@ class _NodeLister:
         """Iterate over children that inherit the specified class."""
         for n, node in enumerate(self.node):
             if isinstance(node, other):
+                print(self.format(n, repr(node)))
+
+    def __xor__(self, other):
+        """Iterate over children that do not inherit the specified class."""
+        for n, node in enumerate(self.node):
+            if not isinstance(node, other):
                 print(self.format(n, repr(node)))
 
     def __getitem__(self, key):
