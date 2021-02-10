@@ -1311,7 +1311,8 @@ class SinglelineComment(base.SinglelineComment):
 
 class Markup(element.TextElement):
     r"""A ``\markup``, ``\markuplines`` or ``\markuplist`` expression."""
-    _space_before = _space_after = ""
+    _space_before = ""
+    _space_after = " "
     _space_between = _space_after_head = " "
 
 

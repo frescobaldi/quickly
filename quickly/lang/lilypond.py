@@ -1061,7 +1061,7 @@ class MusicBuilder:
         else:
             # toplevel expression
             yield from self.pending_music()
-            yield obj
+            self._music = obj
 
     @_context("markup")
     def markup(self, obj):
