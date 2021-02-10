@@ -1686,7 +1686,7 @@ class PointAndClick(element.ToggleElement):
 
 
 class GrobDirection(element.MappingElement):
-    """A collection of commands concerning direction, like ``\slurUp``.
+    r"""A collection of commands concerning direction, like ``\slurUp``.
 
     To create a ``\slurUp`` command, use::
 
@@ -1776,7 +1776,7 @@ class GrobDirection(element.MappingElement):
 
 
 class GrobStyle(element.MappingElement):
-    """A collection of commands concerning direction, like ``\slurDashed``.
+    r"""A collection of commands concerning direction, like ``\slurDashed``.
 
     To create a ``\slurDashed`` command, use::
 
@@ -1807,15 +1807,15 @@ class GrobStyle(element.MappingElement):
 
     """
     mapping = {
-        '\phrasingSlurDashed': ('PhrasingSlur', "dashed"),
-        '\phrasingSlurDotted': ('PhrasingSlur', "dotted"),
-        '\phrasingSlurSolid': ('PhrasingSlur', "solid"),
-        '\slurDashed': ('Slur', "dashed"),
-        '\slurDotted': ('Slur', "dotted"),
-        '\slurSolid': ('Slur', "solid"),
-        '\tieDashed': ('Tie', "dashed"),
-        '\tieDotted': ('Tie', "dotted"),
-        '\tieSolid': ('Tie', "solid"),
+        r'\phrasingSlurDashed': ('PhrasingSlur', "dashed"),
+        r'\phrasingSlurDotted': ('PhrasingSlur', "dotted"),
+        r'\phrasingSlurSolid': ('PhrasingSlur', "solid"),
+        r'\slurDashed': ('Slur', "dashed"),
+        r'\slurDotted': ('Slur', "dotted"),
+        r'\slurSolid': ('Slur', "solid"),
+        r'\tieDashed': ('Tie', "dashed"),
+        r'\tieDotted': ('Tie', "dotted"),
+        r'\tieSolid': ('Tie', "solid"),
     }
 
     def grobs(mapping):
