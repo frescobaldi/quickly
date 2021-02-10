@@ -19,7 +19,26 @@
 
 
 """
-LilyPond language and transform definition
+LilyPond language and transform definition.
+
+The LilyPond language definitions inherits from parce's one, just like the
+Scheme language definition in the :mod:`scheme` module.
+
+A LilyPondTransform is able to transform the parce tree to a quickly.dom
+document. Many contexts are transformed in corresponding nodes. Musical
+contents are transformed by the :meth:`LilyPondTransform.create_music` method,
+that delegates the work to a :class:`MusicBuilder`, which first creates a flat
+stream of nodes. Only nodes within music events are already combined, such as
+notes, chords and their durations, directions, articulations, tags and tweaks,
+etc.
+
+Then music commands are combined with their arguments by looking at the
+signatures many Element types provide, which results in a sensible node tree
+representing the LilyPond source document. This is done by the
+:func:`quickly.dom.element.build_tree` function.
+
+This ``quickly.dom`` tree can then be queried and modified at will.
+
 """
 
 import itertools
