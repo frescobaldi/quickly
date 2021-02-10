@@ -793,18 +793,6 @@ class MusicBuilder:
         cls = lily.Q if token == 'q' else lily.Note
         self._music = self.factory(cls, (token,))
 
-    @_action(a.Text.Music.Pitch.Octave)
-    def octave_action(self, token):
-        r"""Called for ``Text.Music.Pitch.Octave``.
-
-        This happens for \\relative, \\transpose, \\fixed etc.
-        The previous item then was a Name.Pitch, which created a note.
-        Just append the octave.
-
-        """
-        octave = self.factory(lily.Octave, (token,))
-        self._music.append(octave)
-
     @_action(a.Text.Music.Rest)
     def rest_action(self, token):
         r"""Called for ``Text.Music.Rest``."""
