@@ -1196,8 +1196,11 @@ class Times(element.HeadElement, Music):
     not deprecated. Using ``\tuplet`` is recommended.
 
     """
-    _space_after_head = " "
+    _space_after_head = _space_between = " "
     head = r"\times"
+
+    def signatures(self):
+        yield Fraction, MUSIC
 
 
 class Tuplet(element.HeadElement, Music):
@@ -1206,8 +1209,20 @@ class Tuplet(element.HeadElement, Music):
     Has a Fraction child, an optional Duration child and a Music child.
 
     """
-    _space_after_head = " "
+    _space_after_head = _space_between = " "
     head = r"\tuplet"
+
+    def signatures(self):
+        yield Fraction, Duration, MUSIC
+        yield Fraction, Unpitched, MUSIC
+        yield Fraction, MUSIC
+
+    def add_argument(self, node):
+        """When an Unpitched is added, just pick the duration."""
+        if isinstance(node, Unpitched):
+            for node in node:
+                break   # pick the duration child
+        super().add_argument(node)
 
 
 class ScaleDurations(element.HeadElement, Music):
@@ -1216,8 +1231,11 @@ class ScaleDurations(element.HeadElement, Music):
     Has a Fraction child and a Music child.
 
     """
-    _space_after_head = " "
+    _space_after_head = _space_between = " "
     head = r"\scaleDurations"
+
+    def signatures(self):
+        yield Fraction, MUSIC
 
 
 class Grace(element.HeadElement, Music):
