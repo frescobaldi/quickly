@@ -1724,6 +1724,75 @@ class GrobDirection(element.MappingElement):
         self.head = (self.head[0], value)
 
 
+class GrobStyle(element.MappingElement):
+    """A collection of commands concerning direction, like ``\slurDashed``.
+
+    To create a ``\slurDashed`` command, use::
+
+        >>> node = lily.GrobStyle(("Slur", "dashed"))
+        >>> node.write()
+        '\\slurDashed'
+
+    Or::
+
+        >>> node = lily.GrobStyle.from_mapping(r'\slurDashed')
+
+    When reading this node programmatically, the ``grob`` and ``style``
+    attributes can be read and modified::
+
+        >>> node.grob
+        'Slur'
+        >>> node.style
+        'dashed'
+        >>> node.write()
+        '\\slurDashed'
+        >>> node.style = "dotted"
+        >>> node.write()
+        '\\slurDotted'
+
+    The ``grobs`` class attribute is a dictionary mapping each available grob
+    to a tuple of the directions it supports. All grobs support the styles
+    ``"solid"``, ``"dashed"``, and ``"dotted"``.
+
+    """
+    mapping = {
+        '\phrasingSlurDashed': ('PhrasingSlur', "dashed"),
+        '\phrasingSlurDotted': ('PhrasingSlur', "dotted"),
+        '\phrasingSlurSolid': ('PhrasingSlur', "solid"),
+        '\slurDashed': ('Slur', "dashed"),
+        '\slurDotted': ('Slur', "dotted"),
+        '\slurSolid': ('Slur', "solid"),
+        '\tieDashed': ('Tie', "dashed"),
+        '\tieDotted': ('Tie', "dotted"),
+        '\tieSolid': ('Tie', "solid"),
+    }
+
+    def grobs(mapping):
+        d = collections.defaultdict(list)
+        for grob, direction in mapping.values():
+            d[grob].append(direction)
+        return {grob: tuple(sorted(dirs)) for grob, dirs in d.items()}
+    grobs = grobs(mapping)
+
+    @property
+    def grob(self):
+        """The grob (graphical object), starting with a Capital."""
+        return self.head[0]
+
+    @grob.setter
+    def grob(self, value):
+        self.head = (grob, self.head[1])
+
+    @property
+    def style(self):
+        """The style: ``"solid"``, ``"dashed"``, or ``"dotted"``."""
+        return self.head[1]
+
+    @style.setter
+    def style(self, value):
+        self.head = (self.head[0], value)
+
+
 def is_symbol(text):
     """Return True is text is a valid LilyPond symbol."""
     from parce.lang import lilypond, lilypond_words
