@@ -46,12 +46,31 @@ _NO_PARENT = lambda: None
 class Node(list):
     """Node implements a simple tree type, based on Python :class:`list`.
 
+    You can inherit of Node and add your own attributes and methods.
+
+    A node can have child nodes and a :attr:`parent`. The parent is referred to
+    with a weak reference, so a node tree does not maintain circular
+    references. (This also means that you need to keep a reference to a tree's
+    root node, otherwise it will be garbage collected.)
+
     Adding nodes to the list sets the parent of the nodes; and removing nodes
     sets the parent of the nodes to None; but adding nodes does not
     automatically remove them from the previous parent; you should take care of
     that yourself (e.g. by using the :meth:`take` method).
 
-    Besides the usual methods, Node defines three special query operators:
+    Iterating over a node yields the child nodes, just like the underlying
+    Python list. Unlike Python's list, a node always evaluates to True, even if
+    there are no children.
+
+    To find the index of a node in its parent, use::
+
+        >>> index = node.parent.index(node)
+
+    This is safe, because it uses the nodes' identity, but potentially slow
+    because it uses a linear search, so don't use it for every node in an
+    iterative operation.
+
+    Besides the usual methods, Node defines four special query operators:
     ``/``, ``//`` and ``<<``. All these expect a Node (sub)class as argument,
     and iterate in different ways over selected Nodes:
 
@@ -71,6 +90,14 @@ class Node(list):
 
         for n in node << Header:
             n.blabla    # n is the youngest ancestor that is a Header instance
+
+    * The ``^`` operator iterates over the children that are *not* an instance
+      of the specified class(es)::
+
+        node[:] = (node ^ MyClass)
+        # deletes all children that are an instance of MyClass
+
+    Instead of one subclass, a tuple of more than one class may also be given.
 
     """
 
@@ -250,25 +277,32 @@ class Node(list):
         return self is not other
 
     def __lshift__(self, other):
-        """Iterate over the ancestors that inherit the specified class."""
+        """Iterate over the ancestors that inherit the specified class(es)."""
         for i in self.ancestors():
             if isinstance(i, other):
                 yield i
 
     def __truediv__(self, other):
-        """Iterate over children that inherit the specified class."""
+        """Iterate over children that inherit the specified class(es)."""
         for i in self:
             if isinstance(i, other):
                 yield i
 
     def __floordiv__(self, other):
-        """Iterate over descendants inheriting the specified class, in document order."""
+        """Iterate over descendants inheriting the specified class(es), in document order."""
         for i in self.descendants():
             if isinstance(i, other):
                 yield i
 
+    def __xor__(self, other):
+        """Iterate over children that do not inherit the specified class(es)."""
+        for i in self:
+            if not isinstance(i, other):
+                yield i
+
     def __repr__(self):
-        return '<{} ({} children)>'.format(type(self).__name__, len(self))
+        c = "child" if len(self) == 1 else "children"
+        return '<{} ({} {})>'.format(type(self).__name__, len(self), c)
 
     def is_last(self):
         """Return True if this is the last node. Fails if no parent."""
