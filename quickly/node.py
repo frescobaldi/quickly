@@ -53,10 +53,10 @@ class Node(list):
     references. (This also means that you need to keep a reference to a tree's
     root node, otherwise it will be garbage collected.)
 
-    Adding nodes to the list sets the parent of the nodes; and removing nodes
-    sets the parent of the nodes to None; but adding nodes does not
-    automatically remove them from the previous parent; you should take care of
-    that yourself (e.g. by using the :meth:`take` method).
+    Adding nodes to a node sets the parent of the nodes; but removing nodes
+    *doesn't* unset the parent of the removed nodes; and adding nodes does not
+    automatically remove them from their previous parent; you should take care
+    of that yourself (e.g. by using the :meth:`take` method).
 
     Iterating over a node yields the child nodes, just like the underlying
     Python list. Unlike Python's list, a node always evaluates to True, even if
@@ -200,59 +200,22 @@ class Node(list):
         node.parent = self
         list.insert(self, index, node)
 
-    def remove(self, node):
-        """Remove node from this node, the parent is set to None."""
-        list.remove(self, node)
-        node.parent = None
-
-    def pop(self, index=-1):
-        """Pop node from this node; the parent is set to None."""
-        node = list.pop(self, index)
-        node.parent = None
-        return node
-
     def take(self, start=0, end=None):
-        """Like pop, but takes out and returns a slice(start, end).
-
-        The parent of the returned nodes is set to None.
-
-        """
+        """Like :meth:`~list.pop`, but takes out and returns a slice(start, end)."""
         k = slice(start, end)
         nodes = self[k]
-        for node in nodes:
-            node.parent = None
-        list.__delitem__(self, k)
+        del self[k]
         return nodes
 
     def __setitem__(self, k, new):
         """Set self[k] to the node(s) in ``new``; the parent is set to this Node."""
-        old = self[k]
         if isinstance(k, slice):
             new = tuple(new)
-            for node in old:
-                node.parent = None
             for node in new:
                 node.parent = self
         else:
-            old.parent = None
             new.parent = self
         list.__setitem__(self, k, new)
-
-    def __delitem__(self, k):
-        """Delete self[k]; the parent of the deleted nodes is set to None."""
-        old = self[k]
-        if isinstance(k, slice):
-            for node in old:
-                node.parent = None
-        else:
-            old.parent = None
-        list.__delitem__(self, k)
-
-    def clear(self):
-        """Remove all child nodes."""
-        for node in self:
-            node.parent = None
-        list.clear(self)
 
     def equals(self, other):
         """Return True if we and other are equivalent.
