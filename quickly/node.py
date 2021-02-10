@@ -137,6 +137,16 @@ class Node(list):
         """
         return _NodeLister(self)
 
+    @property
+    def pwd(self):
+        """Show the ancestry, for debugging purposes."""
+        nodes = [self]
+        nodes.extend(self.ancestors())
+        nodes.reverse()
+        d = DUMP_STYLES[DUMP_STYLE_DEFAULT]
+        for n, node in enumerate(nodes):
+            print(''.join((d[1] * max(0, n-1), d[3] if n else '', repr(node))))
+
     def __bool__(self):
         """Always return True."""
         return True
@@ -423,6 +433,28 @@ class Node(list):
                 if len(n):
                     yield from n.descendants_backward()
             node = node.parent
+
+    def depth(self):
+        """Return the number of ancestors."""
+        return sum(1 for n in self.ancestors())
+
+    def height(self):
+        """Return the height of the tree (the longest distance to a descendant)."""
+        stack = []
+        height = 0
+        gen = iter((self,))
+        while True:
+            for i in gen:
+                if len(i):
+                    stack.append(gen)
+                    height = max(height, len(stack))
+                    gen = iter(i)
+                    break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    return height
 
 
 class _NodeLister:
