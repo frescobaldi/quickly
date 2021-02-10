@@ -41,6 +41,24 @@ class _ConvertUnpitchedToDuration:
         super().add_argument(node)
 
 
+class _ConvertUnpitchedToNumber:
+    """Mixin class to convert Unpitched arguments to a Number."""
+    def add_argument(self, node):
+        """Reimplemented to read the Duration of an Unpitched node as a Number."""
+        if isinstance(node, Unpitched):
+            for dur in node / Duration:
+                try:
+                    try:
+                        origin = dur.head_origin
+                    except AttributeError:
+                        node = Number(int(dur.write()))
+                    else:
+                        node = Number.from_origin(origin)
+                except ValueError:
+                    pass    # cannot convert
+        super().add_argument(node)
+
+
 class HandleAssignments:
     """Mixin class to handle Assignment children in a convenient way."""
     def get_variable(self, name):
@@ -1234,7 +1252,7 @@ class ScaleDurations(element.HeadElement, Music):
         yield Fraction, MUSIC
 
 
-class ShiftDurations(element.HeadElement, Music):
+class ShiftDurations(_ConvertUnpitchedToNumber, element.HeadElement, Music):
     r"""A ``\shiftDurations`` command.
 
     Has two SchemeExpression children and a Music child.
@@ -1244,7 +1262,7 @@ class ShiftDurations(element.HeadElement, Music):
     head = r"\shiftDurations"
 
     def signatures(self):
-        yield SchemeExpression, SchemeExpression, MUSIC
+        yield NUMBER, NUMBER, MUSIC
 
 
 class Grace(element.HeadElement, Music):
@@ -1870,3 +1888,4 @@ MUSIC = (Music, IdentifierRef, Etc)
 VALUE = (List, String, SchemeExpression, Number, Markup, IdentifierRef, Etc)
 SYMBOL = (List, Symbol, String)
 TEXT = (List, Symbol, String, Markup, IdentifierRef, Etc)
+NUMBER = (SchemeExpression, Number, Unpitched)
