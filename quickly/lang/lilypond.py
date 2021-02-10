@@ -119,7 +119,7 @@ class LilyPondTransform(Transform):
         return self.factory(lily.Articulation, items)
 
     def pitch(self, items):
-        """Octave, Accidental and OctaveCheck after a note name.
+        """Octave, Accidental and OctCheck after a note name.
 
         Returns a list of elements.
 
@@ -501,7 +501,7 @@ class LilyPondTransform(Transform):
     @_pitch(a.Text.Music.Pitch.Octave.OctaveCheck)
     def pitch_octavecheck_action(self, token):
         r"""Called for ``Text.Music.Pitch.Octave.OctaveCheck``."""
-        return self.factory(lily.OctaveCheck, (token,))
+        return self.factory(lily.OctCheck, (token,))
 
     @_pitch(a.Text.Music.Pitch.Accidental)
     def pitch_accidental_action(self, token):
@@ -930,14 +930,15 @@ class MusicBuilder:
     _builtin_mapping = element.head_mapping(
         lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
         lily.Fixed, lily.Transpose, lily.Transposition, lily.Ottava,
-        lily.Times, lily.Tuplet, lily.ScaleDurations, lily.Tempo, lily.Grace,
-        lily.Acciaccatura, lily.Appoggiatura, lily.SlashedGrace,
-        lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark, lily.Default,
-        lily.Label, lily.AddQuote, lily.QuoteDuring, lily.UnfoldRepeats,
-        lily.Alternative, lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup,
-        lily.PushToTag, lily.AppendToTag, lily.AutoBeam, lily.Break,
-        lily.PageBreak, lily.PageTurn, lily.Cadenza, lily.EasyHeads,
-        lily.PointAndClick, lily.Sustain, lily.Sostenuto, lily.GrobDirection,
+        lily.OctaveCheck, lily.Times, lily.Tuplet, lily.ScaleDurations,
+        lily.Tempo, lily.Grace, lily.Acciaccatura, lily.Appoggiatura,
+        lily.SlashedGrace, lily.AfterGrace, lily.Bar, lily.Breathe, lily.Mark,
+        lily.Default, lily.Label, lily.AddQuote, lily.QuoteDuring,
+        lily.UnfoldRepeats, lily.Alternative, lily.KeepWithTag,
+        lily.RemoveWithTag, lily.TagGroup, lily.PushToTag, lily.AppendToTag,
+        lily.AutoBeam, lily.Break, lily.PageBreak, lily.PageTurn, lily.Cadenza,
+        lily.EasyHeads, lily.PointAndClick, lily.Sustain, lily.Sostenuto,
+        lily.GrobDirection,
     )
 
     @_action(a.Name.Builtin)

@@ -733,8 +733,8 @@ class Octave(element.TextElement):
         return pitch.num_to_octave(self.head)
 
 
-class OctaveCheck(element.TextElement):
-    """The octavecheck after a note.
+class OctCheck(element.TextElement):
+    """The octavecheck after a note, e.g. like ``=,``.
 
     The default octave is 0; each ``'`` increases the octave by one;
     each ``,`` decreases the octave by one. Note that differs from LilyPond,
@@ -749,6 +749,15 @@ class OctaveCheck(element.TextElement):
     def write_head(self):
         """Write the octave, an empty string for octave 0."""
         return '=' + pitch.num_to_octave(self.head)
+
+
+class OctaveCheck(element.HeadElement):
+    r"""The ``\octaveCheck`` command."""
+    _space_after_head = _space_between = " "
+    head = r'\octaveCheck'
+
+    def signatures(self):
+        yield Note,
 
 
 class Duration(element.TextElement):
