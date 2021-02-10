@@ -192,8 +192,8 @@ class Node(list):
 
     def remove(self, node):
         """Remove node from this node, the parent is set to None."""
-        index = list.index(self, node)
-        del self[index]
+        list.remove(self, node)
+        node.parent = None
 
     def pop(self, index=-1):
         """Pop node from this node; the parent is set to None."""
