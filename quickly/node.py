@@ -71,8 +71,8 @@ class Node(list):
     iterative operation.
 
     Besides the usual methods, Node defines four special query operators:
-    ``/``, ``//`` and ``<<``. All these expect a Node (sub)class as argument,
-    and iterate in different ways over selected Nodes:
+    ``/``, ``//``, ``<<`` and ``^``. All these expect a Node (sub)class as
+    argument, and iterate in different ways over selected Nodes:
 
     * The ``/`` operator iterates over the children that are instances of the
       specified class::
