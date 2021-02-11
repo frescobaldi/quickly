@@ -113,8 +113,10 @@ class HandleAssignments:
         assignment = self.find_assignment(name)
         if assignment:
             node = assignment[-1]
-            if isinstance(node, (String, Int)):
-                return node.head
+            if isinstance(node, (String, Int, Float)):
+                if len(node) == 0:
+                    return node.head
+                # might be a unit attached
             elif isinstance(node, SchemeExpression) and len(node) == 1 and \
                     isinstance(node[0], scm.Bool):
                 return node[0].value
@@ -136,6 +138,8 @@ class HandleAssignments:
             node = SchemeExpression('#', scm.Bool(value))
         elif isinstance(value, int):
             node = Int(value)
+        elif isinstance(value, float):
+            node = Float(value)
         elif isinstance(value, str):
             node = String(value)
         elif isinstance(value, element.Element):
@@ -147,9 +151,11 @@ class HandleAssignments:
         if assignment:
             old = assignment[-1]
             if isinstance(node, Int) and isinstance(old, Int):
-                old.head = node.head
+                old.head = node.head; old.clear()
+            elif isinstance(node, Float) and isinstance(old, Float):
+                old.head = node.head; old.clear()
             elif isinstance(node, String) and isinstance(old, String):
-                old.head = node.head
+                old.head = node.head; old.clear()
             elif isinstance(node, SchemeExpression) and isinstance(old, SchemeExpression) \
                     and len(old) == 1 and isinstance(old[0], scm.Bool):
                 old[0].head = node[0].head
