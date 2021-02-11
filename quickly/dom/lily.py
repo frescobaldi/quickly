@@ -182,11 +182,15 @@ class Number(element.TextElement):
         raise NotImplementedError
 
 
+
 class Int(Number):
     """An integer number."""
     @classmethod
     def read_head(cls, origin):
         return int(origin[0].text)
+
+    def signatures(self):
+        yield Unit,
 
 
 class Fraction(Number):
@@ -211,6 +215,9 @@ class Float(Number):
     @classmethod
     def read_head(cls, origin):
         return float(origin[0].text)
+
+    def signatures(self):
+        yield Unit,
 
 
 class Symbol(element.TextElement):
@@ -2044,6 +2051,16 @@ class StringTuning(element.HeadElement):
 
     def signatures(self):
         yield MUSIC,
+
+
+class Unit(element.MappingElement):
+    """A unit: ``\mm``, ``\cm``, ``\pt`` or ``\in``."""
+    mapping = {
+        r'\mm': 'mm',
+        r'\cm': 'cm',
+        r'\in': 'in',
+        r'\pt': 'pt',
+    }
 
 
 def is_symbol(text):

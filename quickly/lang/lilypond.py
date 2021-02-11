@@ -538,6 +538,11 @@ class LilyPondTransform(Transform):
         r"""Called for ``Keyword``."""
         return self._keyword(token.text, token)
 
+    @_action(a.Name.Builtin.Unit)
+    def name_builtin_unit_action(self, token):
+        r"""Called for ``Name.Builtin.Unit`` (in paper or layout block)."""
+        return self.factory(lily.Unit, (token,))
+
     @_action(a.Name.Type)
     def name_type_action(self, token):
         r"""Called for ``Name.Type`` (repeat mode)."""
@@ -1003,7 +1008,7 @@ class MusicBuilder:
         lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
         lily.AppendToTag, lily.Break, lily.PageBreak, lily.PageTurn,
         lily.GrobDirection, lily.GrobStyle, lily.PropToggle, lily.Shape,
-        lily.StringTuning, lily.VoiceN,
+        lily.StringTuning, lily.VoiceN, lily.Unit,
     )
 
     @_action(a.Name.Builtin)
