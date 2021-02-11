@@ -47,15 +47,7 @@ class _ConvertUnpitchedToInt:
         """Reimplemented to read the Duration of an Unpitched node as a Int."""
         if isinstance(node, Unpitched):
             for dur in node / Duration:
-                try:
-                    try:
-                        origin = dur.head_origin
-                    except AttributeError:
-                        node = Int(int(dur.write()))
-                    else:
-                        node = Int.with_origin(origin)
-                except ValueError:
-                    pass    # cannot convert
+                node = convert_duration_to_int(dur) or node
         super().add_argument(node)
 
 
@@ -1895,6 +1887,24 @@ def make_list_nodes(iterable):
         node = make_list_node(value)
         if node:
             yield node
+
+
+def convert_duration_to_int(node):
+    """Return an Int element, created from the specified Duration element.
+
+    This can be used if a music function wants an integer number, while the
+    origin token was seen as a duration by parce and the music builder.
+
+    """
+    try:
+        try:
+            origin = node.head_origin
+        except AttributeError:
+            return Int(int(node.write()))
+        else:
+            return Int.with_origin(origin)
+    except ValueError:
+        return    # cannot convert
 
 
 # often used signatures:
