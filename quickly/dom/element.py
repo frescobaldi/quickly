@@ -164,9 +164,23 @@ class Element(Node, metaclass=ElementType):
             setattr(self, attribute, value)
 
     def copy(self):
-        """Copy the node, without the origin."""
+        """Copy the node (and copy all the children), without the origin."""
         children = (n.copy() for n in self)
         return type(self)(*children, **getattr(self, '_spacing', {}))
+
+    def copy_with_origin(self):
+        """Copy the node (and copy all the children), with origin, if available."""
+        copy = self.copy()
+        try:
+            copy.head_origin = self.head_origin
+            copy.tail_origin = self.tail_origin
+        except AttributeError:
+            pass
+        try:
+            copy._modified = self._modified
+        except AttributeError:
+            pass
+        return copy
 
     def __repr__(self):
         def result():
