@@ -28,7 +28,7 @@ import fractions
 import re
 
 from .. import duration, pitch
-from . import base, element
+from . import base, element, scm
 
 
 class _Variable:
@@ -115,6 +115,9 @@ class HandleAssignments:
             node = assignment[-1]
             if isinstance(node, (String, Int)):
                 return node.head
+            elif isinstance(node, SchemeExpression) and len(node) == 1 and \
+                    isinstance(node[0], scm.Bool):
+                return node[0].value
             return node
 
     def set_variable(self, name, value):
@@ -129,7 +132,9 @@ class HandleAssignments:
         is changed.)
 
         """
-        if isinstance(value, int):
+        if isinstance(value, bool):
+            node = SchemeExpression('#', scm.Bool(value))
+        elif isinstance(value, int):
             node = Int(value)
         elif isinstance(value, str):
             node = String(value)
@@ -145,6 +150,9 @@ class HandleAssignments:
                 old.head = node.head
             elif isinstance(node, String) and isinstance(old, String):
                 old.head = node.head
+            elif isinstance(node, SchemeExpression) and isinstance(old, SchemeExpression) \
+                    and len(old) == 1 and isinstance(old[0], scm.Bool):
+                old[0].head = node[0].head
             else:
                 assignment.replace(-1, node)
         else:
@@ -332,7 +340,7 @@ class Header(Block):
     subsubtitle = _Variable("The subsubtitle.")
     instrument = _Variable("The instrument (shown on all pages).")
     poet = _Variable("The poet.")
-    composer = _Variable("The Composer.")
+    composer = _Variable("The composer.")
     meter = _Variable("The meter (shown left).")
     arranger = _Variable("The arranger (shown right).")
     tagline = _Variable("The tagline (at the bottom of the last page).")
@@ -340,13 +348,77 @@ class Header(Block):
 
 
 class Paper(Block):
-    r"""A \paper { } block."""
+    r"""A \paper { } block.
+
+    The most used paper variables can be set using properties, which
+    auto-convert string, int and boolean values. Where LilyPond uses hyphens in
+    paper variables, these properties use underscores.
+
+    """
     head = r"\paper {"
+
+    paper_height = _Variable("Paper height.")
+    top_margin = _Variable("Top margin.")
+    bottom_margin = _Variable("Bottom margin.")
+    ragged_bottom = _Variable("Whether to have a ragged bottom (bool).")
+    ragged_last_bottom = _Variable("Whether to have a ragged bottom on the last page (bool).")
+    markup_system_spacing = _Variable("Spacing between markup and first system.")
+    score_markup_spacing = _Variable("Spacing between score and markup.")
+    score_system_spacing = _Variable("Spacing between two adjacent scores.")
+    system_system_spacing = _Variable("Spacing between systems of one score.")
+    markup_markup_spacing = _Variable("Spacing between two markups.")
+    last_bottom_spacing = _Variable("Spacing between the last system or markup and the page bottom.")
+    top_system_spacing = _Variable("Spacing between page top and first system.")
+    top_markup_spacing = _Variable("Spacing between page top and first markup.")
+    paper_width = _Variable("Paper width.")
+    line_width = _Variable("Line witdh.")
+    left_margin = _Variable("Left margin.")
+    right_margin = _Variable("Right margin.")
+    check_consistency = _Variable("Check whether all width settings fit.")
+    ragged_right = _Variable("Whether to fill out the systems to the right (bool).")
+    ragged_last = _Variable("Whether to fill out the last system to the right (bool).")
+    two_sided = _Variable("Whether to have mirrored margins for left and right pages.")
+    inner_margin = _Variable("Margin at binding side.")
+    outer_margin = _Variable("Margin at outer side.")
+    binding_offset = _Variable("Extra offset for inner-margin.")
+    horizontal_shift = _Variable("Amount al systems and markups are shifted to the right.")
+    indent = _Variable("Indent distance for the first system.")
+    short_indent = _Variable("Indent distance for all other systems.")
+    max_systems_per_page = _Variable("The maximum number of systems on a page.")
+    min_systems_per_page = _Variable("The minimum number of systems on a page.")
+    systems_per_page = _Variable("How many systems to put on a page.")
+    system_count = _Variable("The number of systems to create.")
+    page_breaking = _Variable("Page-breaking algorithm to use.")
+    page_breaking_system_system_spacing = _Variable("Specially adjust spacing for page breaker.")
+    page_count = _Variable("The number of pages to be used.")
+    blank_page_penalty = _Variable("Penalty for having a blank page.")
+    blank_last_page_penalty = _Variable("Penalty for ending on a left page.")
+    blank_after_score_page_penalty = _Variable("Penalty for having a blank page before a score.")
+    auto_first_page_number = _Variable("Automatically choose whether to start with even or odd page number.")
+    first_page_number = _Variable("The page number for the first page.")
+    print_first_page_number = _Variable("Print the page number on the first page (bool).")
+    print_page_number = _Variable("Print page numbers anyway (bool).")
+    page_spacing_weight = _Variable("Relative importance of page and line spacing.")
+    print_all_headers = _Variable("Whether to print all headers in each score (bool).")
+    system_separator_markup = _Variable("Markup to use between systems.")
 
 
 class Layout(Block):
-    r"""A \layout { } block."""
+    r"""A \layout { } block.
+
+    The most used layout variables can be set using properties, which
+    auto-convert string, int and boolean values. Where LilyPond uses hyphens in
+    paper variables, these properties use underscores.
+
+    """
     head = r"\layout {"
+
+    line_width = _Variable("Line witdh.")
+    ragged_right = _Variable("Whether to fill out the systems to the right (bool).")
+    ragged_last = _Variable("Whether to fill out the last system to the right (bool).")
+    indent = _Variable("Indent distance for the first system.")
+    short_indent = _Variable("Indent distance for all other systems.")
+    system_count = _Variable("The number of systems to create.")
 
 
 class Midi(Block):
