@@ -1063,9 +1063,9 @@ class MusicBuilder:
         dots, self._scaling = obj
         self._duration.extend(dots)
 
-    @_context("chord")
-    def chord(self, obj):
-        """Called for ``chord`` context: a chord."""
+    @_context("chord", "lyricword", "figure")
+    def music_element(self, obj):
+        """An element node that is a music item (chord, lyricword, figure)."""
         yield from self.pending_music()
         self._music = obj
 
@@ -1073,18 +1073,6 @@ class MusicBuilder:
     def script(self, obj):
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
-
-    @_context("lyricword")
-    def lyricword(self, obj):
-        r"""Called for ``lyricword``: one lyric word."""
-        yield from self.pending_music()
-        self._music = obj
-
-    @_context("figure")
-    def figure(self, obj):
-        """Called for ``figure`` context: a Figure."""
-        yield from self.pending_music()
-        self._music = obj
 
     @_context("string", "scheme", "list")
     def string_scheme(self, obj):
