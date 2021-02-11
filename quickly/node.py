@@ -201,7 +201,7 @@ class Node(list):
         list.insert(self, index, node)
 
     def take(self, start=0, end=None):
-        """Like :meth:`~list.pop`, but takes out and returns a slice(start, end)."""
+        """Like :meth:`list.pop`, but takes out and returns a slice(start, end)."""
         k = slice(start, end)
         nodes = self[k]
         del self[k]
