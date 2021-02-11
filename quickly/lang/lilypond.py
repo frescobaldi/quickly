@@ -63,48 +63,62 @@ class LilyPond(parce.lang.lilypond.LilyPond):
 class LilyPondTransform(Transform):
     """Transform LilyPond to Music."""
 
+    ## when implementing the transform, keep in mind that the parce transformer
+    ## caches the result of the transform methods.  If you return element nodes,
+    ## they are combined into other nodes and thus reparented, which is no
+    ## problem. But you should make sure you do not reparent child nodes of
+    ## nodes that are returned by transform methods.
+
+    ## A reparented child node is not removed from the cached node, which would
+    ## corrupt the node's structure and cause problems when reusing the node.
+
+    ## If you decide to use a child node from a node that's returned by
+    ## a transform method; make sure you copy it first, using
+    ## Element.copy_with_origin().
+
+
     ## transforming methods
     def root(self, items):
         """Concatenate all nodes in a Document object."""
         return lily.Document(*self.handle_assignments(self.create_music(items)))
 
     def book(self, items):
-        """Create a Book or BookPart node."""
+        """A Book or BookPart element."""
         element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
         return self.factory(element_class, head, tail, *self.create_music(items[2:]))
 
     def score(self, items):
-        """Create a Score node (can also appear inside Markup and MarkupList)."""
+        """A Score element."""
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
         return self.factory(lily.Score, head, tail, *self.create_music(items[2:]))
 
     def header(self, items):
-        """Create a Header node."""
+        """A Header element."""
         return self.create_block(lily.Header, items)
 
     def paper(self, items):
-        """Create a Paper node."""
+        """A Paper element."""
         return self.create_block(lily.Paper, items)
 
     def layout(self, items):
-        """Create a Layout node."""
+        """A Layout element."""
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
         return self.factory(lily.Layout, head, tail,
             *self.handle_assignments(self.create_music(items[2:])))
 
     def midi(self, items):
-        """Create a Midi node."""
+        """A Midi element."""
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
         return self.factory(lily.Midi, head, tail,
             *self.handle_assignments(self.create_music(items[2:])))
 
     def layout_context(self, items):
-        """Create a With or LayoutContext node."""
+        """A With or LayoutContext element."""
         element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
@@ -112,37 +126,30 @@ class LilyPondTransform(Transform):
             *self.handle_assignments(self.create_music(items[2:])))
 
     def musiclist(self, items):
-        """Create a SequentialMusic (``{`` ... ``}``) or SimultaneousMusic
-        (``<<`` ... ``>>``) node.
-
-        """
+        """A MusicList (``{`` ... ``}``) or SimultaneousMusicList (``<<`` ... ``>>``) element."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] in ('}', '>>') else ()
         element_class = lily.MusicList if items[0] == '{' else lily.SimultaneousMusicList
         return self.factory(element_class, head, tail, *self.create_music(items[1:]))
 
     def chord(self, items):
-        """Create a Chord node (``<`` ... ``>``)."""
+        """A Chord element (``<`` ... ``>``)."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '>' else ()
         return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
 
     def repeat(self, items):
-        """Contents of ``repeat`` context."""
+        """A list of elements, contents of ``repeat`` context."""
         return list(self.common(items))
 
     def script(self, items):
-        """Contains one Fingering or Articulation event."""
+        """A Fingering or Articulation event."""
         if items[0].action is a.Literal.Number.Fingering:
             return self.factory(lily.Fingering, items)
         return self.factory(lily.Articulation, items)
 
     def pitch(self, items):
-        """Octave, Accidental and OctCheck after a note name.
-
-        Returns a list of elements.
-
-        """
+        """A list of elements, Octave, Accidental and/or OctCheck after a note name."""
         def gen():
             for i in items:
                 if i.is_token:
@@ -152,10 +159,10 @@ class LilyPondTransform(Transform):
         return list(gen())
 
     def duration(self, items):
-        """Dots after a duration, can include scaling.
+        """A tuple (dots, scaling).
 
-        Returns (dots, scaling), where dots is a list of Dot tokens and
-        scaling a DurationScaling node.
+        ``dots`` is a list of Dot tokens and ``scaling`` is a DurationScaling
+        node.
 
         """
         dots = []
@@ -168,45 +175,48 @@ class LilyPondTransform(Transform):
         return dots, scaling
 
     def duration_scaling(self, items):
-        """Scaling after a duration."""
+        """A DurationScaling element (scaling after a duration)."""
         return self.factory(lily.DurationScaling, items)
 
     def lyricmode(self, items):
-        """Contents of ``lyricmode`` context."""
+        """A list of elements, contents of ``lyricmode`` context."""
         return list(self.create_music(items))
 
     def lyricsto(self, items):
-        """Contents of ``lyricsto`` context."""
+        """A list of elements, contents of ``lyricsto`` context."""
         return list(self.common(items))
 
     def lyriclist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in lyricmode."""
+        """A MusicList or SimultaneousMusicList element, the ``{`` ... ``}`` or
+        ``<<`` ... ``>>`` construct in lyricmode."""
         node = self.musiclist(items)
         node[:] = self.postprocess_lyriclist(node)
         return node
 
     def lyricword(self, items):
-        """Return a LyricText node."""
+        """A LyricText element."""
         return self.factory(lily.LyricText, items)
 
     def drummode(self, items):
-        """Contents of ``drummode`` context."""
+        """A list of elements, contents of ``drummode`` context."""
         return list(self.create_music(items))
 
     def drumlist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in drummode."""
+        """A MusicList or SimultaneousMusicList element, the ``{`` ... ``}`` or
+        ``<<`` ... ``>>`` construct in drummode."""
         return self.musiclist(items)
 
     def chordmode(self, items):
-        """Contents of ``chordmode`` context."""
+        """A list of elements, contents of ``chordmode`` context."""
         return list(self.create_music(items))
 
     def chordlist(self, items):
-        """Return a ``{`` ... ``}`` or ``<<`` ... ``>>`` construct in chordmode."""
+        """A MusicList or SimultaneousMusicList element, the ``{`` ... ``}`` or
+        ``<<`` ... ``>>`` construct in chordmode."""
         return self.musiclist(items)
 
     def chord_modifier(self, items):
-        """Contents of ``chord_modifier`` context."""
+        """A list of elements, contents of ``chord_modifier`` context."""
         items = iter(items)
         nodes = []
         for i in items:
@@ -227,25 +237,25 @@ class LilyPondTransform(Transform):
         return nodes
 
     def notemode(self, items):
-        """Contents of ``notemode`` context."""
+        """A list with elements, contents of ``notemode`` context."""
         return list(self.create_music(items))
 
     def figuremode(self, items):
-        """Contents of ``notemode`` context."""
+        """A list with elements, contents of ``figuremode`` context."""
         return list(self.create_music(items))
 
     def figurelist(self, items):
-        """Return a ``{`` ... ``}`` construct in figuremode."""
+        """A MusicList or SimultaneousMusicList element, the ``{`` ... ``}`` construct in figuremode."""
         return self.musiclist(items)
 
     def figure(self, items):
-        """Return a Figure element."""
+        """A Figure element."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '>' else ()
         return self.factory(lily.Figure, head, tail, *self.create_figure(items))
 
     def figurebracket(self, items):
-        """Return a FigureBracket element."""
+        """A FigureBracket element."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ']' else ()
         return self.factory(lily.FigureBracket, head, tail, *self.create_figure(items))
@@ -259,24 +269,20 @@ class LilyPondTransform(Transform):
                 yield i.obj # can be a SchemeExpression or String
 
     def list(self, items):
-        """A list of numbers, symbols, strings and scheme expressions.
-
-        Returns a List, String, Int, Symbol, or SchemeExpression element.
-
-        """
+        """A List, String, Int, Symbol, or SchemeExpression element."""
         nodes = list(self._list_nodes(items))
         return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
 
     start_list = None   # lexicon never creates tokens
 
     def identifier_ref(self, items):
-        """Return an IdentifierRef item."""
+        """An IdentifierRef element."""
         node = self.factory(lily.IdentifierRef, items[:1])
         node.extend(self._list_nodes(items[1:]))
         return node
 
     def markup(self, items):
-        """Simply return the flattened contents, the markup will be constructed later."""
+        """A list of flattened markup contents, the markup will be constructed later."""
         result = []
         for i in items:
             if i.is_token or i.name != "markup":
@@ -286,33 +292,34 @@ class LilyPondTransform(Transform):
         return result
 
     def markuplist(self, items):
-        """Create a MarkupList node."""
+        """A MarkupList element."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '}' else ()
         return self.factory(lily.MarkupList, head, tail, *self.read_markup_arguments(items[1:]))
 
     def markupscore(self, items):
-        """Create a MarkupScore node."""
+        """A MarkupScore element."""
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
         cls = lily.MarkupScoreLines if items[0] == r'\score-lines' else lily.MarkupScore
         return self.factory(cls, head, tail, *self.create_music(items[2:]))
 
     def schemelily(self, items):
+        """A scm.LilyPond element, with LilyPond in Scheme."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '#}' else ()
         return self.factory(scm.LilyPond, head, tail, *self.common(items[1:]))
 
     def string(self, items):
-        """Create a String node."""
+        """A String element."""
         return self.factory(lily.String, items)
 
     def multiline_comment(self, items):
-        """Create a MultilineComment node."""
+        """A MultilineComment element."""
         return self.factory(lily.MultilineComment, items)
 
     def singleline_comment(self, items):
-        """Create a SinglelineComment node."""
+        """A SinglelineComment element."""
         return self.factory(lily.SinglelineComment, items)
 
     ## helper methods and factory
