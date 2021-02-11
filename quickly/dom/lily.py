@@ -54,23 +54,14 @@ class _Variable:
 
     def __get__(self, instance, owner=None):
         if instance:
-            node = instance.get_variable(self.name)
-            return node.head if isinstance(node, (Int, String)) else node
+            return instance.get_variable(self.name)
         return self
 
     def __set__(self, instance, value):
         if value is None:
             instance.unset_variable(self.name)
-            return
-        if isinstance(value, element.Element):
-            node = value
-        elif isinstance(value, int):
-            node = Int(value)
-        elif isinstance(value, str):
-            node = String(value)
         else:
-            raise TypeError("Can't convert value to Element node: {}".format(repr(value)))
-        instance.set_variable(self.name, node)
+            instance.set_variable(self.name, value)
 
     def __delete__(self, instance):
         instance.unset_variable(self.name)
@@ -99,6 +90,13 @@ class _ConvertUnpitchedToInt:
 
 class HandleAssignments:
     """Mixin class to handle Assignment children in a convenient way."""
+    def find_assignment(self, name):
+        """Find the Assignment with the specified name."""
+        for n in self/Assignment:
+            for v in n/Identifier:
+                if v.get_name() == name:
+                    return n
+
     def get_variable(self, name):
         """Convenience method to find the value of the named variable.
 
@@ -106,25 +104,51 @@ class HandleAssignments:
         specified ``name``.  Returns the Element node representing the value,
         or None if no assignment with that name exists.
 
-        """
-        for n in self/Assignment:
-            for v in n/Identifier:
-                if v.get_name() == name:
-                    return n[-1]
+        When the node is a String or an Int, its head value is returned.
+        If no assignment with the name can be found, None is returned.
 
-    def set_variable(self, name, node):
+        For the ``name``, see :meth:`Identifier.set_name`.
+
+        """
+        assignment = self.find_assignment(name)
+        if assignment:
+            node = assignment[-1]
+            if isinstance(node, (String, Int)):
+                return node.head
+            return node
+
+    def set_variable(self, name, value):
         """Convenience method to add or replace a variable assignment.
 
         If an Assignment exists with the named variable, replaces its node
         value; otherwise appends a new Assignment.
 
+        If the value is an Element node, it is used directly. If it is an
+        integer, an Int element is created; if it is a string, a String element
+        is created. (If such element was already in use, only the head value
+        is changed.)
+
         """
-        for n in self/Assignment:
-            for v in n/Identifier:
-                if v.get_name() == name:
-                    n.replace(-1, node)
-                    return
-        self.append(Assignment.with_name(name, node))
+        if isinstance(value, int):
+            node = Int(value)
+        elif isinstance(value, str):
+            node = String(value)
+        elif isinstance(value, element.Element):
+            node = value
+        else:
+            raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
+
+        assignment = self.find_assignment(name)
+        if assignment:
+            old = assignment[-1]
+            if isinstance(node, Int) and isinstance(old, Int):
+                old.head = node.head
+            elif isinstance(node, String) and isinstance(old, String):
+                old.head = node.head
+            else:
+                assignment.replace(-1, node)
+        else:
+            self.append(Assignment.with_name(name, node))
 
     def unset_variable(self, name):
         """Convenience method to delete a variable assignment.
@@ -133,11 +157,9 @@ class HandleAssignments:
         parent.
 
         """
-        for n in self/Assignment:
-            for v in n/Identifier:
-                if v.get_name() == name:
-                    self.remove(n)
-                    return
+        assignment = self.find_assignment(name)
+        if assignment:
+            self.remove(assignment)
 
     def variables(self):
         """Convenience method to return a list of the available variable names."""
