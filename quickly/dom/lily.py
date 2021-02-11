@@ -37,6 +37,7 @@ class _ConvertUnpitchedToDuration:
         """Reimplemented to pick the Duration of an Unpitched node."""
         if isinstance(node, Unpitched):
             for node in node:
+                node = node.copy_with_origin()
                 break
         super().add_argument(node)
 
