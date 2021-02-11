@@ -158,6 +158,12 @@ class Number(element.TextElement):
         prefix, value = cls.read_head(head_origin)
         return cls(value, *children, prefix=prefix, **attrs)
 
+    def copy(self):
+        """Reimplemented to handle the prefix on copying."""
+        children = (n.copy() for n in self)
+        spacing = getattr(self, '_spacing', {})
+        return type(self)(self.value, *children, prefix=self.prefix, **spacing)
+
 
 class Int(Number):
     """A Scheme decimal integer."""
