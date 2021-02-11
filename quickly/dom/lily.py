@@ -31,6 +31,51 @@ from .. import duration, pitch
 from . import base, element
 
 
+class _Variable:
+    """A property that makes setting an Assignment easier.
+
+    This can only be used for simple variable names. An underscore in the name
+    is converted to a hyphen. Use this in classes that mix in
+    lily.HandleAssignments::
+
+        class Header(HandleAssignments):
+            title = _Variable("The title of the document.")
+
+    When setting a variable, only ``int`` and ``str`` are allowed, or
+    an Element node of course. When getting a value, for an Int or String node
+    the head value is returned, for other element types the node itself.
+
+    """
+    def __init__(self, docstring=None):
+        self.__doc__ = docstring
+
+    def __set_name__(self, owner, name):
+        self.name = name.replace('_', '-')
+
+    def __get__(self, instance, owner=None):
+        if instance:
+            node = instance.get_variable(self.name)
+            return node.head if isinstance(node, (Int, String)) else node
+        return self
+
+    def __set__(self, instance, value):
+        if value is None:
+            instance.unset_variable(self.name)
+            return
+        if isinstance(value, element.Element):
+            node = value
+        elif isinstance(value, int):
+            node = Int(value)
+        elif isinstance(value, str):
+            node = String(value)
+        else:
+            raise TypeError("Can't convert value to Element node: {}".format(repr(value)))
+        instance.set_variable(self.name, node)
+
+    def __delete__(self, instance):
+        instance.unset_variable(self.name)
+
+
 class _ConvertUnpitchedToDuration:
     """Mixin class to convert Unpitched arguments to their Duration."""
     def add_argument(self, node):
@@ -80,6 +125,19 @@ class HandleAssignments:
                     n.replace(-1, node)
                     return
         self.append(Assignment.with_name(name, node))
+
+    def unset_variable(self, name):
+        """Convenience method to delete a variable assignment.
+
+        If an Assignment exists with the named variable, it is removed from its
+        parent.
+
+        """
+        for n in self/Assignment:
+            for v in n/Identifier:
+                if v.get_name() == name:
+                    self.remove(n)
+                    return
 
     def variables(self):
         """Convenience method to return a list of the available variable names."""
@@ -197,8 +255,59 @@ class Score(Block):
 
 
 class Header(Block):
-    r"""A \header { } block."""
+    r"""A \header { } block.
+
+    The standard LilyPond header variables are accessible as properties. When
+    setting a value to a simple string, a String element is created
+    automatically. When reading a value that is a single String element, the
+    string contents is returned.
+
+    For example::
+
+        >>> from quickly.dom import lily
+        >>> h = lily.Header()
+        >>> h.title = "My title"
+        >>> h.composer = "Wilbert Berendsen"
+        >>> h.write()
+        '\\header {\ntitle = "My title"\ncomposer = "Wilbert Berendsen"\n}'
+        >>> h.dump()
+        <lily.Header (2 children)>
+         ├╴<lily.Assignment title (3 children)>
+         │  ├╴<lily.Identifier (1 child)>
+         │  │  ╰╴<lily.Symbol 'title'>
+         │  ├╴<lily.EqualSign>
+         │  ╰╴<lily.String 'My title'>
+         ╰╴<lily.Assignment composer (3 children)>
+            ├╴<lily.Identifier (1 child)>
+            │  ╰╴<lily.Symbol 'composer'>
+            ├╴<lily.EqualSign>
+            ╰╴<lily.String 'Wilbert Berendsen'>
+
+    When a variable is not present, None is returned. Other variable names can
+    be set using :meth:`~HandleAssignments.set_variable` and read using
+    :meth:`~HandleAssignments.get_variable`. The method
+    :meth:`~HandleAssignments.variables` returns a list with the names of all
+    assignments.
+
+    Deleting a variable can be done in two ways::
+
+        >>> h.title = None
+        >>> del h.title         # same as setting to None
+
+    """
     head = r"\header {"
+
+    dedication = _Variable("The dedication.")
+    title = _Variable("The title.")
+    subtitle = _Variable("The subtitle.")
+    subsubtitle = _Variable("The subsubtitle.")
+    instrument = _Variable("The instrument (shown on all pages).")
+    poet = _Variable("The poet.")
+    composer = _Variable("The Composer.")
+    meter = _Variable("The meter (shown left).")
+    arranger = _Variable("The arranger (shown right).")
+    tagline = _Variable("The tagline (at the bottom of the last page).")
+    copyright = _Variable("The copyright (at the bottom of the first page).")
 
 
 class Paper(Block):
