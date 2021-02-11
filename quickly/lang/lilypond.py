@@ -185,6 +185,10 @@ class LilyPondTransform(Transform):
         node[:] = self.postprocess_lyriclist(node)
         return node
 
+    def lyricword(self, items):
+        """Return a LyricText node."""
+        return self.factory(lily.LyricText, items)
+
     def drummode(self, items):
         """Contents of ``drummode`` context."""
         return list(self.create_music(items))
@@ -952,12 +956,6 @@ class MusicBuilder:
             yield from self.pending_music()
             yield self.factory(lily.EqualSign, (token,))
 
-    @_action(a.Text.Lyric.LyricText)
-    def lyric_text_action(self, token):
-        r"""Called for ``Text.Lyric.LyricText``."""
-        yield from self.pending_music()
-        self._music = self.factory(lily.LyricText, (token,))
-
     @_action(a.Delimiter.Lyric.LyricExtender)
     def lyric_extender_action(self, token):
         r"""Called for ``Delimiter.Lyric.LyricExtender``."""
@@ -1075,6 +1073,12 @@ class MusicBuilder:
     def script(self, obj):
         """Called for ``script`` context: an articulation."""
         self.add_articulation(obj)
+
+    @_context("lyricword")
+    def lyricword(self, obj):
+        r"""Called for ``lyricword``: one lyric word."""
+        yield from self.pending_music()
+        self._music = obj
 
     @_context("figure")
     def figure(self, obj):
