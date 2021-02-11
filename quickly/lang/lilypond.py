@@ -193,9 +193,7 @@ class LilyPondTransform(Transform):
         node[:] = self.postprocess_lyriclist(node)
         return node
 
-    def lyricword(self, items):
-        """A LyricText element."""
-        return self.factory(lily.LyricText, items)
+    lyricword = None    # never creates a context, only used in using()
 
     def drummode(self, items):
         """A list of elements, contents of ``drummode`` context."""
@@ -963,6 +961,19 @@ class MusicBuilder:
             yield from self.pending_music()
             yield self.factory(lily.EqualSign, (token,))
 
+    @_action(a.Text.Lyric.LyricText)
+    def lyric_text_action(self, token):
+        r"""Called for ``Text.Lyric.LyricText.*``."""
+        yield from self.pending_music()
+        origin = [token]
+        if token.group is not None:
+            # next tokens belong to this same word! (e.g. with _ or ~)
+            for token in self.items:
+                origin.append(token)
+                if token.group < 0:     # last token has negative index
+                    break
+        self._music = self.factory(lily.LyricText, origin)
+
     @_action(a.Delimiter.Lyric.LyricExtender)
     def lyric_extender_action(self, token):
         r"""Called for ``Delimiter.Lyric.LyricExtender``."""
@@ -1069,9 +1080,9 @@ class MusicBuilder:
         dots, self._scaling = obj
         self._duration.extend(dots)
 
-    @_context("chord", "lyricword", "figure")
+    @_context("chord", "figure")
     def music_element(self, obj):
-        """An element node that is a music item (chord, lyricword, figure)."""
+        """An element node that is a music item (chord, figure)."""
         yield from self.pending_music()
         self._music = obj
 
