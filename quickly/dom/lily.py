@@ -1017,24 +1017,6 @@ class Glissando(element.HeadElement, Music):
     head = r'\glissando'
 
 
-class AutoBeam(element.ToggleElement, Music):
-    r"""An ``\autoBeamOn`` or ``\autoBeamOff`` command."""
-    toggle_on = r'\autoBeamOn'
-    toggle_off = r'\autoBeamOff'
-
-
-class Sostenuto(element.ToggleElement, Music):
-    r"""A ``\sostenutoOn`` or ``\sostenutoOff`` command."""
-    toggle_on = r'\sostenutoOn'
-    toggle_off = r'\sostenutoOff'
-
-
-class Sustain(element.ToggleElement, Music):
-    r"""A ``\sustainOn`` or ``\sustainOff`` command."""
-    toggle_on = r'\sustainOn'
-    toggle_off = r'\sustainOff'
-
-
 class Bar(element.HeadElement, Music):
     r"""A ``\bar``. Has a String child."""
     head = r'\bar'
@@ -1052,18 +1034,6 @@ class Break(element.ToggleElement):
     r"""A ``\break`` or ``\noBreak``. """
     toggle_on = r'\break'
     toggle_off = r'\noBreak'
-
-
-class Cadenza(element.ToggleElement, Music):
-    r"""A ``\cadenzaOn`` or ``\cadenzaOff``."""
-    toggle_on = r'\cadenzaOn'
-    toggle_off = r'\cadenzaOff'
-
-
-class EasyHeads(element.ToggleElement, Music):
-    r"""An ``\easyHeadsOn`` or ``\easyHeadsOff`` command."""
-    toggle_on = r'\easyHeadsOn'
-    toggle_off = r'\easyHeadsOff'
 
 
 class PageBreak(element.ToggleElement):
@@ -1671,10 +1641,16 @@ class Include(element.HeadElement):
         yield String,
 
 
-class PointAndClick(element.ToggleElement):
-    r"""A ``\pointAndClickOn`` or ``\pointAndClickOff`` command."""
-    toggle_on = r'\pointAndClickOn'
-    toggle_off = r'\pointAndClickOff'
+class VoiceN(element.MappingElement):
+    r"""Commands like ``\voiceOne``, ``\voiceTwo``, etc."""
+    mapping = {
+        r'\voiceOne': 1,
+        r'\voiceTwo': 2,
+        r'\voiceThree': 3,
+        r'\voiceFour': 4,
+        r'\voiceFive': 5,
+        r'\voiceSix': 6,
+    }
 
 
 class GrobDirection(element.MappingElement):
@@ -1755,7 +1731,7 @@ class GrobDirection(element.MappingElement):
 
     @grob.setter
     def grob(self, value):
-        self.head = (grob, self.head[1])
+        self.head = (value, self.head[1])
 
     @property
     def direction(self):
@@ -1794,7 +1770,7 @@ class GrobStyle(element.MappingElement):
         '\\slurDotted'
 
     The ``grobs`` class attribute is a dictionary mapping each available grob
-    to a tuple of the directions it supports. All grobs support the styles
+    to a tuple of the styles it supports. All grobs support the styles
     ``"solid"``, ``"dashed"``, and ``"dotted"``.
 
     """
@@ -1824,7 +1800,7 @@ class GrobStyle(element.MappingElement):
 
     @grob.setter
     def grob(self, value):
-        self.head = (grob, self.head[1])
+        self.head = (value, self.head[1])
 
     @property
     def style(self):
@@ -1833,6 +1809,85 @@ class GrobStyle(element.MappingElement):
 
     @style.setter
     def style(self, value):
+        self.head = (self.head[0], value)
+
+
+class PropToggle(element.MappingElement):
+    r"""A collection of commands that can be on/off, like ``\textLengthOn``.
+
+    To create a ``\textLengthOn`` command, use::
+
+        >>> node = lily.PropToggle(("textLength", True))
+        >>> node.write()
+        '\\textLengthOn'
+
+    Or::
+
+        >>> node = lily.PropToggle.from_mapping(r'\textLengthOn')
+
+    When reading this node programmatically, the ``prop`` and ``value``
+    attributes can be read and modified::
+
+        >>> node.prop
+        'textLength'
+        >>> node.value
+        True
+        >>> node.write()
+        '\\textLengthOn'
+        >>> node.value = False
+        >>> node.write()
+        '\\textLengthOff'
+
+    The ``props`` class attribute is a tuple with all available prop names. All
+    props support the values True and False.
+
+    """
+    props = (
+        "autoBeam",
+        "autoBreaks",                   # since 2.20
+        "autoLineBreaks",               # since 2.20
+        "autoPageBreaks",               # since 2.20
+        "balloonLength",
+        "bassFigureExtenders",
+        "cadenza",
+        "deadNotes",                    # since 2.20
+        "easyHeads",
+        "improvisation",
+        "harmonics",
+        "kievan",                       # since 2.20
+        "markLength",                   # since 2.18
+        "mergeDifferentlyDotted",
+        "mergeDifferentlyHeaded",
+        "pointAndClick",
+        "predefinedFretboards",
+        "sostenuto",
+        "sustain",
+        "textLength",
+        "xNotes",
+    )
+
+    mapping = {}
+    for p in props:
+        mapping[r'\{}On'.format(p)] = (p, True)
+        mapping[r'\{}Off'.format(p)] = (p, False)
+    del p
+
+    @property
+    def prop(self):
+        """The property that can be on or off."""
+        return self.head[0]
+
+    @prop.setter
+    def prop(self, value):
+        self.head = (value, self.head[1])
+
+    @property
+    def value(self):
+        """The value (True for ``"On"``, False for ``"Off"``)."""
+        return self.head[1]
+
+    @value.setter
+    def value(self, value):
         self.head = (self.head[0], value)
 
 

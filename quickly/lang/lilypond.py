@@ -983,10 +983,9 @@ class MusicBuilder:
         lily.Breathe, lily.Mark, lily.Default, lily.Label, lily.AddQuote,
         lily.QuoteDuring, lily.UnfoldRepeats, lily.Alternative,
         lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
-        lily.AppendToTag, lily.AutoBeam, lily.Break, lily.PageBreak,
-        lily.PageTurn, lily.Cadenza, lily.EasyHeads, lily.PointAndClick,
-        lily.Sustain, lily.Sostenuto, lily.GrobDirection, lily.GrobStyle,
-        lily.Shape, lily.StringTuning,
+        lily.AppendToTag, lily.Break, lily.PageBreak, lily.PageTurn,
+        lily.GrobDirection, lily.GrobStyle, lily.PropToggle, lily.Shape,
+        lily.StringTuning, lily.VoiceN,
     )
 
     @_action(a.Name.Builtin)
