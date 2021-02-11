@@ -2,7 +2,7 @@ ChangeLog
 =========
 
 
-current: quickly-0.0.5
+2021-02-11: quickly-0.0.5
 
 - Milestone: quickly correctly parses my Mouvement piece!
   https://github.com/wbsoft/lilymusic/blob/master/berendsen/mouvement.ly
