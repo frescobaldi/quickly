@@ -320,6 +320,28 @@ def note_by_number(log, dotcount, direction):
         _s(scm.Int(log)), _s(scm.Int(dotcount)),
         _s(scm.create_element_from_value(direction)))
 
+def pad_to_box(x1, y1, x2, y2, *args):
+    return _c('pad-to-box', _pair(x1, x2), _pair(y1, y2), create_list(args))
+
+def page_ref(label, gauge, *mkup):
+    return _c('page-ref', _sym(label), create_word(gauge), create_list(mkup))
+
+def with_dimensions(x1, y1, x2, y2, *args):
+    return _c('with-dimensions', _pair(x1, x2), _pair(y1, y2), create_list(args))
+
+
+#### four arguments
+
+def pattern(count, axis, space, *args):
+    return _c('pattern', _s(scm.Int(count)), _s(scm.Int(axis)),
+        _s(create_element_from_value(space)), create_list(args))
+
+def put_adjacent(axis, direction, arg1, *arg2):
+    return _c('put-adjacent',
+        _s(scm.Int(axis)),
+        _s(create_element_from_value(direction)),
+        create_word(arg1), create_list(arg2))
+
 
 
 
