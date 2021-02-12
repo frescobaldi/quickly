@@ -286,10 +286,7 @@ def arrow_head(axis, direction, filled):
     Axis, direction are numbers, filled is True/False.
 
     """
-    return _c('arrow-head',
-        _s(scm.create_element_from_value(axis)),
-        _s(scm.create_element_from_value(direcion)),
-        _s(scm.create_element_from_value(filled)))
+    return _c('arrow-head', _a(axis), _a(direcion), _a(filled))
 
 def beam(width, slope, thickness):
     return _c('beam', _a(width), _a(slope), _a(thickness))
