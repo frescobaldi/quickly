@@ -317,8 +317,7 @@ def general_align(axis, direction, *args):
 
 def note_by_number(log, dotcount, direction):
     return _c('note-by-number',
-        _s(scm.create_element_from_value(log)),
-        _s(scm.create_element_from_value(dotcount)),
+        _s(scm.Int(log)), _s(scm.Int(dotcount)),
         _s(scm.create_element_from_value(direction)))
 
 
