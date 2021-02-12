@@ -545,14 +545,19 @@ class Element(Node, metaclass=ElementType):
         """
         old = self[index]
         self[index] = node
+        modified = 0
         try:
             node.head_origin = old.head_origin
-        except AttributeError:
-            pass
-        try:
+            modified = HEAD_MODIFIED
             node.tail_origin = old.tail_origin
+            modified |= TAIL_MODIFIED
         except AttributeError:
             pass
+        if modified:
+            try:
+                node._modified = modified
+            except AttributeError:
+                pass
 
     def signatures(self):
         """Return an iterable of signature tuples.
