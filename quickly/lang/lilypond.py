@@ -387,17 +387,16 @@ class LilyPondTransform(Transform):
                 yield n
 
     def create_block(self, element_class, items):
-        r"""Return a tree tuple(head_origin, nodes, tail_origin) for the items.
+        r"""Return a block element for the items.
 
-        The items are the contents of a block like ``\book { }``.
-        The ``head_origin`` are the first two tokens, the ``tail_origin`` the
-        last token, if that is a '``}``'.
+        ``element_class`` is the type, e.g. ``lily.Score``; ``items`` are the
+        contents.
 
         """
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
         return self.factory(element_class, head_origin, tail_origin,
-            *self.handle_assignments(element.build_tree(self.common(items[2:]))))
+            *self.handle_assignments(element.build_tree(self.common(items[2:]), ignore_type=base.Comment)))
 
     def create_markup(self, markup, items):
         """Yield zero or one Markup element.
