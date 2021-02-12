@@ -85,45 +85,34 @@ class LilyPondTransform(Transform):
     def book(self, items):
         """A Book or BookPart element."""
         element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(element_class, head, tail, *self.create_music(items[2:]))
+        return self.create_block(element_class, items, music=True)
 
     def score(self, items):
         """A Score element."""
         tail = (items.pop(),) if items[-1] == '}' else ()
         head = items[:2]
-        return self.factory(lily.Score, head, tail, *self.create_music(items[2:]))
+        return self.create_block(lily.Score, items, music=True)
 
     def header(self, items):
         """A Header element."""
-        return self.create_block(lily.Header, items)
+        return self.create_block(lily.Header, items, assignments=True)
 
     def paper(self, items):
         """A Paper element."""
-        return self.create_block(lily.Paper, items)
+        return self.create_block(lily.Paper, items, assignments=True)
 
     def layout(self, items):
         """A Layout element."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(lily.Layout, head, tail,
-            *self.handle_assignments(self.create_music(items[2:])))
+        return self.create_block(lily.Layout, items, music=True, assignments=True)
 
     def midi(self, items):
         """A Midi element."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(lily.Midi, head, tail,
-            *self.handle_assignments(self.create_music(items[2:])))
+        return self.create_block(lily.Midi, items, music=True, assignments=True)
 
     def layout_context(self, items):
         """A With or LayoutContext element."""
         element_class = lily.With if items[0] == r'\with' else lily.LayoutContext
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
-        return self.factory(element_class, head, tail,
-            *self.handle_assignments(self.create_music(items[2:])))
+        return self.create_block(element_class, items, music=True, assignments=True)
 
     def musiclist(self, items):
         """A MusicList (``{`` ... ``}``) or SimultaneousMusicList (``<<`` ... ``>>``) element."""
@@ -297,16 +286,14 @@ class LilyPondTransform(Transform):
 
     def markupscore(self, items):
         """A MarkupScore element."""
-        tail = (items.pop(),) if items[-1] == '}' else ()
-        head = items[:2]
         cls = lily.MarkupScoreLines if items[0] == r'\score-lines' else lily.MarkupScore
-        return self.factory(cls, head, tail, *self.create_music(items[2:]))
+        return self.create_block(cls, items, music=True)
 
     def schemelily(self, items):
         """A scm.LilyPond element, with LilyPond in Scheme."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '#}' else ()
-        return self.factory(scm.LilyPond, head, tail, *self.common(items[1:]))
+        return self.factory(scm.LilyPond, head, tail, *self.create_music(items[1:]))
 
     def string(self, items):
         """A String element."""
@@ -386,17 +373,27 @@ class LilyPondTransform(Transform):
             else:
                 yield n
 
-    def create_block(self, element_class, items):
+    def create_block(self, element_class, items, *, music=False, assignments=False):
         r"""Return a block element for the items.
 
         ``element_class`` is the type, e.g. ``lily.Score``; ``items`` are the
         contents.
 
+        If ``music`` is set to True, the items are read as music, otherwise as
+        common LilyPond syntax (e.g. enough for a header block). If
+        ``assignments`` is set to True, assignments (list context followed by
+        an equalsign) are converted into Assignment elements.
+
         """
         tail_origin = (items.pop(),) if items[-1] == '}' else ()
         head_origin = items[:2]
-        return self.factory(element_class, head_origin, tail_origin,
-            *self.handle_assignments(element.build_tree(self.common(items[2:]), ignore_type=base.Comment)))
+        if music:
+            items = self.create_music(items[2:])
+        else:
+            items = element.build_tree(self.common(items[2:]), ignore_type=base.Comment)
+        if assignments:
+            items = self.handle_assignments(items)
+        return self.factory(element_class, head_origin, tail_origin, *items)
 
     def create_markup(self, markup, items):
         """Yield zero or one Markup element.
