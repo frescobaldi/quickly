@@ -258,3 +258,23 @@ class Dot(element.HeadElement):
     """A dot, e.g. in a Scheme pair."""
     head = '.'
 
+
+def create_element_from_value(value):
+    """Convert a regular Python value to a scheme Element node.
+
+    Handles, bool, int, float, str.
+
+    """
+    if isinstance(value, element.Element):
+        return value
+    elif isinstance(value, bool):
+        return Bool(value)
+    elif isinstance(value, int):
+        return Int(value)
+    elif isinstance(value, float):
+        return Float(value)
+    elif isinstance(value, str):
+        return String(value)
+    raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
+
+

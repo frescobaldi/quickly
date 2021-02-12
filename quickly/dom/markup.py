@@ -39,8 +39,11 @@ from . import base, element, lily, scm
 
 _c = lily.MarkupCommand
 _s = lambda n: lily.SchemeExpression('#', n)
+_sym = lambda s: _s(scm.Quote("'", scm.Identifier(s)))
+_pair = lambda x, y: _s(scm.Quote("'", scm.List(
+    scm.create_element_from_value(x), scm.Dot(), scm.create_element_from_value(y))))
 
-RE_MATCH_MARKUP = re.compile(parce.lang.lilypond.RE_LILYPOND_MARKUP_TEXT).fullmatch
+_RE_MATCH_MARKUP = re.compile(parce.lang.lilypond.RE_LILYPOND_MARKUP_TEXT).fullmatch
 
 def _autolist(func):
     """Decorator that automatically wraps arguments in a markup list if not one."""
@@ -58,11 +61,10 @@ def _autotext(func):
     return decorator
 
 
-@_autolist
-def markup(arg):
-    r"""Return `\markup`; automatically wraps more arguments in a brackets."""
-    return lily.Markup(r'\markup', arg)
-
+@_autotext
+def markup(*args):
+    r"""Return `\markup`; automatically wraps arguments in brackets."""
+    return lily.Markup(r'\markup', lily.MarkupList(*args))
 
 @_autotext
 def markuplist(*args):
@@ -92,7 +94,7 @@ def fret_diagram_verbose(element):
     return c_('fret-diagram-verbose', element)
 
 def from_property(name):
-    return _c('from-property', _s(scm.Quote("'", scm.Identifier(name))))
+    return _c('from-property', _sym(name))
 
 def harp_pedal(s):
     return _c('harp-pedal', lily.String(s))
@@ -142,37 +144,189 @@ def verbatim_file(filename):
 
 
 #### two arguments
+#### (those that are not mentioned here are created automatically)
 
 def abs_fontsize(n, *args):
-    arg = create_list(map(create_word, args))
-    return _c('abs-fontsize', _s(scm.Float(n)), arg)
-
-def auto_footnote(mkup, *text):
-    return _c('auto-footnote', create_word(mkup), create_list(text))
-
-def combine(mkup1, mkup2):
-    return _c('combine', create_word(mkup1), create_word(mkup2))
+    return _c('abs-fontsize', _s(scm.Float(n)), create_list(args))
 
 def customTabClef(num_strings, staff_space):
     r"""The ``\customTabClef`` command (int, float)."""
     return _c('customTabClef', _s(scm.Int(num_strings)), _s(scm.Float(staff_space)))
 
 def fontsize(n, *args):
-    arg = create_list(map(create_word, args))
-    return _c('fontsize', _s(scm.Float(n)), arg)
+    return _c('fontsize', _s(scm.Float(n)), create_list(args))
 
-def footnote(mkup, *text):
-    return _c('footnote', create_word(mkup), create_list(text))
+def hcenter_in(n, *args):
+    return _c('hcenter-in', _s(scm.Float(n)), create_list(args))
+
+def lower(n, *args):
+    return _c('lower', _s(scm.Float(n)), create_list(args))
+
+def magnify(n, *args):
+    return _c('magnify', _s(scm.Float(n)), create_list(args))
+
+def map_markup_commands(procedure, *args):
+    r"""The ``\map-markup-commands`` command (Scheme procedure, markups)."""
+    return _c('map-markup-commands', procedure, create_list(args))
+
+def note(duration, direction):
+    r"""The ``\note`` command.
+
+    The ``duration`` can be a markup object containing a word that is a duration, e.g.
+    ``4..`` (for LilyPond >= 2.22) or a Scheme string like ``#"4.."`` (for
+    LilyPond < 2.22).
+
+    The ``direction is a floating point value; the sign is the stem direction,
+    the value the stem length.
+
+    """
+    return _c('note', duration, _s(scm.Float(direction)))
+
+def on_the_fly(procedure, *args):
+    r"""The ``\on-the-fly`` command (Scheme procedure, markups)."""
+    return _c('on-the-fly', procedure, create_list(args))
+
+def override(prop, value, *args):
+    r"""The ``\override`` command.
+
+    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool, int
+    or float are handled automatically).
+
+    """
+    value = scm.create_element_from_value(value)
+    return _c('override', _pair(scm.Identifier(prop), value), create_list(args))
+
+def override_lines(prop, value, *args):
+    r"""The ``\override-lines`` command.
+
+    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool, int
+    or float are handled automatically).
+
+    """
+    value = scm.create_element_from_value(value)
+    return _c('override-lines', _pair(scm.Identifier(prop), value), create_list(args))
+
+def pad_around(n, *args):
+    return _c('pad-around', _s(scm.Float(n)), create_list(args))
+
+def pad_markup(n, *args):
+    return _c('pad-markup', _s(scm.Float(n)), create_list(args))
+
+def pad_x(n, *args):
+    return _c('pad-x', _s(scm.Float(n)), create_list(args))
+
+def page_link(n, *args):
+    return _c('page-link', _s(scm.Int(n)), create_list(args))
+
+def path(thickness, commands):
+    r"""The ``\path`` command (thickness is float, commands is SchemeExpression)."""
+    return _c('path', _s(scm.Float(thickness)), commands)
+
+def raise_(n, *args):
+    return _c('raise', _s(scm.Float(n)), create_list(args))
+
+def replace(scheme, *args):
+    return _c('replace', scheme, create_list(args))
+
+def rest_by_number(log, dotcount):
+    r"""The ``\rest-by-number`` command (int log, int dotcount)."""
+    return _c('rest-by-number', _s(scm.Int(log)), _s(scm.Int(dotcount)))
+
+def rotate_(angle, *args):
+    return _c('raise', _s(scm.Float(angle)), create_list(args))
+
+def scale(x, y, *args):
+    return _c('scale', _pair(x, y), create_list(args))
+
+def table(column_align, *args):
+    r"""The ``\table`` command (scheme column_align, markups args)."""
+    return _c('table', column_align, create_list(args))
+
+def translate(x, y, *args):
+    return _c('translate', _pair(x, y), create_list(args))
+
+def translate_scaled(x, y, *args):
+    return _c('translate-scaled', _pair(x, y), create_list(args))
+
+def with_color(scheme, *args):
+    return _c('with-color', scheme, create_list(args))
+
+def with_link(label, *args):
+    return _c('with-color', _sym(label), create_list(args))
+
+def with_url(url, *args):
+    return _c('with-url', _s(scm.String(url)), create_list(args))
+
+def woodwind_diagram(instrument, scheme_commands):
+    return _c('woodwind-diagram', _sym(label), scheme_commands)
 
 
+#### three arguments
 
+def arrow_head(axis, direction, filled):
+    r"""The ``\arrow-head`` command.
+
+    Axis, direction are numbers, filled is True/False.
+
+    """
+    return _c('arrow-head',
+        _s(scm.create_element_from_value(axis)),
+        _s(scm.create_element_from_value(direcion)),
+        _s(scm.create_element_from_value(filled)))
+
+def beam(width, slope, thickness):
+    return _c('beam',
+        _s(scm.create_element_from_value(width)),
+        _s(scm.create_element_from_value(slope)),
+        _s(scm.create_element_from_value(thickness)))
+
+def draw_circle(radius, thickness, filled):
+    r"""The ``\draw-circle`` command.
+
+    Radius, thickness are numbers, filled is True/False.
+
+    """
+    return _c('draw-circle',
+        _s(scm.create_element_from_value(radius)),
+        _s(scm.create_element_from_value(thickness)),
+        _s(scm.create_element_from_value(filled)))
+
+def draw_squiggle_line(sqlength, x, y, eqend):
+    return _c('draw-squiggle-line',
+        _s(scm.create_element_from_value(sqlength)),
+        _pair(x, y),
+        _s(scm.create_element_from_value(eqend)))
+
+def epsfile(axis, size, filename):
+    return _c('epsfile',
+        _s(scm.create_element_from_value(axis)),
+        _s(scm.create_element_from_value(size)),
+        _s(scm.create_element_from_value(filename)))
+
+def filled_box(x1, y1, x2, y2, blot):
+    return _c('filled-box',
+        _pair(x1, x2),
+        _pair(y1, y2),
+        _s(scm.create_element_from_value(blot)))
+
+def general_align(axis, direction, *args):
+    return _c('general-align',
+        _s(scm.create_element_from_value(axis)),
+        _s(scm.create_element_from_value(direction)),
+        create_list(args))
+
+def note_by_number(log, dotcount, direction):
+    return _c('note-by-number',
+        _s(scm.create_element_from_value(log)),
+        _s(scm.create_element_from_value(dotcount)),
+        _s(scm.create_element_from_value(direction)))
 
 
 
 
 def is_markup(text):
     """Return True if the text can be written as LilyPond markup without quotes."""
-    return bool(RE_MATCH_MARKUP(text))
+    return bool(_RE_MATCH_MARKUP(text))
 
 
 
@@ -196,20 +350,26 @@ def create_word(arg):
 
 def main():
     """Auto-create markup factory functions."""
-    no_arg = lambda n: lambda: _c(n)
-    one_arg = lambda n: _autolist(lambda arg: _c(n, arg))
+    factories = (
+        (lambda n: lambda: _c(n)),
+        (lambda n: lambda *text: _c(n, create_list(text))),
+        (lambda n: lambda arg, *text: _c(n, create_word(arg), create_list(text))),
+        None,
+        None,
+    )
 
-    for argcount, factory in enumerate((no_arg, one_arg)):
+    for argcount, factory in enumerate(factories):
         for cmd in w.markup_commands_nargs[argcount]:
             name = cmd.replace('-', '_')
             doc = r"The ``\{}`` markup command.".format(cmd)
             try:
                 f = globals()[name]
             except KeyError:
-                func = factory(cmd)
-                func.__name__ = name
-                func.__doc__ = doc
-                globals()[name] = func
+                if factory:
+                    func = factory(cmd)
+                    func.__name__ = name
+                    func.__doc__ = doc
+                    globals()[name] = func
             else:
                 if not f.__doc__:
                     f.__doc__ = doc

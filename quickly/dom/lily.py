@@ -2182,7 +2182,7 @@ def convert_duration_to_int(node):
 
 
 def create_element_from_value(value):
-    """Convert a regular Python value to an Element node.
+    """Convert a regular Python value to a lilypond Element node.
 
     This can be used to ease manually building a node structure. Converts:
 
