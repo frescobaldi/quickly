@@ -113,13 +113,9 @@ class HandleAssignments:
         assignment = self.find_assignment(name)
         if assignment:
             node = assignment[-1]
-            if isinstance(node, (String, Int, Float)):
-                if len(node) == 0:
-                    return node.head
-                # might be a unit attached
-            elif isinstance(node, SchemeExpression) and len(node) == 1 and \
-                    isinstance(node[0], scm.Bool):
-                return node[0].value
+            value = create_value_from_element(node)
+            if value is not None:
+                return value
             return node
 
     def set_variable(self, name, value):
@@ -134,33 +130,10 @@ class HandleAssignments:
         is changed.)
 
         """
-        if isinstance(value, bool):
-            node = SchemeExpression('#', scm.Bool(value))
-        elif isinstance(value, int):
-            node = Int(value)
-        elif isinstance(value, float):
-            node = Float(value)
-        elif isinstance(value, str):
-            node = String(value)
-        elif isinstance(value, element.Element):
-            node = value
-        else:
-            raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
-
+        node = create_element_from_value(value)
         assignment = self.find_assignment(name)
         if assignment:
-            old = assignment[-1]
-            if isinstance(node, Int) and isinstance(old, Int):
-                old.head = node.head; old.clear()
-            elif isinstance(node, Float) and isinstance(old, Float):
-                old.head = node.head; old.clear()
-            elif isinstance(node, String) and isinstance(old, String):
-                old.head = node.head; old.clear()
-            elif isinstance(node, SchemeExpression) and isinstance(old, SchemeExpression) \
-                    and len(old) == 1 and isinstance(old[0], scm.Bool):
-                old[0].head = node[0].head
-            else:
-                assignment.replace(-1, node)
+            assignment.replace(-1, node)
         else:
             self.append(Assignment.with_name(name, node))
 
@@ -2195,6 +2168,67 @@ def convert_duration_to_int(node):
             return Int.with_origin(origin)
     except ValueError:
         return    # cannot convert
+
+
+def create_element_from_value(value):
+    """Convert a regular Python value to an Element node.
+
+    This can be used to ease manually building a node structure. Converts:
+
+    * bool to SchemeExpression('#', scm.Bool(value))
+    * int to Int(value)
+    * float to Float(value)
+    * str to String(value)
+    * tuple(int, "unit") to Int(value, Unit("unit")) where unit in "mm", "cm", "in", "pt"
+    * tuple(float, "unit") to Float(value, Unit("unit")) where unit in "mm", "cm", "in", "pt"
+    * an Element node is returned unchanged.
+
+    Raises ValueError when a value can't be converted to an element.
+
+    """
+    if isinstance(value, element.Element):
+        return value
+    if (isinstance(value, tuple) and len(value) == 2
+            and isinstance(value[0], (int, float)) and value[1] in ('mm', 'cm', 'in', 'pt')):
+        unit = Unit(value[1]),
+        value = value[0]
+    else:
+        unit = ()
+    if isinstance(value, bool):
+        return SchemeExpression('#', scm.Bool(value))
+    elif isinstance(value, int):
+        return Int(value, *unit)
+    elif isinstance(value, float):
+        return Float(value, *unit)
+    elif isinstance(value, str):
+        return String(value)
+    raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
+
+
+def create_value_from_element(node):
+    """Gets the value from en Element node.
+
+    Returns:
+
+    * bool for a SchemeExpression('#', scm.Bool(value)) node
+    * int for an Int node
+    * float for a Float node
+    * str for a String or Symbol node
+    * tuple(int, "unit") for a Int(Unit()) node
+    * tuple(float, "unit") for a Float(Unit()) node
+
+    Returns None when this function cannot get a simple value from the node.
+
+    """
+    if isinstance(node, (Int, Float)):
+        value = node.head
+        for unit in node/Unit:
+            return (value, unit.head)
+        return value
+    elif isinstance(node, (String, Symbol)):
+        return node.head
+    elif isinstance(node, SchemeExpression) and len(node) == 1 and isinstance(node[0], scm.Bool):
+        return node[0].value
 
 
 # often used signatures:
