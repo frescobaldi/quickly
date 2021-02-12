@@ -1531,8 +1531,19 @@ class MarkupList(element.BlockElement):
 
 
 class MarkupCommand(element.TextElement):
-    r"""A markup command, like ``\bold <arg>``."""
+    r"""A markup command, like ``\bold <arg>``.
+
+    When manually constructing a MarkupCommand, the backslash is not needed.
+
+    """
     _space_after_head = _space_before_tail = _space_between = " "
+
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text.lstrip('\\')
+
+    def write_head(self):
+        return '\\' + self.head
 
 
 class MarkupScore(Score):
