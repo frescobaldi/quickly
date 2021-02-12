@@ -74,44 +74,20 @@ def markuplist(*args):
     return lily.Markup(r'\markuplist', lily.MarkupList(*args))
 
 
-#### no arguments
-
-#### one argument
+#### one argument commands
+#### (those that are not mentioned here are created automatically)
 
 def backslashed_digit(n):
     return _c('backslashed-digit', _s(scm.Int(n)))
 
-@_autotext
-@_autolist
-def bold(arg):
-    return _c('bold', arg)
-
-@_autotext
-@_autolist
-def box(arg):
-    return _c('box', arg)
-
-@_autotext
-@_autolist
-def bracket(arg):
-    return _c('bracket', arg)
-
-@_autotext
-@_autolist
-def caps(arg):
-    return _c('caps', arg)
-
-@_autotext
-@_autolist
-def center_align(arg):
-    return _c('center-align', arg)
-
-
+def char(n):
+    return _c('char', _s(scm.Hex(n)))
 
 def tied_lyric(text):
     return _c('tied-lyric', _s(scm.String(text)))
 
-
+def from_property(name):
+    return _c('from-property', _s(scm.Quote("'", scm.Identifier(name))))
 
 
 
@@ -128,13 +104,23 @@ def create_word(arg):
 
 
 def main():
-    for n in w.markup_commands_nargs[0]:
-        name = n.replace('-', '_')
-        func = (lambda n: lambda: _c(n))(n)
-        func.__name__ = name
-        func.__doc__ = r"The ``\{}`` markup command.".format(n)
-        globals()[name] = func
+    no_arg = lambda n: lambda: _c(n)
+    one_arg = lambda n: _autotext(_autolist(lambda arg: _c(n, arg)))
 
+    for argcount, factory in enumerate((no_arg, one_arg)):
+        for cmd in w.markup_commands_nargs[argcount]:
+            name = cmd.replace('-', '_')
+            doc = r"The ``\{}`` markup command.".format(cmd)
+            try:
+                f = globals()[name]
+            except KeyError:
+                func = factory(cmd)
+                func.__name__ = name
+                func.__doc__ = doc
+                globals()[name] = func
+            else:
+                if not f.__doc__:
+                    f.__doc__ = doc
 
 
 
