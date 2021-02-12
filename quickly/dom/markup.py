@@ -37,13 +37,18 @@ import parce.lang.lilypond_words as w
 
 from . import base, element, lily, scm
 
+
 _c = lily.MarkupCommand
 _s = lambda n: lily.SchemeExpression('#', n)
-_sym = lambda s: _s(scm.Quote("'", scm.Identifier(s)))
-_pair = lambda x, y: _s(scm.Quote("'", scm.List(
-    scm.create_element_from_value(x), scm.Dot(), scm.create_element_from_value(y))))
+_a = lambda v: _s(scm.create_element_from_value(v))
+_q = lambda n: _s(scm.Quote("'", n))
+_sym = lambda s: _q(scm.Identifier(s))
+_pair = lambda x, y: _q(scm.List(
+    scm.create_element_from_value(x), scm.Dot(), scm.create_element_from_value(y)))
+
 
 _RE_MATCH_MARKUP = re.compile(parce.lang.lilypond.RE_LILYPOND_MARKUP_TEXT).fullmatch
+
 
 def _autolist(func):
     """Decorator that automatically wraps arguments in a markup list if not one."""
@@ -102,6 +107,12 @@ def harp_pedal(s):
 def hspace(n):
     return _c('hspace', _s(scm.Int(n)))
 
+def justify_field(name):
+    return _c('justify-field', _sym(name))
+
+def justify_string(s):
+    return _c('justify-string', _s(scm.String(s)))
+
 def lookup(s):
     return _c('lookup', _s(scm.String(s)))
 
@@ -141,6 +152,12 @@ def vspace(n):
 
 def verbatim_file(filename):
     return _c('verbatim-file', _s(scm.String(filename)))
+
+def wordwrap_field(name):
+    return _c('wordwrap-field', _sym(name))
+
+def wordwrap_string(s):
+    return _c('wordwrap-string', _s(scm.String(s)))
 
 
 #### two arguments
@@ -275,10 +292,7 @@ def arrow_head(axis, direction, filled):
         _s(scm.create_element_from_value(filled)))
 
 def beam(width, slope, thickness):
-    return _c('beam',
-        _s(scm.create_element_from_value(width)),
-        _s(scm.create_element_from_value(slope)),
-        _s(scm.create_element_from_value(thickness)))
+    return _c('beam', _a(width), _a(slope), _a(thickness))
 
 def draw_circle(radius, thickness, filled):
     r"""The ``\draw-circle`` command.
@@ -286,39 +300,22 @@ def draw_circle(radius, thickness, filled):
     Radius, thickness are numbers, filled is True/False.
 
     """
-    return _c('draw-circle',
-        _s(scm.create_element_from_value(radius)),
-        _s(scm.create_element_from_value(thickness)),
-        _s(scm.create_element_from_value(filled)))
+    return _c('draw-circle', _a(radius), _a(thickness), _a(filled))
 
 def draw_squiggle_line(sqlength, x, y, eqend):
-    return _c('draw-squiggle-line',
-        _s(scm.create_element_from_value(sqlength)),
-        _pair(x, y),
-        _s(scm.create_element_from_value(eqend)))
+    return _c('draw-squiggle-line', _a(sqlength), _pair(x, y), _a(eqend))
 
 def epsfile(axis, size, filename):
-    return _c('epsfile',
-        _s(scm.create_element_from_value(axis)),
-        _s(scm.create_element_from_value(size)),
-        _s(scm.create_element_from_value(filename)))
+    return _c('epsfile', _a(axis), _a(size), _a(filename))
 
 def filled_box(x1, y1, x2, y2, blot):
-    return _c('filled-box',
-        _pair(x1, x2),
-        _pair(y1, y2),
-        _s(scm.create_element_from_value(blot)))
+    return _c('filled-box', _pair(x1, x2), _pair(y1, y2), _a(blot))
 
 def general_align(axis, direction, *args):
-    return _c('general-align',
-        _s(scm.create_element_from_value(axis)),
-        _s(scm.create_element_from_value(direction)),
-        create_list(args))
+    return _c('general-align', _a(axis), _a(direction), create_list(args))
 
 def note_by_number(log, dotcount, direction):
-    return _c('note-by-number',
-        _s(scm.Int(log)), _s(scm.Int(dotcount)),
-        _s(scm.create_element_from_value(direction)))
+    return _c('note-by-number', _s(scm.Int(log)), _s(scm.Int(dotcount)), _a(direction))
 
 def pad_to_box(x1, y1, x2, y2, *args):
     return _c('pad-to-box', _pair(x1, x2), _pair(y1, y2), create_list(args))
@@ -333,22 +330,29 @@ def with_dimensions(x1, y1, x2, y2, *args):
 #### four arguments
 
 def pattern(count, axis, space, *args):
-    return _c('pattern', _s(scm.Int(count)), _s(scm.Int(axis)),
-        _s(create_element_from_value(space)), create_list(args))
+    return _c('pattern', _s(scm.Int(count)), _s(scm.Int(axis)), _a(space),
+        create_list(args))
 
 def put_adjacent(axis, direction, arg1, *arg2):
-    return _c('put-adjacent',
-        _s(scm.Int(axis)),
-        _s(create_element_from_value(direction)),
+    return _c('put-adjacent', _s(scm.Int(axis)), _a(direction),
         create_word(arg1), create_list(arg2))
 
 
+#### five arguments
 
+def fill_with_pattern(space, direction, pattern, left, right):
+    return _c('fill-with-pattern',
+        _a(space), _a(direction),
+        create_word(pattern), create_word(left), create_word(right))
+
+
+
+
+# helper functions
 
 def is_markup(text):
     """Return True if the text can be written as LilyPond markup without quotes."""
     return bool(_RE_MATCH_MARKUP(text))
-
 
 
 def create_list(args):
