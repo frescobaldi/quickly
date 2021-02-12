@@ -15,4 +15,5 @@ Modules in the ``dom`` package:
    dom/base.rst
    dom/lily.rst
    dom/scm.rst
+   dom/markup.rst
    dom/util.rst
