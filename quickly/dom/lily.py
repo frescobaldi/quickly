@@ -2132,7 +2132,15 @@ class StringTuning(element.HeadElement):
 
 
 class Unit(element.MappingElement):
-    """A unit: ``\mm``, ``\cm``, ``\pt`` or ``\in``."""
+    """A unit: ``\mm``, ``\cm``, ``\pt`` or ``\in``.
+
+    A Unit node can be attached to an Int or Float::
+
+        >>> from quickly.dom import lily
+        >>> lily.Int(10, lily.Unit("cm")).write()
+        '10\\cm'
+
+    """
     mapping = {
         r'\mm': 'mm',
         r'\cm': 'cm',
