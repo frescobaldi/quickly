@@ -300,26 +300,12 @@ def create_element_from_value(value):
     and a tuple (of length > 1)  in a pair, with a dot inserted before the last
     node. Element objects are returned unchanged.
 
-    A ValueError is raised when a value cannot be converted.
+    A KeyError is raised when there is no conversion for the value's type.
 
     """
     if isinstance(value, element.Element):
         return value
-    elif isinstance(value, bool):
-        return Bool(value)
-    elif isinstance(value, int):
-        return Int(value)
-    elif isinstance(value, float):
-        return Float(value)
-    elif isinstance(value, str):
-        return String(value)
-    elif isinstance(value, list):
-        return List(*map(create_element_from_value, value))
-    elif isinstance(value, tuple) and len(value) > 1:
-        node = List(*map(create_element_from_value, value))
-        node.insert(-1, Dot())
-        return node
-    raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
+    return _element_mapping[type(value)](value)
 
 
 def q(arg):
@@ -350,4 +336,16 @@ def p(arg1, arg2, *args):
 def s(arg):
     """Same as :func:`create_element_from_value`."""
     return create_element_from_value(arg)
+
+
+# used in the create_element_from_value function
+_element_mapping = {
+    bool: Bool,
+    int: Int,
+    float: Float,
+    str: String,
+    list: (lambda value: List(*map(s, value))),
+    tuple: (lambda value: List(*map(s, value[:-1]), Dot(), *map(s, value[-1:]))),
+    fractions.Fraction: Fraction,
+}
 
