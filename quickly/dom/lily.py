@@ -158,6 +158,27 @@ class HandleAssignments:
 class Document(HandleAssignments, base.Document):
     """A full LilyPond source document."""
 
+    @property
+    def version(self):
+        """The LilyPond version number, as a tuple of ints."""
+        for v in self//Version:
+            for s in v/String:
+                return tuple(map(int, re.findall(r'\d+', s.head)))
+
+    @version.setter
+    def version(self, version):
+        """Set the version, as a tuple of ints."""
+        version = '.'.join(map(str, version))
+        for v in self//Version:
+            for s in v/String:
+                s.head = version
+                break
+            else:
+                v.clear()
+                v.append(String(version))
+            return
+        self.insert(0, Version(String(version)))
+
 
 class Number(element.TextElement):
     """Base class for numeric values."""
