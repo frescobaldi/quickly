@@ -661,7 +661,7 @@ class MappingElement(TextElement):
 
     @classmethod
     def read_head(cls, origin):
-        """Convert the text value to one of our four states."""
+        """Get the head value from our mapping."""
         return cls.mapping[origin[0].text]
 
     def write_head(self):

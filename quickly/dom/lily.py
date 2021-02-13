@@ -190,7 +190,6 @@ class Number(element.TextElement):
         raise NotImplementedError
 
 
-
 class Int(Number):
     """An integer number."""
     @classmethod
@@ -584,7 +583,7 @@ class IdentifierRef(element.TextElement):
 
     @classmethod
     def with_name(cls, name):
-        """Convenience method to create a Identifier with specified name.
+        """Convenience method to create a IdentifierRef with specified name.
 
         This is especially useful with complicated names that are not a
         simple symbol.
@@ -903,7 +902,16 @@ class Unpitched(Music):
 
 
 class Rest(element.TextElement, Music):
-    """A rest (``r`` or ``R``)."""
+    """A rest (``r`` or ``R``).
+
+    The Rest element has normally a ``r`` or ``R`` value. In the latter case
+    it is a multi measure rest.
+
+    But the head value can also be a pitch name, and there can be an Octave or
+    OctCheck child in this case; this means that is is a positioned rest (e.g.
+    ``c\rest``).
+
+    """
 
 
 class Space(element.HeadElement, Music):
@@ -935,20 +943,16 @@ class RestModifier(element.HeadElement):
     head = r'\rest'
 
 
-class Accidental(element.TextElement):
+class Accidental(element.MappingElement):
     """The accidental after a note.
 
     Can be ``cautionary`` or ``forced``.
 
     """
-    @classmethod
-    def read_head(cls, origin):
-        """Read the accidental type."""
-        return 'cautionary' if origin[0] == '?' else 'forced'
-
-    def write_head(self):
-        """Write the accidental type."""
-        return {'cautionary': '?', 'forced': '!'}.get(self.head, '')
+    mapping = {
+        '?': 'cautionary',
+        '!': 'forced',
+    }
 
 
 class Octave(element.TextElement):
@@ -1120,18 +1124,17 @@ class Articulations(element.Element):
     r"""A list of elements that are attached to a note or chord."""
 
 
-class Direction(element.TextElement):
+class Direction(element.MappingElement):
     r"""A ``-``, ``_`` or ``^``.
 
     The value is -1 for ``_``, 0 for ``-`` or 1 for ``^``
 
     """
-    @classmethod
-    def read_head(cls, origin):
-        return '_-^'.index(origin[0].text) -1
-
-    def write_head(self):
-        return '_-^'[self.head + 1]
+    mapping = {
+        '_': -1,
+        '-': 0,
+        '^': 1,
+    }
 
 
 class Articulation(element.TextElement):
