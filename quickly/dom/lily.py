@@ -237,6 +237,7 @@ class String(base.String):
 
 class SchemeExpression(element.TextElement):
     """A Scheme expression in LilyPond."""
+    _space_before = _space_after = " "
 
 
 class Music(element.Element):
@@ -452,11 +453,6 @@ class List(element.Element):
     Separated by Separator elements; may also contain Comment nodes.
 
     """
-    def concat(self, n, m):
-        if isinstance(n, SchemeExpression):
-            return " "
-        return super().concat(n, m)
-
     def get_list(self):
         """Convenience method to get a tuples with the contents of the list.
 
