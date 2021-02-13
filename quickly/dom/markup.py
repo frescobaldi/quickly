@@ -36,8 +36,9 @@ Usage example::
 
 """
 
-import re
 import functools
+import keyword
+import re
 
 import parce.lang.lilypond
 import parce.lang.lilypond_words as w
@@ -117,8 +118,8 @@ def fret_diagram_verbose(element):
     return c_('fret-diagram-verbose', element)
 
 
-def from_property(name):
-    return _c('from-property', _sym(name))
+def fromproperty(name):
+    return _c('fromproperty', _sym(name))
 
 
 def harp_pedal(s):
@@ -233,12 +234,12 @@ def map_markup_commands(procedure, *args):
 def note(duration, direction):
     r"""The ``\note`` command.
 
-    The ``duration`` can be a markup object containing a word that is a duration, e.g.
-    ``4..`` (for LilyPond >= 2.22) or a Scheme string like ``#"4.."`` (for
-    LilyPond < 2.22).
+    The ``duration`` can be a markup object containing a word that is a
+    duration, e.g. ``4..`` (for LilyPond >= 2.22) or a Scheme string like
+    ``#"4.."`` (for LilyPond < 2.22).
 
-    The ``direction is a floating point value; the sign is the stem direction,
-    the value the stem length.
+    The ``direction`` is a floating point value; the sign is the stem
+    direction, the value the stem length.
 
     """
     return _c('note', duration, _s(scm.Float(direction)))
@@ -252,8 +253,8 @@ def on_the_fly(procedure, *args):
 def override(prop, value, *args):
     r"""The ``\override`` command.
 
-    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool, int
-    or float are handled automatically).
+    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool,
+    int or float are handled automatically).
 
     """
     value = scm.create_element_from_value(value)
@@ -263,8 +264,8 @@ def override(prop, value, *args):
 def override_lines(prop, value, *args):
     r"""The ``\override-lines`` command.
 
-    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool, int
-    or float are handled automatically).
+    The ``prop`` should be a string, the ``value`` a Scheme value (Python bool,
+    int or float are handled automatically).
 
     """
     value = scm.create_element_from_value(value)
@@ -305,7 +306,7 @@ def rest_by_number(log, dotcount):
     return _c('rest-by-number', _s(scm.Int(log)), _s(scm.Int(dotcount)))
 
 
-def rotate_(angle, *args):
+def rotate(angle, *args):
     return _c('raise', _s(scm.Float(angle)), create_list(args))
 
 
@@ -429,11 +430,14 @@ def _main():
         (lambda n: lambda arg, *text: _c(n, create_word(arg), create_list(text))),
         None,
         None,
+        None,
     )
 
     for argcount, factory in enumerate(factories):
         for cmd in w.markup_commands_nargs[argcount]:
             name = cmd.replace('-', '_')
+            if keyword.iskeyword(name):
+                name += '_'
             doc = r"The ``\{}`` markup command.".format(cmd)
             try:
                 f = globals()[name]
