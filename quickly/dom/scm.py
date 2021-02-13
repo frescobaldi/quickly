@@ -20,6 +20,39 @@
 
 """
 Elements needed for Scheme expressions.
+
+Besides the elements a few functions are provided to make it easier to
+manually construct scheme expressions. For example::
+
+    >>> from quickly.dom.scm import q, qq, uq, i, p, s
+    >>> s(True)
+    <scm.Bool #t>
+    >>> s(100)
+    <scm.Int 100>
+    >>> s(100.123)
+    <scm.Float 100.123>
+    >>> s(('text', -2)).dump()
+    <scm.List (3 children)>
+     ├╴<scm.String 'text'>
+     ├╴<scm.Dot>
+     ╰╴<scm.Int -2>
+    >>> s(('text', -2)).write()
+    '("text" . -2)'
+    >>> q(s((i('text'), -2))).write()
+    "'(text . -2)"
+    >>> n = s([i('if'), [i('<'), i('a'), 100], "smaller", "larger"])
+    >>> n.dump()
+    <scm.List (4 children)>
+     ├╴<scm.Identifier 'if'>
+     ├╴<scm.List (3 children)>
+     │  ├╴<scm.Identifier '<'>
+     │  ├╴<scm.Identifier 'a'>
+     │  ╰╴<scm.Int 100>
+     ├╴<scm.String 'smaller'>
+     ╰╴<scm.String 'larger'>
+    >>> n.write()
+    '(if (< a 100) "smaller" "larger")'
+
 """
 
 import fractions
@@ -262,7 +295,12 @@ class Dot(element.HeadElement):
 def create_element_from_value(value):
     """Convert a regular Python value to a scheme Element node.
 
-    Handles, bool, int, float, str.
+    Python bool, int, float or str values are converted into Bool, Int, Float,
+    or String objects respectively. A list is converted into a List element,
+    and a tuple (of length > 1)  in a pair, with a dot inserted before the last
+    node. Element objects are returned unchanged.
+
+    A ValueError is raised when a value cannot be converted.
 
     """
     if isinstance(value, element.Element):
@@ -275,6 +313,41 @@ def create_element_from_value(value):
         return Float(value)
     elif isinstance(value, str):
         return String(value)
+    elif isinstance(value, list):
+        return List(*map(create_element_from_value, value))
+    elif isinstance(value, tuple) and len(value) > 1:
+        node = List(*map(create_element_from_value, value))
+        node.insert(-1, Dot())
+        return node
     raise ValueError("Can't convert value to Element node: {}".format(repr(value)))
 
+
+def q(arg):
+    """Quote arg. Automatically converts arguments if needed."""
+    return Quote("'", create_element_from_value(arg))
+
+
+def qq(arg):
+    """Quasi-quote arg. Automatically converts arguments if needed."""
+    return Quote("`", create_element_from_value(arg))
+
+
+def uq(arg):
+    """Un-quote arg. Automatically converts arguments if needed."""
+    return Quote(",", create_element_from_value(arg))
+
+
+def i(arg):
+    """Make an identifier of str arg."""
+    return Identifier(arg)
+
+
+def p(arg1, arg2, *args):
+    """Return a pair (two-or-more element List with dot before last element)."""
+    return create_element_from_value((arg1, arg2, *args))
+
+
+def s(arg):
+    """Same as :func:`create_element_from_value`."""
+    return create_element_from_value(arg)
 
