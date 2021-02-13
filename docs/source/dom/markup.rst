@@ -5,3 +5,4 @@ The dom.markup module
     :members:
     :undoc-members:
     :show-inheritance:
+    :member-order: alphabetical
