@@ -139,19 +139,14 @@ class LilyPondTransform(Transform):
 
     def pitch(self, items):
         """A list of elements, Octave, Accidental and/or OctCheck after a note name."""
-        def gen():
-            for i in items:
-                if i.is_token:
-                    yield self._pitch(i.action, i)
-                else:
-                    yield i.obj # can only be a comment
-        return list(gen())
+        # can only be Octave, Accidental, OctCheck token or comment element
+        return [self._pitch(i.action, i) if i.is_token else i.obj for i in items]
 
     def duration(self, items):
         """A tuple (dots, scaling).
 
         ``dots`` is a list of Dot tokens and ``scaling`` is a DurationScaling
-        node.
+        node or None.
 
         """
         dots = []
