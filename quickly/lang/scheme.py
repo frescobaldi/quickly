@@ -108,7 +108,10 @@ class SchemeTransform(Transform):
     def number(self, items):
         """Create a Number node."""
         radix = items.arg or 10
-        return self.factory(self._radix_mapping[radix], items)
+        try:
+            return self.factory(self._radix_mapping[radix], items)
+        except (ValueError, ZeroDivisionError):
+            return self.factory(scm.NaN, items)
 
     def string(self, items):
         """Create a String node."""

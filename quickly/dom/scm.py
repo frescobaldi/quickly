@@ -144,10 +144,7 @@ class Number(element.TextElement):
     @classmethod
     def read_head(cls, origin):
         from parce.lang.scheme import scheme_number
-        try:
-            return scheme_number(origin)
-        except (ValueError, ZeroDivisionError):
-            return 0
+        return scheme_number(origin)
 
     def write_head(self):
         v = self.head
@@ -162,7 +159,7 @@ class Number(element.TextElement):
             f = lambda n: format(n, fmt)
             s = f(v.numerator)
             if v.denominator != 1:
-                s += '/{}'.format(f(v.denominator))
+                s = '{}/{}'.format(s, f(v.denominator))
         elif isinstance(v, float) and self.radix == 10:
             s = str(v)
         elif isinstance(v, complex):
@@ -195,6 +192,13 @@ class Bool(Number):
 
     def write_head(self):
         return '#t' if self.head else '#f'
+
+
+class NaN(Number):
+    """Not a Number, created when a ``number`` context has invalid tokens."""
+    @classmethod
+    def read_head(cls, origin):
+        return math.nan
 
 
 class Dot(element.HeadElement):
