@@ -58,8 +58,6 @@ manually construct scheme expressions. For example::
 import fractions
 import math
 
-import parce.action as a
-
 from . import base, element
 
 
@@ -135,9 +133,9 @@ class Quote(element.TextElement):
 class Number(element.TextElement):
     """A decimal numerical value, and the base class for Hex, Bin, Oct.
 
-    TODO: We do currently not support all features of Scheme numerical values,
-    such as exact/inexactness, polar coordinates and imaginary numbers. But
-    fractions, infinity, nan and unknown digits (#) are supported.
+    All features of Scheme numerical values are supported: exact/inexactness,
+    polar coordinates, complex numbers, fractions, infinity, nan and unknown
+    digits (#).
 
     """
     radix = 10
@@ -145,46 +143,9 @@ class Number(element.TextElement):
     _fmt = {2: "b", 8: "o", 10: "d", 16: "x" }
     @classmethod
     def read_head(cls, origin):
-        nums = [[]]
-        exact = True
-        for t in origin:
-            if t == '-':
-                nums[-1].append('-')
-            elif t == '/':
-                nums.append([])
-            elif t.action is a.Number.Infinity:
-                return -math.inf if t.text[0] == '-' else math.inf
-            elif t.action is a.Number.NaN:
-                return math.nan
-            elif t.action is a.Number.Exponent: # only for radix 10
-                if 'e' not in nums[-1]:
-                    exact = False
-                    nums[-1].append('e')
-            elif t.action is a.Number.Dot:      # only for radix 10
-                if '.' not in nums[-1]:
-                    nums[-1].append('.')
-            elif t.action in (a.Number.Decimal, a.Number.Binary, a.Number.Octal, a.Number.Hexadecimal):
-                if '.' in nums[-1]:
-                    exact = False
-                nums[-1].append(t.text)
-            elif t.action is a.Number.Special.UnknownDigit:
-                exact = False
-                nums[-1].append('0' * len(t.text))
-            elif t == '@':
-                break
-        nums = [''.join(num) for num in nums]
+        from parce.lang.scheme import scheme_number
         try:
-            if len(nums) > 1:
-                if exact or cls.radix != 10:
-                    numerator = int(nums[0], cls.radix)
-                    denominator = int(nums[1], cls.radix)
-                    return fractions.Fraction(numerator, denominator)
-                numerator = float(nums[0])
-                denominator = float(nums[1])
-                return numerator / denominator
-            if exact or cls.radix != 10:
-                return int(nums[0], cls.radix)
-            return float(nums[0])
+            return scheme_number(origin)
         except (ValueError, ZeroDivisionError):
             return 0
 
@@ -204,6 +165,8 @@ class Number(element.TextElement):
                 s += '/{}'.format(f(v.denominator))
         elif isinstance(v, float) and self.radix == 10:
             s = str(v)
+        elif isinstance(v, complex):
+            s = '{}{:+}i'.format(v.real, v.imag)
         else:
             s = format(int(v), self._fmt[self.radix])
         return self._prefix[self.radix] + s
