@@ -55,16 +55,6 @@ class SchemeTransform(Transform):
         return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
     # both mappings are used in common, below
-    _number_mapping = {
-        a.Number.Int: scm.Int,
-        a.Number.Binary: scm.Bin,
-        a.Number.Octal: scm.Oct,
-        a.Number.Hexadecimal: scm.Hex,
-        a.Number.Float: scm.Float,
-        a.Number.Infinity: scm.Float,
-        a.Number.NaN: scm.Float,
-        a.Number.Boolean: scm.Bool,
-    }
     _common_mapping = {
         a.Character: scm.Char,
         a.Delimiter.Dot: scm.Dot,
@@ -74,18 +64,12 @@ class SchemeTransform(Transform):
 
     def common(self, items):
         """Yield dom nodes from tokens."""
-        number = []
         quotes = []
         def nodes():
             for i in items:
                 node = None
                 if i.is_token:
-                    if i.action in a.Number:
-                        number.append(i)
-                        if i.action != a.Number.Prefix:
-                            yield self.factory(self._number_mapping[i.action], number)
-                            number.clear()
-                    elif i.action == a.Delimiter.Scheme.Quote:
+                    if i.action == a.Delimiter.Scheme.Quote:
                         quotes.append(i)
                     else:
                         yield self.factory(self._common_mapping[i.action], (i,))
@@ -113,6 +97,17 @@ class SchemeTransform(Transform):
         head = items[:1]
         tail = (items.pop(),) if items[-1] == ')' else ()
         return self.factory(scm.Vector, head, tail, *self.common(items[1:]))
+
+    _radix_mapping = {
+        2: scm.Bin,
+        8: scm.Oct,
+        10: scm.Number,
+        16: scm.Hex,
+    }
+    def number(self, items):
+        """Create a Number node."""
+        radix = items.arg or 10
+        return self.factory(self._radix_mapping[radix], items)
 
     def string(self, items):
         """Create a String node."""

@@ -56,6 +56,7 @@ manually construct scheme expressions. For example::
 """
 
 import fractions
+import math
 
 import parce.action as a
 
@@ -132,149 +133,95 @@ class Quote(element.TextElement):
 
 
 class Number(element.TextElement):
-    """Base class for a numerical value.
+    """A decimal numerical value, and the base class for Hex, Bin, Oct.
 
-    You can set and read the numerical value using the ``value`` attribute. The
-    optional prefix can be ``#e`` or ``#i``, optionally followed by ``#d``.
+    TODO: We do currently not support all features of Scheme numerical values,
+    such as exact/inexactness, polar coordinates and imaginary numbers. But
+    fractions, infinity, nan and unknown digits (#) are supported.
 
     """
-    def __init__(self, value, *children, prefix='', **attrs):
-        super().__init__((value, prefix), *children, **attrs)
-
-    def repr_head(self):
-        """Show a better repr."""
-        return self.write_head()
-
-    @property
-    def value(self):
-        return self.head[0]
-
-    @property
-    def prefix(self):
-        return self.head[1]
-
-    @value.setter
-    def value(self, value):
-        self.head = (value, self.head[1])
-
-    @prefix.setter
-    def prefix(self, prefix):
-        self.head = (self.head[0], prefix)
-
+    radix = 10
+    _prefix = {2: "#b", 8: "#o", 10: "", 16: "#x" }
+    _fmt = {2: "b", 8: "o", 10: "d", 16: "x" }
     @classmethod
-    def read_prefix(self, origin):
-        return ''.join(t.text for t in origin)
-
-    @classmethod
-    def read_value(self, origin):
-        """Implement this method to read the value from the token."""
-        raise NotImplementedError
+    def read_head(cls, origin):
+        nums = [[]]
+        exact = True
+        for t in origin:
+            if t == '-':
+                nums[-1].append('-')
+            elif t == '/':
+                nums.append([])
+            elif t.action is a.Number.Infinity:
+                return -math.inf if t.text[0] == '-' else math.inf
+            elif t.action is a.Number.NaN:
+                return math.nan
+            elif t.action is a.Number.Exponent: # only for radix 10
+                if 'e' not in nums[-1]:
+                    exact = False
+                    nums[-1].append('e')
+            elif t.action is a.Number.Dot:      # only for radix 10
+                if '.' not in nums[-1]:
+                    nums[-1].append('.')
+            elif t.action in (a.Number.Decimal, a.Number.Binary, a.Number.Octal, a.Number.Hexadecimal):
+                if '.' in nums[-1]:
+                    exact = False
+                nums[-1].append(t.text)
+            elif t.action is a.Number.Special.UnknownDigit:
+                exact = False
+                nums[-1].append('0' * len(t.text))
+            elif t == '@':
+                break
+        nums = [''.join(num) for num in nums]
+        try:
+            if len(nums) > 1:
+                if exact or cls.radix != 10:
+                    numerator = int(nums[0], cls.radix)
+                    denominator = int(nums[1], cls.radix)
+                    return fractions.Fraction(numerator, denominator)
+                numerator = float(nums[0])
+                denominator = float(nums[1])
+                return numerator / denominator
+            if exact or cls.radix != 10:
+                return int(nums[0], cls.radix)
+            return float(nums[0])
+        except (ValueError, ZeroDivisionError):
+            return 0
 
     def write_head(self):
-        """Reimplemented to add the prefix."""
-        return ''.join((self.prefix, self.write_value()))
-
-    def write_value(self):
-        """Implement this method to write the value as a string."""
-        raise NotImplementedError
-
-    @classmethod
-    def read_head(cls, head_origin):
-        for i, t in enumerate(head_origin):
-            if t.action != a.Number.Prefix:
-                prefix = cls.read_prefix(head_origin[:i])
-                value = cls.read_value(head_origin[i:])
-                return prefix, value
-
-    @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
-        prefix, value = cls.read_head(head_origin)
-        return cls(value, *children, prefix=prefix, **attrs)
-
-    def copy(self):
-        """Reimplemented to handle the prefix on copying."""
-        children = (n.copy() for n in self)
-        spacing = getattr(self, '_spacing', {})
-        return type(self)(self.value, *children, prefix=self.prefix, **spacing)
-
-
-class Int(Number):
-    """A Scheme decimal integer."""
-    @classmethod
-    def read_value(cls, origin):
-        t = origin[0].text
-        return int(t)
-
-    def write_value(self):
-        return format(self.value)
+        v = self.head
+        if v == math.inf:
+            s = '+inf.0'
+        elif v == -math.inf:
+            s = '-inf.0'
+        elif v is math.nan:
+            s = '+nan.0'
+        elif isinstance(v, fractions.Fraction):
+            fmt = self._fmt[self.radix]
+            f = lambda n: format(n, fmt)
+            s = f(v.numerator)
+            if v.denominator != 1:
+                s += '/{}'.format(f(v.denominator))
+        elif isinstance(v, float) and self.radix == 10:
+            s = str(v)
+        else:
+            s = format(int(v), self._fmt[self.radix])
+        return self._prefix[self.radix] + s
 
 
 class Bin(Number):
     """A Scheme binary integer value."""
-    @classmethod
-    def read_value(cls, origin):
-        t = origin[0].text
-        return int(t[2:], 2)
-
-    def write_value(self):
-        return '#b{:b}'.format(self.value)
+    radix = 2
 
 
 class Oct(Number):
     """A Scheme octal integer value."""
-    @classmethod
-    def read_value(cls, origin):
-        t = origin[0].text
-        return int(t[2:], 8)
-
-    def write_value(self):
-        return '#o{:o}'.format(self.value)
+    radix = 8
 
 
 class Hex(Number):
     """A Scheme hexadecimal integer value."""
-    @classmethod
-    def read_value(cls, origin):
-        t = origin[0].text
-        return int(t[2:], 16)
-
-    def write_value(self):
-        return '#x{:x}'.format(self.value)
-
-
-class Float(Number):
-    """A Scheme floating point value."""
-    @classmethod
-    def read_value(cls, origin):
-        t = origin[0]
-        if t.action is a.Number.Infinity:
-            return float(t.text.split('.')[0])
-        elif t.action is a.Number.NaN:
-            return float("nan")
-        else:
-            return float(t.text)
-
-    def write_value(self):
-        text = format(self.value)
-        if text == 'inf':
-            return '+inf.0'
-        elif text == '-inf':
-            return '-inf.0'
-        elif text == 'nan':
-            return '+nan.0'
-        else:
-            return text
-
-
-class Fraction(Number):
-    """A Scheme fractional value."""
-    @classmethod
-    def read_value(cls, origin):
-        s = "".join(t.text for t in origin)
-        return fractions.Fraction(s)
-
-    def write_value(self):
-        return format(self.value)
+    radix = 16
 
 
 class Bool(Number):
@@ -341,11 +288,11 @@ def s(arg):
 # used in the create_element_from_value function
 _element_mapping = {
     bool: Bool,
-    int: Int,
-    float: Float,
+    int: Number,
+    float: Number,
+    fractions.Fraction: Number,
     str: String,
     list: (lambda value: List(*map(s, value))),
     tuple: (lambda value: List(*map(s, value[:-1]), Dot(), *map(s, value[-1:]))),
-    fractions.Fraction: Fraction,
 }
 
