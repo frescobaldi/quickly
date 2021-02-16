@@ -2,6 +2,17 @@ ChangeLog
 =========
 
 
+2021-02-16: quickly-0.0.6
+
+- required parce version 0.22.0
+- lily.Header, lily.Paper and lily.Layout now have easy to use properties to
+  set variables like title, composer, etc.
+- lily.Document now has version attribute to read/set LilyPond version
+- added markup construction helper in quickly.dom.markup
+- Scheme transform handles all Scheme number features, e.g. #xb/f (a fraction
+  in hex) and even complex numbers
+
+
 2021-02-11: quickly-0.0.5
 
 - Milestone: quickly correctly parses my Mouvement piece!
