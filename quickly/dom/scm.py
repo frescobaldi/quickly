@@ -190,11 +190,11 @@ class Hex(Number):
 class Bool(Number):
     """A Scheme boolean value."""
     @classmethod
-    def read_value(cls, origin):
+    def read_head(cls, origin):
         return origin[0].text[1] in 'tT'
 
-    def write_value(self):
-        return '#t'if self.value else '#f'
+    def write_head(self):
+        return '#t' if self.head else '#f'
 
 
 class Dot(element.HeadElement):

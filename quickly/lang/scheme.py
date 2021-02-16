@@ -60,6 +60,7 @@ class SchemeTransform(Transform):
         a.Delimiter.Dot: scm.Dot,
         a.Keyword: scm.Identifier,
         a.Name: scm.Identifier,
+        a.Literal.Number.Boolean: scm.Bool,
     }
 
     def common(self, items):
