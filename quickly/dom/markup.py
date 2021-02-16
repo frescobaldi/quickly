@@ -246,7 +246,7 @@ def filled_box(x1, y1, x2, y2, blot):
 
 
 def note_by_number(log, dotcount, direction):
-    return _c('note-by-number', _s(scm.Int(log)), _s(scm.Int(dotcount)), _a(direction))
+    return _c('note-by-number', _s(scm.Number(log)), _s(scm.Number(dotcount)), _a(direction))
 
 
 def pad_to_box(x1, y1, x2, y2, *args):

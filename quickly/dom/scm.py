@@ -28,14 +28,14 @@ manually construct scheme expressions. For example::
     >>> s(True)
     <scm.Bool #t>
     >>> s(100)
-    <scm.Int 100>
+    <scm.Number 100>
     >>> s(100.123)
-    <scm.Float 100.123>
+    <scm.Number 100.123>
     >>> s(('text', -2)).dump()
     <scm.List (3 children)>
      ├╴<scm.String 'text'>
      ├╴<scm.Dot>
-     ╰╴<scm.Int -2>
+     ╰╴<scm.Number -2>
     >>> s(('text', -2)).write()
     '("text" . -2)'
     >>> q(s((i('text'), -2))).write()
@@ -47,7 +47,7 @@ manually construct scheme expressions. For example::
      ├╴<scm.List (3 children)>
      │  ├╴<scm.Identifier '<'>
      │  ├╴<scm.Identifier 'a'>
-     │  ╰╴<scm.Int 100>
+     │  ╰╴<scm.Number 100>
      ├╴<scm.String 'smaller'>
      ╰╴<scm.String 'larger'>
     >>> n.write()
@@ -209,10 +209,10 @@ class Dot(element.HeadElement):
 def create_element_from_value(value):
     """Convert a regular Python value to a scheme Element node.
 
-    Python bool, int, float or str values are converted into Bool, Int, Float,
-    or String objects respectively. A list is converted into a List element,
-    and a tuple (of length > 1)  in a pair, with a dot inserted before the last
-    node. Element objects are returned unchanged.
+    Python bool, int, float or str values are converted into Bool, Number, or
+    String objects respectively. A list is converted into a List element, and a
+    tuple (of length > 1)  in a pair, with a dot inserted before the last node.
+    Element objects are returned unchanged.
 
     A KeyError is raised when there is no conversion for the value's type.
 
