@@ -19,7 +19,7 @@
 
 
 """
-Template for test files that test *quickly*.
+Test Scheme transform.
 """
 
 ### find quickly
@@ -46,14 +46,22 @@ scheme_doc = """
 ; a string
 ("a string")
 
+; a hex value with fraction :-)
+#xdead/beef
+
+; same value in decimal
+57005/48879
 """
 
 def test_main():
     d = transform_text(Scheme.root, scheme_doc)
-    assert len(d) == 9
-    assert sum(1 for _ in d//scm.Int) == 5
+    assert len(d) == 13
+    assert sum(1 for _ in d//scm.Number) == 7
     assert sum(1 for _ in d//scm.String) == 1
     assert sum(1 for _ in d//scm.Identifier) == 14
+
+    # the two fractions
+    assert d[10].head == d[12].head
 
     # does find_descendant work propery?
     assert d.find_descendant(40).head == "("
