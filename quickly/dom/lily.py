@@ -180,7 +180,7 @@ class Document(HandleAssignments, base.Document):
         self.insert(0, Version(String(version)))
 
 
-class Number(element.TypedTextElement):
+class Number(element.TextElement):
     """Base class for numeric values."""
     def write_head(self):
         return str(self.head)
@@ -249,7 +249,7 @@ class String(base.String):
     r"""A quoted string."""
 
 
-class Scheme(element.TypedTextElement):
+class Scheme(element.TextElement):
     """A Scheme expression in LilyPond.
 
     A Scheme expression can start with ``$``, ``#``, ``$@`` or ``#@``.

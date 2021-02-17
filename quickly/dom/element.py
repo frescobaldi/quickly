@@ -615,6 +615,11 @@ class TextElement(HeadElement):
     """
     __slots__ = ('_head', '_modified')
 
+    def __new__(cls, head, *children, **attrs):
+        if not cls.check_head(head):
+            raise TypeError("wrong head value for {}: {}".format(cls.__name__, repr(head)))
+        return super(TextElement, cls).__new__(cls)
+
     def __init__(self, head, *children, **attrs):
         self._head = head
         self._modified = 0
@@ -627,55 +632,14 @@ class TextElement(HeadElement):
             return reprlib.repr(h)
 
     @classmethod
+    def check_head(cls, head):
+        """Returns whether the proposed head value is valid."""
+        return True
+
+    @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
         return cls(head, *children, **attrs)
-
-    def copy(self):
-        """Copy the node, without the origin."""
-        children = (n.copy() for n in self)
-        return type(self)(self.head, *children, **getattr(self, '_spacing', {}))
-
-    def copy_with_origin(self):
-        """Copy the node (and copy all the children), with origin, if available."""
-        children = (n.copy_with_origin() for n in self)
-        copy = type(self)(self.head, *children, **getattr(self, '_spacing', {}))
-        try:
-            copy.head_origin = self.head_origin
-            copy._modified = self._modified
-        except AttributeError:
-            pass
-        return copy
-
-
-class TypedTextElement(TextElement):
-    r"""A TextElement that checks the head value against often-made mistakes.
-
-    This check is only performed when manually constructing the element, not
-    when the element is constructed using the :meth:`Element.from_origin` or
-    :meth:`Element.with_origin` method, and also not when changing the head
-    value later.
-
-    Implement the :meth:`check_head` method to return False (or raise an
-    exception) when the head value is incorrect.
-
-    """
-    def __new__(cls, head, *children, **attrs):
-        if not cls.check_head(head):
-            raise TypeError("wrong head value for {}: {}".format(cls.__name__, repr(head)))
-        return super(TypedTextElement, cls).__new__(cls, head, *children, **attrs)
-
-    @classmethod
-    def check_head(self, head):
-        """Returns whether the proposed head value is valid."""
-        raise NotImplementedError
-
-    @classmethod
-    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
-        head = cls.read_head(head_origin)
-        obj = super(TypedTextElement, cls).__new__(cls, head, *children, **attrs)
-        cls.__init__(obj, head, *children, **attrs)
-        return obj
 
     def copy(self):
         """Copy the node, without the origin."""
