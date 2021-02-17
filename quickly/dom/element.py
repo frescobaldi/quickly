@@ -172,16 +172,36 @@ class Element(Node, metaclass=ElementType):
         """Copy the node (and copy all the children), with origin, if available."""
         children = (n.copy_with_origin() for n in self)
         copy = type(self)(*children, **getattr(self, '_spacing', {}))
-        try:
-            copy.head_origin = self.head_origin
-            copy.tail_origin = self.tail_origin
-        except AttributeError:
-            pass
-        try:
-            copy._modified = self._modified
-        except AttributeError:
-            pass
+        copy._copy_origin(self)
         return copy
+
+    def _copy_origin(self, other, modified=None):
+        """Copy the origin from another element node.
+
+        If ``modified`` is True, sets the other node as "modified", i.e. it
+        will write back changes when requested via :meth:`edits`. If
+        ``modified`` is False, the copied node will have reset the "modified"
+        flag to unmodified state. If ``modified`` is None (the default); the
+        modified flag will be copied from self.
+
+        """
+        modified_flag = 0
+        try:
+            self.head_origin = other.head_origin
+            modified_flag = HEAD_MODIFIED
+            self.tail_origin = other.tail_origin
+            modified_flag |= TAIL_MODIFIED
+        except AttributeError:
+            pass
+        try:
+            if modified:
+                self._modified = modified_flag
+            elif modified is None:
+                self._modified = other._modified
+            else:
+                self._modified = 0
+        except AttributeError:
+            pass
 
     def __repr__(self):
         def result():
@@ -544,21 +564,8 @@ class Element(Node, metaclass=ElementType):
         ``self[index] = node``.
 
         """
-        old = self[index]
+        node._copy_origin(self[index], True)
         self[index] = node
-        modified = 0
-        try:
-            node.head_origin = old.head_origin
-            modified = HEAD_MODIFIED
-            node.tail_origin = old.tail_origin
-            modified |= TAIL_MODIFIED
-        except AttributeError:
-            pass
-        if modified:
-            try:
-                node._modified = modified
-            except AttributeError:
-                pass
 
     def signatures(self):
         """Return an iterable of signature tuples.
@@ -612,12 +619,19 @@ class TextElement(HeadElement):
 
     This value must be given to the constructor, and can be modified later.
 
+    If you want to, you can implement the :meth:`check_head` method, which by
+    default returns True, to perform some checking on the ``head`` value of
+    this element. This prevents forgetting to set the ``head`` value on manual
+    construction, which can lead to unexpected and difficult to debug bugs.
+    This method is not called when an element is copied, constructed from or
+    with an origin, or when the ``head`` attribute is modified manually later.
+
     """
     __slots__ = ('_head', '_modified')
 
     def __new__(cls, head, *children, **attrs):
         if not cls.check_head(head):
-            raise TypeError("wrong head value for {}: {}".format(cls.__name__, repr(head)))
+            raise TypeError("invalid head value for {}: {}".format(cls.__name__, repr(head)))
         return super(TextElement, cls).__new__(cls)
 
     def __init__(self, head, *children, **attrs):
@@ -644,20 +658,16 @@ class TextElement(HeadElement):
     def copy(self):
         """Copy the node, without the origin."""
         children = (n.copy() for n in self)
-        copy = super().__new__(type(self))
+        copy = super().__new__(type(self))  # bypass the check in our __new__
         copy.__init__(self.head, *children, **getattr(self, '_spacing', {}))
         return copy
 
     def copy_with_origin(self):
         """Copy the node (and copy all the children), with origin, if available."""
         children = (n.copy_with_origin() for n in self)
-        copy = super().__new__(type(self))
+        copy = super().__new__(type(self))  # bypass the check in our __new__
         copy.__init__(self.head, *children, **getattr(self, '_spacing', {}))
-        try:
-            copy.head_origin = self.head_origin
-            copy._modified = self._modified
-        except AttributeError:
-            pass
+        copy._copy_origin(self)
         return copy
 
 
@@ -666,7 +676,7 @@ class MappingElement(TextElement):
 
     The ``mapping`` class attribute is a dictionay mapping unique head values
     to unique output values.  Other head values can't be used, they result in a
-    KeyError.
+    TypeError.
 
     """
     mapping = {}
@@ -675,6 +685,10 @@ class MappingElement(TextElement):
         # auto-create the reversed mapping for writing output
         cls._inverted_mapping = {v: k for k, v in cls.mapping.items()}
         super().__init_subclass__(**kwargs)
+
+    @classmethod
+    def check_head(cls, head):
+        return head in cls._inverted_mapping
 
     @classmethod
     def from_mapping(cls, text, *children, **attrs):
