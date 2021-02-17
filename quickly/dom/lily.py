@@ -180,7 +180,7 @@ class Document(HandleAssignments, base.Document):
         self.insert(0, Version(String(version)))
 
 
-class Number(element.TextElement):
+class Number(element.TypedTextElement):
     """Base class for numeric values."""
     def write_head(self):
         return str(self.head)
@@ -192,6 +192,11 @@ class Number(element.TextElement):
 
 class Int(Number):
     """An integer number."""
+
+    @classmethod
+    def check_head(cls, head):
+        return type(head) is int
+
     @classmethod
     def read_head(cls, origin):
         return int(origin[0].text)
@@ -206,6 +211,11 @@ class Fraction(Number):
     The head value is a two-tuple of ints (numerator, denominator).
 
     """
+    @classmethod
+    def check_head(cls, head):
+        return isinstance(head, tuple) and len(head) == 2 and \
+            all(isinstance(v, int) for v in head)
+
     def repr_head(self):
         return self.write_head()
 
@@ -223,6 +233,10 @@ class Float(Number):
     def read_head(cls, origin):
         return float(origin[0].text)
 
+    @classmethod
+    def check_head(cls, head):
+        return isinstance(head, (int, float))
+
     def signatures(self):
         yield Unit,
 
@@ -235,9 +249,24 @@ class String(base.String):
     r"""A quoted string."""
 
 
-class SchemeExpression(element.TextElement):
-    """A Scheme expression in LilyPond."""
+class Scheme(element.TypedTextElement):
+    """A Scheme expression in LilyPond.
+
+    A Scheme expression can start with ``$``, ``#``, ``$@`` or ``#@``.
+    The latter two are rarely used; they unroll a list in the surrounding
+    expression.
+
+    A Scheme expression starting with a dollar sign is directly executed by
+    LilyPond when encountered in a source file, it is then ignored when it is
+    no valid expression; an expression starting with a hash sign is evaluated
+    later, when evalating the music expression.
+
+    """
     _space_before = _space_after = " "
+
+    @classmethod
+    def check_head(cls, head):
+        return head in ('$', '#', '$@', '#@')
 
 
 class Music(element.Element):
@@ -513,7 +542,7 @@ class Assignment(element.Element):
 class Identifier(List):
     """A variable name, the first node is always a Symbol or String.
 
-    Further contains Symbol, String, Separator, Int or SchemeExpression. This
+    Further contains Symbol, String, Separator, Int or Scheme. This
     element is created when a List is encountered in an assignment by the
     transformer (see
     :meth:`~quickly.lang.lilypond.LilyPondTransform.handle_assignments`).
@@ -561,7 +590,7 @@ class IdentifierRef(element.TextElement):
     r"""A ``\variable`` name.
 
     The first symbol part is in the head of this element. Additional nodes can
-    be Symbol, String, Separator, Int or SchemeExpression.
+    be Symbol, String, Separator, Int or Scheme.
 
     For the ``\"name"``, construct, head is the empty string, and the first
     child is a String. Otherwise, if there are child nodes, the first child is
@@ -716,7 +745,7 @@ class ApplyContext(element.HeadElement):
     head = r'\applyContext'
 
     def signatures(self):
-        yield SchemeExpression,
+        yield Scheme,
 
 
 class ApplyMusic(element.HeadElement):
@@ -725,7 +754,7 @@ class ApplyMusic(element.HeadElement):
     head = r'\applyMusic'
 
     def signatures(self):
-        yield SchemeExpression, MUSIC
+        yield Scheme, MUSIC
 
 
 class ApplyOutput(element.HeadElement):
@@ -734,7 +763,7 @@ class ApplyOutput(element.HeadElement):
     head = r'\applyOutput'
 
     def signatures(self):
-        yield SYMBOL, SchemeExpression
+        yield SYMBOL, Scheme
 
 
 class Relative(element.HeadElement, Music):
@@ -1284,7 +1313,7 @@ class Label(element.HeadElement, Music):
     head = r'\label'
 
     def signatures(self):
-        yield SchemeExpression,
+        yield Scheme,
 
 
 class Mark(element.HeadElement, Music):
@@ -1440,7 +1469,7 @@ class ScaleDurations(element.HeadElement, Music):
 class ShiftDurations(_ConvertUnpitchedToInt, element.HeadElement, Music):
     r"""A ``\shiftDurations`` command.
 
-    Has two SchemeExpression children and a Music child.
+    Has two Scheme children and a Music child.
 
     """
     _space_after_head = _space_between = " "
@@ -1643,7 +1672,7 @@ class Tag(element.HeadElement):
     head = r'\tag'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression), MUSIC
+        yield (Symbol, String, Scheme), MUSIC
 
 
 class KeepWithTag(element.HeadElement):
@@ -1651,7 +1680,7 @@ class KeepWithTag(element.HeadElement):
     head = r'\keepWithTag'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression), MUSIC
+        yield (Symbol, String, Scheme), MUSIC
 
 
 class RemoveWithTag(element.HeadElement):
@@ -1659,7 +1688,7 @@ class RemoveWithTag(element.HeadElement):
     head = r'\removeWithTag'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression), MUSIC
+        yield (Symbol, String, Scheme), MUSIC
 
 
 class TagGroup(element.HeadElement):
@@ -1667,7 +1696,7 @@ class TagGroup(element.HeadElement):
     head = r'\tagGroup'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression),
+        yield (Symbol, String, Scheme),
 
 
 class PushToTag(element.HeadElement):
@@ -1675,7 +1704,7 @@ class PushToTag(element.HeadElement):
     head = r'\pushToTag'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression), MUSIC
+        yield (Symbol, String, Scheme), MUSIC
 
 
 class AppendToTag(element.HeadElement):
@@ -1683,7 +1712,7 @@ class AppendToTag(element.HeadElement):
     head = r'\appendToTag'
 
     def signatures(self):
-        yield (Symbol, String, SchemeExpression), MUSIC
+        yield (Symbol, String, Scheme), MUSIC
 
 
 class Etc(element.HeadElement):
@@ -1733,7 +1762,7 @@ class Consists(element.HeadElement):
     head = r'\consists'
 
     def signatures(self):
-        yield (String, Symbol, SchemeExpression),
+        yield (String, Symbol, Scheme),
 
 
 class Remove(element.HeadElement):
@@ -1742,7 +1771,7 @@ class Remove(element.HeadElement):
     head = r'\remove'
 
     def signatures(self):
-        yield (String, Symbol, SchemeExpression),
+        yield (String, Symbol, Scheme),
 
 
 class DefaultChild(element.HeadElement):
@@ -1806,10 +1835,10 @@ class Override(_ConvertUnpitchedToInt, element.HeadElement, Music):
 
     def signatures(self):
         yield SYMBOL, EqualSign, VALUE
-        yield SYMBOL, SchemeExpression, EqualSign, VALUE
-        yield SYMBOL, SchemeExpression, SchemeExpression, EqualSign, VALUE
-        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, EqualSign, VALUE
-        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, SchemeExpression, EqualSign, VALUE
+        yield SYMBOL, Scheme, EqualSign, VALUE
+        yield SYMBOL, Scheme, Scheme, EqualSign, VALUE
+        yield SYMBOL, Scheme, Scheme, Scheme, EqualSign, VALUE
+        yield SYMBOL, Scheme, Scheme, Scheme, Scheme, EqualSign, VALUE
 
 
 class Revert(element.HeadElement, Music):
@@ -1819,10 +1848,10 @@ class Revert(element.HeadElement, Music):
 
     def signatures(self):
         yield SYMBOL,
-        yield SYMBOL, SchemeExpression
-        yield SYMBOL, SchemeExpression, SchemeExpression
-        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression
-        yield SYMBOL, SchemeExpression, SchemeExpression, SchemeExpression, SchemeExpression
+        yield SYMBOL, Scheme
+        yield SYMBOL, Scheme, Scheme
+        yield SYMBOL, Scheme, Scheme, Scheme
+        yield SYMBOL, Scheme, Scheme, Scheme, Scheme
 
 
 class Set(_ConvertUnpitchedToInt, element.HeadElement, Music):
@@ -2123,15 +2152,15 @@ class Toggle(element.MappingElement):
 class Shape(element.HeadElement):
     r"""The ``\shape`` command.
 
-    Has a SchemeExpression and a SYMBOL child. (As articulation, has only a
-    SchemeExpression child.)
+    Has a Scheme and a SYMBOL child. (As articulation, has only a
+    Scheme child.)
 
     """
     _space_after_head = _space_between = " "
     head = r'\shape'
 
     def signatures(self):
-        yield SchemeExpression, SYMBOL
+        yield Scheme, SYMBOL
 
 
 class StringTuning(element.HeadElement):
@@ -2214,7 +2243,7 @@ def create_element_from_value(value):
 
     This can be used to ease manually building a node structure. Converts:
 
-    * bool to SchemeExpression('#', scm.Bool(value))
+    * bool to Scheme('#', scm.Bool(value))
     * int to Int(value)
     * float to Float(value)
     * str to String(value)
@@ -2234,7 +2263,7 @@ def create_element_from_value(value):
     else:
         unit = ()
     if isinstance(value, bool):
-        return SchemeExpression('#', scm.Bool(value))
+        return Scheme('#', scm.Bool(value))
     elif isinstance(value, int):
         return Int(value, *unit)
     elif isinstance(value, float):
@@ -2249,7 +2278,7 @@ def create_value_from_element(node):
 
     Returns:
 
-    * bool for a SchemeExpression('#', scm.Bool(value)) node
+    * bool for a Scheme('#', scm.Bool(value)) node
     * int for an Int node
     * float for a Float node
     * str for a String or Symbol node
@@ -2266,13 +2295,13 @@ def create_value_from_element(node):
         return value
     elif isinstance(node, (String, Symbol)):
         return node.head
-    elif isinstance(node, SchemeExpression) and len(node) == 1 and isinstance(node[0], scm.Bool):
+    elif isinstance(node, Scheme) and len(node) == 1 and isinstance(node[0], scm.Bool):
         return node[0].value
 
 
 # often used signatures:
 MUSIC = (Music, IdentifierRef, Etc)
-VALUE = (List, String, SchemeExpression, Number, Markup, IdentifierRef, Etc, Unpitched)
+VALUE = (List, String, Scheme, Number, Markup, IdentifierRef, Etc, Unpitched)
 SYMBOL = (List, Symbol, String)
 TEXT = (List, Symbol, String, Markup, IdentifierRef, Etc)
-NUMBER = (SchemeExpression, Number, Unpitched)
+NUMBER = (Scheme, Number, Unpitched)

@@ -248,10 +248,10 @@ class LilyPondTransform(Transform):
             if i.is_token:
                 yield self._id(i.action, i) # String, Int, Symbol, Separator
             else:
-                yield i.obj # can be a SchemeExpression or String
+                yield i.obj # can be a Scheme or String
 
     def list(self, items):
-        """A List, String, Int, Symbol, or SchemeExpression element."""
+        """A List, String, Int, Symbol, or Scheme element."""
         nodes = list(self._list_nodes(items))
         return nodes[0] if len(nodes) == 1 else lily.List(*nodes)
 
@@ -478,7 +478,7 @@ class LilyPondTransform(Transform):
         """
         p = None
         for n in nodes:
-            if isinstance(p, (lily.String, lily.Symbol, lily.SchemeExpression)) \
+            if isinstance(p, (lily.String, lily.Symbol, lily.Scheme)) \
                     and isinstance(n, lily.Unpitched):
                 yield lily.Music(p, *n)
                 n = None

@@ -127,8 +127,8 @@ class SchemeTransform(Transform):
 
     def scheme(self, items):
         """Create a Scheme node in LilyPond."""
-        head = items[:1]    # $ or # token introducing scheme mode
-        scheme = self.factory(lily.SchemeExpression, head)
+        head = items[:1]    # $, #, $@ or #@ token introducing scheme mode
+        scheme = self.factory(lily.Scheme, head)
         for i in self.common(items[1:]):
             scheme.append(i)
             break

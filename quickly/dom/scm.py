@@ -126,8 +126,11 @@ class Vector(element.BlockElement):
     tail = ")"
 
 
-class Quote(element.TextElement):
+class Quote(element.TypedTextElement):
     r"""A Scheme quote ``'``, ``\```, ``,`` or ``,@``."""
+    @classmethod
+    def check_head(cls, head):
+        return head in ("'", "`", ",", ",@")
 
 
 class Number(element.TextElement):

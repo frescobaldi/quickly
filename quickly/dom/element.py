@@ -636,6 +636,32 @@ class TextElement(HeadElement):
         return type(self)(self.head, *children, **getattr(self, '_spacing', {}))
 
 
+class TypedTextElement(TextElement):
+    r"""A TextElement that checks the head value against often-made mistakes.
+
+    This check is performed when manually constructing the element, but
+    bypassed when the element is constructed using the
+    :meth:`Element.from_origin` or :meth:`Element.with_origin` method.
+
+    """
+    def __new__(cls, head, *children, **attrs):
+        if not cls.check_head(head):
+            raise TypeError("wrong head value for {}: {}".format(cls.__name__, repr(head)))
+        return super(TypedTextElement, cls).__new__(cls, head, *children, **attrs)
+
+    @classmethod
+    def check_head(self, head):
+        """Returns whether the proposed head value is valid."""
+        raise NotImplementedError
+
+    @classmethod
+    def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        head = cls.read_head(head_origin)
+        obj = super(TypedTextElement, cls).__new__(cls, head, *children, **attrs)
+        cls.__init__(obj, head, *children, **attrs)
+        return obj
+
+
 class MappingElement(TextElement):
     r"""A TextElement with a fixed set of possible head values.
 

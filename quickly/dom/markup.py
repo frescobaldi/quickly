@@ -48,11 +48,11 @@ from . import base, element, lily, scm
 
 # helpers
 _c = lily.MarkupCommand
-_s = lambda n: lily.SchemeExpression('#', n)
-_a = lambda v: lily.SchemeExpression('#', scm.create_element_from_value(v))
-_q = lambda n: lily.SchemeExpression('#', scm.Quote("'", n))
-_sym = lambda s: lily.SchemeExpression('#', scm.Quote("'", scm.Identifier(s)))
-_pair = lambda x, y: lily.SchemeExpression('#', scm.Quote("'", scm.p(x, y)))
+_s = lambda n: lily.Scheme('#', n)
+_a = lambda v: lily.Scheme('#', scm.create_element_from_value(v))
+_q = lambda n: lily.Scheme('#', scm.Quote("'", n))
+_sym = lambda s: lily.Scheme('#', scm.Quote("'", scm.Identifier(s)))
+_pair = lambda x, y: lily.Scheme('#', scm.Quote("'", scm.p(x, y)))
 
 
 _RE_MATCH_MARKUP = re.compile(parce.lang.lilypond.RE_LILYPOND_MARKUP_TEXT).fullmatch
@@ -75,7 +75,7 @@ def _create_list(args):
 
 
 def _auto_arg(arg):
-    """Create MarkupWord or SchemeExpression if not already an Element.
+    """Create MarkupWord or Scheme if not already an Element.
 
     If arg is an element, it is returned unchanged. If arg is a :class:`str`, a
     :class:`~lily.MarkupWord` is created (or a :class:`~lily.String`, if there
@@ -87,7 +87,7 @@ def _auto_arg(arg):
         return arg
     elif isinstance(arg, str):
         return lily.MarkupWord(arg) if is_markup(arg) else lily.String(arg)
-    return lily.SchemeExpression('#', scm.create_element_from_value(arg))
+    return lily.Scheme('#', scm.create_element_from_value(arg))
 
 
 def markup(*args):
