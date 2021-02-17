@@ -898,7 +898,7 @@ class Unpitched(Music):
 
 
 class Rest(element.TextElement, Music):
-    """A rest (``r`` or ``R``).
+    r"""A rest (``r`` or ``R``).
 
     The Rest element has normally a ``r`` or ``R`` value. In the latter case
     it is a multi measure rest.

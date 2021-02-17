@@ -6,8 +6,8 @@ The quickly DOM
 A central part of the *quickly* package is the DOM (Document Object Model) it
 provides. Targeted mainly at LilyPond and Scheme, it can build a tree structure
 of almost any structured textual language. The object model is simple and
-builds on a tree structure of :class:`~element.Element` nodes (which in turns
-base on :class:`~quickly.node.Node` and :class:`list`).
+builds on a tree structure of :class:`~element.Element` nodes (which in turn
+bases on :class:`~quickly.node.Node` and :class:`list`).
 
 Every syntactical element is represented by an Element node. There are four base
 Element types:
@@ -43,7 +43,15 @@ Building a Document manually
 
 Using the element types in the :mod:`~quickly.dom.lily` and
 :mod:`~quickly.dom.scm` modules, a full LilyPond source document can be built
-(theoretically) in one expression. For example::
+(theoretically) in one expression.
+
+Child elements are specified as arguments to the constructor of an element. For
+elements that inherit of :class:`~element.TextElement` is the first argument
+the ``head`` value. Attributes (such as for spacing, but also other attributes
+an element might support) can be specified as keyword arguments to the
+constructor.
+
+For example::
 
     >>> import fractions
     >>> from quickly.dom import lily
