@@ -41,9 +41,9 @@ class _Variable:
         class Header(HandleAssignments):
             title = _Variable("The title of the document.")
 
-    When setting a variable, only ``int`` and ``str`` are allowed, or
-    an Element node of course. When getting a value, for an Int or String node
-    the head value is returned, for other element types the node itself.
+    When setting a variable, only ``int`` and ``str`` are allowed, or an
+    Element node of course. When getting a value, for an Int or String node the
+    head value is returned, for other element types the node itself.
 
     """
     def __init__(self, docstring=None):
@@ -203,7 +203,7 @@ class Int(Number):
 class Fraction(Number):
     """A fraction, like ``1/2``.
 
-    The head value is a two-tuple (numerator, denominator).
+    The head value is a two-tuple of ints (numerator, denominator).
 
     """
     def repr_head(self):
@@ -294,7 +294,7 @@ class Score(Block):
 class Header(Block):
     r"""A \header { } block.
 
-    The standard LilyPond header variables are accessible as properties. When
+    The standard LilyPond header variables are accessible as attributes. When
     setting a value to a simple string, a String element is created
     automatically. When reading a value that is a single String element, the
     string contents is returned.
@@ -319,6 +319,11 @@ class Header(Block):
             │  ╰╴<lily.Symbol 'composer'>
             ├╴<lily.EqualSign>
             ╰╴<lily.String 'Wilbert Berendsen'>
+
+    Header variables can also be specified as keyword arguments on construction
+    (just like any attribute)::
+
+        >>> h = lily.Header(composer="Johann Sebastian Bach")
 
     When a variable is not present, None is returned. Other variable names can
     be set using :meth:`~HandleAssignments.set_variable` and read using
@@ -508,7 +513,10 @@ class Assignment(element.Element):
 class Identifier(List):
     """A variable name, the first node is always a Symbol or String.
 
-    Further contains Symbol, String, Separator, Int or SchemeExpression.
+    Further contains Symbol, String, Separator, Int or SchemeExpression. This
+    element is created when a List is encountered in an assignment by the
+    transformer (see
+    :meth:`~quickly.lang.lilypond.LilyPondTransform.handle_assignments`).
 
     """
     @classmethod
