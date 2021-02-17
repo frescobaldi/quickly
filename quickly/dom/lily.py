@@ -2136,7 +2136,7 @@ class StringTuning(element.HeadElement):
 
 
 class Unit(element.MappingElement):
-    """A unit: ``\mm``, ``\cm``, ``\pt`` or ``\in``.
+    r"""A unit: ``\mm``, ``\cm``, ``\pt`` or ``\in``.
 
     A Unit node can be attached to an Int or Float::
 
