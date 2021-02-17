@@ -2,6 +2,17 @@ ChangeLog
 =========
 
 
+current: quickly-0.0.7
+
+- Element.copy_with_origin now works properly everywhere
+- Node.equals() now works for TextElement, by implementing body_equals()
+- improvements to TextElement, optional head value checking
+- renamed lily.PropToggle to Toggle
+- fixed escape warnings in source files
+- added duration.shift_duration()
+- moved scm.Int to scm.Number in some forgotten places
+
+
 2021-02-16: quickly-0.0.6
 
 - required parce version 0.22.0
