@@ -632,7 +632,14 @@ class TextElement(HeadElement):
     def __new__(cls, head, *children, **attrs):
         if not cls.check_head(head):
             raise TypeError("invalid head value for {}: {}".format(cls.__name__, repr(head)))
-        return super(TextElement, cls).__new__(cls)
+        return super().__new__(cls)
+
+    @classmethod
+    def _factory(cls, head, *children, **attrs):
+        """Factory bypassing the ``check_head`` check."""
+        instance = super().__new__(cls)
+        instance.__init__(head, *children, **attrs)
+        return instance
 
     def __init__(self, head, *children, **attrs):
         self._head = head
@@ -650,23 +657,24 @@ class TextElement(HeadElement):
         """Returns whether the proposed head value is valid."""
         return True
 
+    def body_equals(self, other):
+        """Compares the head values, called by :meth:`Node.equals`."""
+        return self.head == other.head
+
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         head = cls.read_head(head_origin)
-        return cls(head, *children, **attrs)
+        return cls._factory(head, *children, **attrs)
 
     def copy(self):
         """Copy the node, without the origin."""
         children = (n.copy() for n in self)
-        copy = super().__new__(type(self))  # bypass the check in our __new__
-        copy.__init__(self.head, *children, **getattr(self, '_spacing', {}))
-        return copy
+        return self._factory(self.head, *children, **getattr(self, '_spacing', {}))
 
     def copy_with_origin(self):
         """Copy the node (and copy all the children), with origin, if available."""
         children = (n.copy_with_origin() for n in self)
-        copy = super().__new__(type(self))  # bypass the check in our __new__
-        copy.__init__(self.head, *children, **getattr(self, '_spacing', {}))
+        copy = self._factory(self.head, *children, **getattr(self, '_spacing', {}))
         copy._copy_origin(self)
         return copy
 

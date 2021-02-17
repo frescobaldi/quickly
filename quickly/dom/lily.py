@@ -85,6 +85,7 @@ class _ConvertUnpitchedToInt:
         if isinstance(node, Unpitched):
             for dur in node / Duration:
                 node = convert_duration_to_int(dur) or node
+                break
         super().add_argument(node)
 
 
