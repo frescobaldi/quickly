@@ -998,7 +998,7 @@ class MusicBuilder:
         lily.QuoteDuring, lily.UnfoldRepeats, lily.Alternative,
         lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
         lily.AppendToTag, lily.Break, lily.PageBreak, lily.PageTurn,
-        lily.GrobDirection, lily.GrobStyle, lily.PropToggle, lily.Shape,
+        lily.GrobDirection, lily.GrobStyle, lily.Toggle, lily.Shape,
         lily.StringTuning, lily.VoiceN, lily.Unit,
     )
 

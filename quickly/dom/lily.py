@@ -2033,18 +2033,18 @@ class GrobStyle(element.MappingElement):
         self.head = (self.head[0], value)
 
 
-class PropToggle(element.MappingElement):
+class Toggle(element.MappingElement):
     r"""A collection of commands that can be on/off, like ``\textLengthOn``.
 
     To create a ``\textLengthOn`` command, use::
 
-        >>> node = lily.PropToggle(("textLength", True))
+        >>> node = lily.Toggle(("textLength", True))
         >>> node.write()
         '\\textLengthOn'
 
     Or::
 
-        >>> node = lily.PropToggle.from_mapping(r'\textLengthOn')
+        >>> node = lily.Toggle.from_mapping(r'\textLengthOn')
 
     When reading this node programmatically, the ``prop`` and ``value``
     attributes can be read and modified::
