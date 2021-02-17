@@ -41,6 +41,9 @@ def to_string(value):
         >>> to_string(7.75)
         '\\longa....'
 
+    Raises an IndexError if the base duration is too long (longer than
+    ``\maxima``).
+
     """
     mantisse, exponent = math.frexp(value)
     dotcount = int(-1 - math.log2(1 - mantisse))
@@ -68,6 +71,8 @@ def to_fraction(text, dotcount=None):
         >>> to_fraction('8', dotcount=2)
         Fraction(7, 32)
 
+    Raises a ValueError if an invalid duration is specified.
+
     """
     if dotcount is None:
         dotcount = text.count('.')
@@ -79,4 +84,24 @@ def to_fraction(text, dotcount=None):
     except ValueError:
         i = ('maxima', 'longa', 'breve').index(text.lstrip('\\'))
     return fractions.Fraction(8 * ((2 << dotcount) - 1), 1 << dotcount + i)
+
+
+def shift_duration(value, log, dotcount):
+    r"""Shift the duration.
+
+    The ``value`` should be a normalized Fraction, a new Fraction is returned.
+    ``log`` is the scaling as a power of 2; and ``dotcount`` the number of dots
+    to be added (or removed, by specifying a negative value). The value should
+    be expressable by a note length and a number of dots.
+
+    When removing too much dots, a ValueError is raised.
+
+    """
+    offset = max(0, -log - dotcount)
+    dots1 = value.numerator.bit_length() + dotcount # (actually #dots+1)
+    if dots1 <= 0:
+        raise ValueError("cannot remove more dots")
+    numer = 2 ** dots1 - 1 << offset
+    denom = value.denominator * 2 ** (log + dotcount + offset)
+    return fractions.Fraction(numer, denom)
 
