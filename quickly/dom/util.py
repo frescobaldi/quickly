@@ -62,36 +62,3 @@ def combine_text(fragments):
         whitespace.append(after)
     return ''.join(result[:1]), ''.join(result[1:]), collapse_whitespace(whitespace)
 
-
-def transform(text, lexicon=None):
-    """Transform the text.
-
-    This function uses a :class:`~quickly.lang.lilypond.LilyPondAdHocTransform`
-    transform object, and uses the LilyPond.root lexicon if no other lexicon
-    is specified.
-
-    """
-    from parce.transform import Transformer
-    from quickly.lang.lilypond import LilyPond, LilyPondAdHocTransform
-    from quickly.lang.scheme import Scheme, SchemeAdHocTransform
-    t = Transformer()
-    t.add_transform(LilyPond, LilyPondAdHocTransform())
-    t.add_transform(Scheme, SchemeAdHocTransform())
-    return t.transform_text(lexicon or LilyPond.root, text)
-
-
-def node(text, lexicon=None):
-    """Build a Element node from text using lexicon (LilyPond.root if not
-    specified).
-
-    """
-    from .lily import Document
-    n = transform(text, lexicon)
-    return n[0] if isinstance(n, Document) and len(n) else n
-
-
-def document(text):
-    """Build a Document from the specified text."""
-    return transform(text)
-
-

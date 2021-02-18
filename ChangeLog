@@ -4,6 +4,8 @@ ChangeLog
 
 current: quickly-0.0.7
 
+- added dom.read module to construct elements/documents from text
+- removed some temp methods from dom.util
 - Element.copy_with_origin now works properly everywhere
 - Node.equals() now works for TextElement, by implementing body_equals()
 - improvements to TextElement, optional head value checking

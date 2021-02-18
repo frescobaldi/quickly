@@ -42,6 +42,5 @@ This DOM is used in two ways:
 """
 
 
-from . import lily, scm
-from .util import document, node
+from . import lily, scm, read
 
