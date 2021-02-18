@@ -687,7 +687,7 @@ class MusicBuilder:
 
     def add_articulation(self, art):
         """Add an articulation or script."""
-        if self._music:
+        if self._music or self._duration:
             if self._events:
                 self._events[-1].append(art)
                 art = e = self._events[0]
