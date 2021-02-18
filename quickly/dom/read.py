@@ -119,7 +119,7 @@ class Reader:
         The languages and transforms that were specified on Reader
         instantiation are added to the transformer.
 
-        On Reader instantiation a default :class:`parce.transform.Transformer`
+        On Reader instantiation a default :class:`~parce.transform.Transformer`
         is already set, so only if you want to use another Transformer you need
         this method.
 
@@ -137,7 +137,8 @@ class Reader:
 
     @classmethod
     def adhoc(cls):
-        """Return a Reader with default languages and ad hoc transforms.
+        """Return a :class:`Reader` with default languages and ad hoc
+        transforms.
 
         These transforms do not keep the origin in the element nodes, so
         element nodes created with this Reader can be used in other documents
@@ -155,7 +156,7 @@ class Reader:
         return self.transformer().transform_tree(tree)
 
     def lily_document(self, text):
-        """Return a full lily.Document from the text.
+        """Return a full :class:`.lily.Document` from the text.
 
         You can use this to get a one-shot full document, but also to create
         fragments of a document that can be used in other documents.
@@ -169,7 +170,7 @@ class Reader:
             return node
 
     def scm_document(self, text):
-        """Return a scm.Document from the text."""
+        """Return a :class:`.scm.Document` from the text."""
         return self.transformer().transform_text(self.scheme.root, text)
 
     def scm(self, text):
@@ -191,7 +192,8 @@ def reader():
 
 
 def lily_document(text):
-    """Return a lily.Document from the text, using the global adhoc Reader.
+    """Return a :class:`.lily.Document` from the text, using the global adhoc
+    :class:`Reader`.
 
     Example::
 
@@ -222,7 +224,7 @@ def lily_document(text):
 
 def lily(text):
     """Return one element from the text, read in LilyPond.root, using the
-    global adhoc Reader.
+    global adhoc :class:`Reader`.
 
     Examples::
 
@@ -257,13 +259,14 @@ def lily(text):
 
 
 def scm_document(text):
-    """Return a scm.Document from the text, using the global adhoc Reader."""
+    """Return a :class:`.scm.Document` from the text, using the global adhoc
+    :class:`Reader`."""
     return adhoc_reader().scm_document(text)
 
 
 def scm(text):
     """Return one element from the text, read in Scheme.root, using the global
-    adhoc Reader."""
+    adhoc :class:`Reader`."""
     return adhoc_reader().scm(text)
 
 
