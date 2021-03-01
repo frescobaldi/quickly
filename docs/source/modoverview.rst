@@ -8,6 +8,7 @@ Overview of all modules
    duration.rst
    lang.rst
    node.rst
+   numbering.rst
    pitch.rst
    pkginfo.rst
 
