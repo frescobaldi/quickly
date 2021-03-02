@@ -149,8 +149,6 @@ def text2int(s):
 
     """
     s = s.strip().lower()
-    if s in ('', 'zero'):
-        return 0
     for num, t in enumerate(_nums[1:], 1):
         if s.endswith(t):
             s = s[:-len(t)]
