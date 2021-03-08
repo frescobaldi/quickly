@@ -107,37 +107,30 @@ def letter2int(s, chars=string.ascii_uppercase):
     return result
 
 
-_nums = (
-    '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-    'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
-    'sixteen', 'seventeen', 'eighteen', 'nineteen')
-
-_tens = (
-    'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty',
-    'ninety')
-
-
 def int2text(n):
     """Convert an integer to the English language name of that integer.
 
-    E.g. converts 1 to "One". Supports numbers 0 to 999999.
+    E.g. converts 1 to "One". Supports numbers 0 to 999999999.
     This can be used in LilyPond identifiers (that do not support digits).
 
     """
-    result = []
-    if n >= 1000:
-        hundreds, n = divmod(n, 1000)
-        result.append(int2text(hundreds) + "Thousand")
-    if n >= 100:
-        tens, n = divmod(n, 100)
-        result.append(_nums[tens].title() + "Hundred")
-    if n < 20:
-        result.append(_nums[n].title())
-    else:
-        tens, n = divmod(n, 10)
-        result.append(_tens[tens-2].title() + _nums[n].title())
-    text = "".join(result)
-    return text or 'Zero'
+    from parce.lang.numbers import ENGLISH_TO19, ENGLISH_TENS
+    def _int2text(n):
+        for fact, name in ((1000000, 'million'), (1000, 'thousand')):
+            if n >= fact:
+                count, n = divmod(n, fact)
+                yield from _int2text(count)
+                yield name
+        if n >= 100:
+            tens, n = divmod(n, 100)
+            yield ENGLISH_TO19[tens]
+            yield "hundred"
+        if n >= 20:
+            tens, n = divmod(n, 10)
+            yield ENGLISH_TENS[tens-2]
+        if n:
+            yield ENGLISH_TO19[n]
+    return "".join(t.title() for t in _int2text(n)) or 'Zero'
 
 
 def text2int(s):
@@ -145,37 +138,12 @@ def text2int(s):
 
     E.g. "TwentyOne" -> 21, 'three' -> 3
 
-    Ignores preceding other text.
+    Ignores preceding other text. Returns 0 if no valid text is found.
 
     """
-    s = s.strip().lower()
-    for num, t in enumerate(_nums[1:], 1):
-        if s.endswith(t):
-            s = s[:-len(t)]
-            break
-    else:
-        num = 0
-    if s:
-        for n, t in enumerate(_tens, 2):
-            if s.endswith(t):
-                s = s[:-len(t)]
-                num += n*10
-                break
-        if s.endswith('hundred'):
-            s = s[:-7]
-            if s:
-                for n, t in enumerate(_nums[1:], 1):
-                    if s.endswith(t):
-                        s = s[:-len(t)]
-                        num += n*100
-                        break
-            else:
-                num += 100
-        if s.endswith('thousand'):
-            s = s[:-8]
-            if s:
-                num += text2int(s) * 1000
-            else:
-                num += 1000
-    return num
+    from parce.lang.numbers import English
+    from parce.transform import transform_text
+    for n in transform_text(English.root, s):
+        return n
+    return 0
 
