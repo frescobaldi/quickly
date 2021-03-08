@@ -2,8 +2,9 @@ ChangeLog
 =========
 
 
-current: quickly-0.0.7
+2021-03-08: quickly-0.0.7
 
+- requires parce-0.23.0
 - added quickly.numbering module
 - added dom.read module to construct elements/documents from text
 - removed some temp methods from dom.util
