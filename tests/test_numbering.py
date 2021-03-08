@@ -44,6 +44,7 @@ def test_main():
         assert roman2int(int2roman(val)) == val
 
     assert int2text(12345) == "TwelveThousandThreeHundredFortyFive"
+    assert text2int("ThousandTwoHundred") == 1200
 
     for val in range(9999):
         assert text2int(int2text(val)) == val
