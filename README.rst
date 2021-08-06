@@ -1,9 +1,10 @@
 Welcome to quickly!
 ===================
 
-`Homepage       <https://github.com/frescobaldi/quickly>`_      •
+`Homepage       <https://quick-ly.info/>`_                      •
+`Development    <https://github.com/frescobaldi/quickly>`_      •
 `Download       <https://pypi.org/project/quickly/>`_           •
-`Documentation  <https://python-quickly.readthedocs.io/>`_      •
+`Documentation  <https://quick-ly.info/>`_                      •
 `License        <https://www.gnu.org/licenses/gpl-3.0>`_
 
 The quickly python package is slated to become the successor of python-ly.

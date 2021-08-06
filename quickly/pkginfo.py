@@ -54,7 +54,7 @@ maintainer = "Wilbert Berendsen"
 maintainer_email = "info@frescobaldi.org"
 
 #: homepage
-url = "https://github.com/frescobaldi/quickly"
+url = "https://quick-ly.info/"
 
 #: license
 license = "GPL v3"
