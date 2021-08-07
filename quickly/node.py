@@ -415,6 +415,32 @@ class Node(list):
                 else:
                     return height
 
+    def instances_of(self, cls):
+        """Yield all descendants that are an instance of ``cls``.
+
+        The difference with the ``//`` operator is that when a node is yielded,
+        its children are not searched anymore.
+
+        The ``cls`` parameter may also be a tuple of more classes, just like the
+        standard Python :func:`isinstance`.
+
+        """
+        stack = []
+        gen = iter(self)
+        while True:
+            for i in gen:
+                if isinstance(i, cls):
+                    yield i
+                elif len(i):
+                    stack.append(gen)
+                    gen = iter(i)
+                    break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
+
 
 class _NodeLister:
     """Displays a node for debugging purposes."""
