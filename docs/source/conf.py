@@ -116,6 +116,9 @@ html_theme_options = {
     #'canonical_url': 'https://quick-ly.info/',
 }
 
+html_favicon = "quick-ly.png"
+html_logo = "quick-ly.png"
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
