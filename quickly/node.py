@@ -49,14 +49,15 @@ class Node(list):
     You can inherit of Node and add your own attributes and methods.
 
     A node can have child nodes and a :attr:`parent`. The parent is referred to
-    with a weak reference, so a node tree does not maintain circular
-    references. (This also means that you need to keep a reference to a tree's
-    root node, otherwise it will be garbage collected.)
+    with a weak reference, so a node tree does not contain circular references.
+    (This also means that you need to keep a reference to a tree's root node,
+    otherwise it will be garbage collected.)
 
     Adding nodes to a node sets the parent of the nodes; but removing nodes
     *doesn't* unset the parent of the removed nodes; and adding nodes does not
     automatically remove them from their previous parent; you should take care
-    of that yourself (e.g. by using the :meth:`take` method).
+    of that yourself. Unset the parent of a node by setting the ``parent``
+    attribute to ``None``.
 
     Iterating over a node yields the child nodes, just like the underlying
     Python list. Unlike Python's list, a node always evaluates to True, even if
@@ -162,7 +163,7 @@ class Node(list):
         if children:
             list.extend(self, children)
             for node in self:
-                node.parent = self
+                node._parent = weakref.ref(self)
 
     def copy(self):
         """Return a copy of this Node, with copied children."""
@@ -176,28 +177,23 @@ class Node(list):
     @parent.setter
     def parent(self, node):
         """Set the parent to Node node or None."""
-        self._parent = weakref.ref(node) if node else _NO_PARENT
-
-    @parent.deleter
-    def parent(self):
-        """Set the parent to None."""
-        self.parent = None
+        self._parent = _NO_PARENT if node is None else weakref.ref(node)
 
     def append(self, node):
         """Append node to this node; the parent is set to this node."""
-        node.parent = self
+        node._parent = weakref.ref(self)
         list.append(self, node)
 
     def extend(self, nodes):
         """Append nodes to this node; the parent is set to this node."""
-        nodes = list(nodes)
-        for node in nodes:
-            node.parent = self
+        index = len(self)
         list.extend(self, nodes)
+        for node in self[index:]:
+            node._parent = weakref.ref(self)
 
     def insert(self, index, node):
         """Insert node in this node; the parent is set to this node."""
-        node.parent = self
+        node._parent = weakref.ref(self)
         list.insert(self, index, node)
 
     def take(self, start=0, end=None):
@@ -212,9 +208,9 @@ class Node(list):
         if isinstance(k, slice):
             new = tuple(new)
             for node in new:
-                node.parent = self
+                node._parent = weakref.ref(self)
         else:
-            new.parent = self
+            new._parent = weakref.ref(self)
         list.__setitem__(self, k, new)
 
     def equals(self, other):
