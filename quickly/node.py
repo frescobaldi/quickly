@@ -56,7 +56,7 @@ class Node(list):
     Adding nodes to a node sets the parent of the nodes; but removing nodes
     *doesn't* unset the parent of the removed nodes; and adding nodes does not
     automatically remove them from their previous parent; you should take care
-    of that yourself. Unset the parent of a node by setting the ``parent``
+    of that yourself. Unset the parent of a node by setting the :attr:`parent`
     attribute to ``None``.
 
     Iterating over a node yields the child nodes, just like the underlying

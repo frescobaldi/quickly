@@ -210,8 +210,8 @@ Intermezzo: Whitespace handling
 Some elements have whitespace between them, others don't. For example, the
 :class:`lily.SequentialMusic` and the :class:`lily.Chord` element put
 whitespace between their children, but :class:`lily.Note` doesn't.
-SequentialMusic also puts whitespace after the first brace (the "head") and the
-closing brace ("tail"), but Chord doesn't.
+SequentialMusic also puts whitespace after the first brace (the "head") and
+before the closing brace ("tail"), but Chord doesn't.
 
 This is handled by five properties that have sensible defaults for every
 element type, but can be modified for every individual element. These
@@ -242,9 +242,7 @@ A DOM document can be modified by:
 * adding or removing element nodes
 
 * (only for elements that inherit :class:`~element.TextElement`)
-  by changing the ``head`` attribute. Some element types have more fine-grained
-  control, for example the :class:`~scm.Number` types. But essentially
-  everything that the element's methods may do is changing the head attribute.
+  by changing the ``head`` attribute.
 
 Consider these examples (using the same music as above):
 

@@ -41,7 +41,7 @@ This way, you can create DOM elements that are intended to be used in another
 DOM document that has origin tokens. So the newly added content will not have
 tokens that interfere with the tokens that are already in the document.
 
-There is a global default Reader, which is returned by :func:`read`; and a
+There is a global default Reader, which is returned by :func:`reader`; and a
 global adhoc Reader is returned by :func:`adhoc_reader`.
 
 Finally, all Reader methods are also conveniently available as global
