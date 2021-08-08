@@ -246,29 +246,29 @@ class Node(list):
         """Identity compare to make Node.index robust and "faster"."""
         return self is not other
 
-    def __lshift__(self, other):
+    def __lshift__(self, cls):
         """Iterate over the ancestors that inherit the specified class(es)."""
-        for i in self.ancestors():
-            if isinstance(i, other):
-                yield i
+        for node in self.ancestors():
+            if isinstance(node, cls):
+                yield node
 
-    def __truediv__(self, other):
+    def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
-        for i in self:
-            if isinstance(i, other):
-                yield i
+        for node in self:
+            if isinstance(node, cls):
+                yield node
 
-    def __floordiv__(self, other):
+    def __floordiv__(self, cls):
         """Iterate over descendants inheriting the specified class(es), in document order."""
-        for i in self.descendants():
-            if isinstance(i, other):
-                yield i
+        for node in self.descendants():
+            if isinstance(node, cls):
+                yield node
 
-    def __xor__(self, other):
+    def __xor__(self, cls):
         """Iterate over children that do not inherit the specified class(es)."""
-        for i in self:
-            if not isinstance(i, other):
-                yield i
+        for node in self:
+            if not isinstance(node, cls):
+                yield node
 
     def __repr__(self):
         c = "child" if len(self) == 1 else "children"
@@ -307,11 +307,11 @@ class Node(list):
         stack = []
         gen = iter(self)
         while True:
-            for i in gen:
-                yield i
-                if len(i):
+            for node in gen:
+                yield node
+                if len(node):
                     stack.append(gen)
-                    gen = iter(i)
+                    gen = iter(node)
                     break
             else:
                 if stack:
@@ -324,11 +324,11 @@ class Node(list):
         stack = []
         gen = reversed(self)
         while True:
-            for i in gen:
-                yield i
-                if len(i):
+            for node in gen:
+                yield node
+                if len(node):
                     stack.append(gen)
-                    gen = reversed(i)
+                    gen = reversed(node)
                     break
             else:
                 if stack:
@@ -403,17 +403,40 @@ class Node(list):
         height = 0
         gen = iter((self,))
         while True:
-            for i in gen:
-                if len(i):
+            for node in gen:
+                if len(node):
                     stack.append(gen)
                     height = max(height, len(stack))
-                    gen = iter(i)
+                    gen = iter(node)
                     break
             else:
                 if stack:
                     gen = stack.pop()
                 else:
                     return height
+
+    def filter(self, predicate):
+        """Call predicate on all descendants.
+
+        If the predicate returns True for a node, that node is yielded and its
+        descendants are skipped.
+
+        """
+        stack = []
+        gen = iter(self)
+        while True:
+            for node in gen:
+                if predicate(node):
+                    yield node
+                elif len(node):
+                    stack.append(gen)
+                    gen = iter(node)
+                    break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
 
     def instances_of(self, cls):
         """Yield all descendants that are an instance of ``cls``.
@@ -425,21 +448,7 @@ class Node(list):
         standard Python :func:`isinstance`.
 
         """
-        stack = []
-        gen = iter(self)
-        while True:
-            for i in gen:
-                if isinstance(i, cls):
-                    yield i
-                elif len(i):
-                    stack.append(gen)
-                    gen = iter(i)
-                    break
-            else:
-                if stack:
-                    gen = stack.pop()
-                else:
-                    break
+        return self.filter(lambda node: isinstance(node, cls))
 
 
 class _NodeLister:

@@ -71,6 +71,7 @@ def test_main():
     assert next(tree//M3) is tree[0][1]
     assert len(list(tree/N2)) == 1
     assert sum(1 for _ in tree//N2) == 3     # M2 inherits from N2 :-)
+    assert sum(1 for _ in tree.instances_of(N2)) == 2   # topmost N2's children are skipped
     assert next(tree[1][0] << N1) is tree[1]
     tree2 = tree.copy()
     assert tree.equals(tree2)
