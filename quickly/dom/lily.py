@@ -90,6 +90,8 @@ class _ConvertUnpitchedToInt:
 
 
 class HandleAssignments:
+    __slots__ = ()
+
     """Mixin class to handle Assignment children in a convenient way."""
     def find_assignment(self, name):
         """Find the Assignment with the specified name."""
