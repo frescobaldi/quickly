@@ -2,6 +2,16 @@ ChangeLog
 =========
 
 
+2021-08-08: quickly-0.0.8
+
+- requires parce-0.24.0
+- fixed instance dict in Element nodes, added empty __slots__to mixins
+- added Node.filter() and Node.instances_of()
+- added a logo (two eighth rests, looking like "ly")
+- new website at https://quick-ly.info/
+- small optimizations and documentation improvements
+
+
 2021-03-08: quickly-0.0.7
 
 - requires parce-0.23.0
