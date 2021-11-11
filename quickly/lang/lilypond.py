@@ -1006,12 +1006,13 @@ class MusicBuilder:
         lily.OctaveCheck, lily.Times, lily.Tuplet, lily.ScaleDurations,
         lily.ShiftDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
         lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
-        lily.Breathe, lily.Mark, lily.Default, lily.Label, lily.AddQuote,
-        lily.QuoteDuring, lily.UnfoldRepeats, lily.Alternative,
-        lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
-        lily.AppendToTag, lily.Break, lily.PageBreak, lily.PageTurn,
-        lily.GrobDirection, lily.GrobStyle, lily.Toggle, lily.Shape,
-        lily.VShape, lily.StringTuning, lily.VoiceN, lily.Unit,
+        lily.InStaffSegno, lily.Breathe, lily.Mark, lily.Default, lily.Label,
+        lily.AddQuote, lily.QuoteDuring, lily.Repeat, lily.UnfoldRepeats,
+        lily.Alternative, lily.Unfolded, lily.Volta, lily.KeepWithTag,
+        lily.RemoveWithTag, lily.TagGroup, lily.PushToTag, lily.AppendToTag,
+        lily.Break, lily.PageBreak, lily.PageTurn, lily.GrobDirection,
+        lily.GrobStyle, lily.Toggle, lily.Shape, lily.VShape,
+        lily.StringTuning, lily.VoiceN, lily.Unit,
     )
 
     @_action(a.Name.Builtin)
@@ -1027,7 +1028,7 @@ class MusicBuilder:
         lily.Once, lily.Temporary, lily.Override, lily.Revert, lily.Set,
         lily.Unset, lily.Version, lily.Language, lily.Include, lily.New,
         lily.Context, lily.Change, lily.Sequential, lily.Simultaneous,
-        lily.NoteMode, lily.Repeat, lily.Alternative, lily.Etc,
+        lily.NoteMode, lily.Etc,
     )
 
     @_action(a.Keyword)

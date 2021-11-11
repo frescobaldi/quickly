@@ -834,6 +834,24 @@ class UnfoldRepeats(element.HeadElement, Music):
         yield MUSIC,
 
 
+class Unfolded(element.HeadElement, Music):
+    r"""The ``\unfolded`` command."""
+    head = r'\unfolded'
+    _space_between = _space_after_head = " "
+
+    def signatures(self):
+        yield MUSIC,
+
+
+class Volta(element.HeadElement, Music):
+    r"""The ``\volta`` command."""
+    head = r'\volta'
+    _space_between = _space_after_head = " "
+
+    def signatures(self):
+        yield (List, Scheme), MUSIC
+
+
 class Transposition(element.HeadElement, Music):
     r"""A ``\tranposition`` command."""
     head = r'\transposition'
@@ -1300,10 +1318,15 @@ class PageBreak(element.ToggleElement):
 class PageTurn(element.MappingElement):
     r"""A ``\pageTurn``, ``\allowPageTurn`` or ``\noPageTurn``."""
     mapping = {
-        r'\pageTurn':   '',
+        r'\pageTurn':   'yes',
         r'\noPageTurn': 'no',
         r'\allowPageTurn': 'allow',
     }
+
+
+class InStaffSegno(element.HeadElement, Music):
+    r"""An ``\inStaffSegno`` command."""
+    head = r'\inStaffSegno'
 
 
 class PipeSymbol(element.HeadElement):
