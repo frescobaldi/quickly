@@ -2,6 +2,15 @@ ChangeLog
 =========
 
 
+2021-11-11: quickly-0.0.9
+
+- requires parce-0.25.0
+- Add support for some new LilyPond-2.23 commands
+- fixed case where a symbol was interpreted as a pitch eg: \tweak color red do
+- fixed some cases where incorrect input was not handled neatly
+- documentation improvements
+
+
 2021-08-08: quickly-0.0.8
 
 - requires parce-0.24.0
