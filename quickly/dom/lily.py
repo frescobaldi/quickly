@@ -960,6 +960,11 @@ class Skip(element.HeadElement, Music):
     head = r'\skip'
 
 
+class After(element.HeadElement, Music):
+    r"""An ``\after``. Must have a Duration child and an event."""
+    head = r'\after'
+
+
 class Q(element.HeadElement, Music):
     """A ``q``, repeating the previous chord."""
     head = 'q'
@@ -2164,6 +2169,15 @@ class Shape(element.HeadElement):
 
     def signatures(self):
         yield Scheme, SYMBOL
+
+
+class VShape(Shape):
+    r"""The ``\vshape`` command.
+
+    Like ``\shape`` but draws the control points.
+
+    """
+    head = r'\vshape'
 
 
 class StringTuning(element.HeadElement):

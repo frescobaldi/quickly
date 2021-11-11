@@ -676,13 +676,12 @@ class MusicBuilder:
             yield from self._comments
             self._comments.clear()
 
-            # if there are tweaks, tags or shapes but no articulations, the
-            # tweak, tag or shape is meant for the next note. Output it now.
-            for e in self._events:
-                if isinstance(e, (lily.Tweak, lily.Tag, lily.Shape)):
-                    yield e
-            self._events.clear()
-
+        # if there are tweaks, tags or shapes but no articulations, the
+        # tweak, tag or shape is meant for the next note. Output it now.
+        for e in self._events:
+            if isinstance(e, (lily.Tweak, lily.Tag, lily.Shape)):
+                yield e
+        self._events.clear()
         self._music = self._duration = self._scaling = None
 
     def add_articulation(self, art):
@@ -780,6 +779,12 @@ class MusicBuilder:
         yield from self.pending_music()
         self._music = self.factory(lily.Skip, (token,))
 
+    @_token(r'\after')
+    def after_token(self, token):
+        r"""Called for ``\after``."""
+        yield from self.pending_music()
+        self._music = self.factory(lily.After, (token,))
+
     @_token(r'\rest')
     def rest_token(self, token):
         r"""Called for ``\rest``."""
@@ -813,12 +818,18 @@ class MusicBuilder:
         r"""Called for ``\shape``."""
         self._events.append(self.factory(lily.Shape, (token,)))
 
+    @_token(r'\vshape')
+    def vshape_token(self, token):
+        r"""Called for ``\vshape``."""
+        self._events.append(self.factory(lily.VShape, (token,)))
+
     @_action(a.Text.Music.Pitch, a.Name.Pitch)
     def pitch_action(self, token):
         r"""Called for ``Text.Music.Pitch (or Name.Pitch)``."""
-        yield from self.pending_music()
-        cls = lily.Q if token == 'q' else lily.Note
-        self._music = self.factory(cls, (token,))
+        if not self.add_tweak(self.factory(lily.Symbol, (token,))):
+            yield from self.pending_music()
+            cls = lily.Q if token == 'q' else lily.Note
+            self._music = self.factory(cls, (token,))
 
     @_action(a.Text.Music.Rest)
     def rest_action(self, token):
@@ -830,8 +841,9 @@ class MusicBuilder:
     @_action(a.Text.Music.Pitch.Drum)
     def drum_action(self, token):
         r"""Called for ``Text.Music.Pitch.Drum``."""
-        yield from self.pending_music()
-        self._music = self.factory(lily.Drum, (token,))
+        if not self.add_tweak(self.factory(lily.Symbol, (token,))):
+            yield from self.pending_music()
+            self._music = self.factory(lily.Drum, (token,))
 
     @_action(a.Number.Duration)
     def duration_action(self, token):
@@ -999,7 +1011,7 @@ class MusicBuilder:
         lily.KeepWithTag, lily.RemoveWithTag, lily.TagGroup, lily.PushToTag,
         lily.AppendToTag, lily.Break, lily.PageBreak, lily.PageTurn,
         lily.GrobDirection, lily.GrobStyle, lily.Toggle, lily.Shape,
-        lily.StringTuning, lily.VoiceN, lily.Unit,
+        lily.VShape, lily.StringTuning, lily.VoiceN, lily.Unit,
     )
 
     @_action(a.Name.Builtin)
@@ -1068,7 +1080,12 @@ class MusicBuilder:
     @_context("pitch")
     def pitch(self, obj):
         """Called for ``pitch`` context: octave, accidental, octavecheck."""
-        self._music.extend(obj)
+        if self._music:
+            self._music.extend(obj)
+        else:
+            # only happens in erronous LilyPond input, but at least we keep the object
+            yield from self.pending_music()
+            yield from obj
 
     @_context("duration")
     def duration(self, obj):
