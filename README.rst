@@ -7,7 +7,7 @@ Welcome to quickly!
 `Documentation  <https://quick-ly.info/>`_                      •
 `License        <https://www.gnu.org/licenses/gpl-3.0>`_
 
-The *quickly* python package is able create and manipulate LilyPond music
+The *quickly* python package is able to create and manipulate LilyPond music
 documents. LilyPond documents often use the ``.ly`` extension, hence the name.
 
 It is currently in an early development stage, but slated to become the
