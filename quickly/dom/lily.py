@@ -679,7 +679,7 @@ class IdentifierRef(element.TextElement):
 class MusicFunction(element.TextElement, Music):
     r"""A generic music function with a backslash, like ``\stemUp``
 
-    To be used is there is no special Element type for the music function.
+    To be used if there is no special Element type for the music function.
     When manually constructing this element, the initial backslash need not
     to be given. Example::
 
@@ -696,6 +696,10 @@ class MusicFunction(element.TextElement, Music):
 
     def write_head(self):
         return '\\' + self.head
+
+    def signatures(self):
+        if self.head == "defineBarLine":
+            yield String, Scheme
 
 
 class Context(element.HeadElement, Music):
