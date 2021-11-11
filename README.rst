@@ -7,16 +7,15 @@ Welcome to quickly!
 `Documentation  <https://quick-ly.info/>`_                      •
 `License        <https://www.gnu.org/licenses/gpl-3.0>`_
 
-The quickly python package is slated to become the successor of python-ly.
+The *quickly* python package is able create and manipulate LilyPond music
+documents. LilyPond documents often use the ``.ly`` extension, hence the name.
 
-It is currently in a very early development stage.
+It is currently in an early development stage, but slated to become the
+successor of the `python-ly`_ package.
 
 Like python-ly, it will provide tools to manipulate `LilyPond`_ music
 documents, but instead of using the lexer in python-ly, which is very difficult
-to maintain, it will use the new `parce`_ package for parsing LilyPond files.
-
-.. _LilyPond: http://lilypond.org/
-.. _parce: https://parce.info/
+to maintain, it uses the new `parce`_ package for parsing `LilyPond`_ files.
 
 ``ly.dom`` and ``ly.music`` will be superseded by ``quickly.dom`` which
 provides a way to both build a LilyPond source file from scratch (like
@@ -31,4 +30,10 @@ grows, also contain (adapted) code from python-ly that was contributed by
 others. Python 3.6 and higher is supported. Besides Python itself the most
 recent version of the *parce* module is needed. Testing is done by running
 ``pytest-3`` in the root directory.
+
+The documentation reflects which parts are already working :-) Enjoy!
+
+.. _python-ly: https://github.com/frescobaldi/python-ly/
+.. _LilyPond: http://lilypond.org/
+.. _parce: https://parce.info/
 
