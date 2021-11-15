@@ -45,10 +45,7 @@ def log_dotcount(value):
 
     The returned log is 0 for a whole note, 1 for a half note, 2 for a
     crotchet, -1 for a ``\\breve``, etc. This is the same way LilyPond handles
-    durations.
-
-    The value maybe truncated to a duration that can be expressed by a note
-    length and a number of dots. For example::
+    durations. For example::
 
         >>> from quickly.duration import log_dotcount
         >>> log_dotcount(1)
@@ -63,6 +60,18 @@ def log_dotcount(value):
         (1, 1)
         >>> log_dotcount(7/16)
         (2, 2)
+        >>> to_string(duration(*log_dotcount(Fraction(3, 4))))
+        '2.'
+
+    The value is truncated to a duration that can be expressed by a note length
+    and a number of dots. For example::
+
+        >>> to_string(duration(*log_dotcount(1)))
+        '1'
+        >>> to_string(duration(*log_dotcount(1.001)))
+        '1'
+        >>> to_string(duration(*log_dotcount(0.9999)))
+        '2............'
 
     """
     mantisse, exponent = math.frexp(value)
@@ -81,6 +90,44 @@ def duration(log, dotcount=0):
     numer = ((2 << dotcount) - 1) << 3
     denom = 1 << (dotcount + log + 3)
     return fractions.Fraction(numer, denom)
+
+
+def shift_duration(value, log, dotcount=0):
+    r"""Shift the duration.
+
+    This function is analogous to LilyPond's ``\shiftDurations`` command. It
+    modifies a duration by shifting the log and the number of dots. Adding 1 to
+    the log halves the note length, and adding a dot mutiplies the note length
+    with ``(1 + 1/2**<dots>)``. Subtracting 1 from the log doubles the note
+    length.
+
+    The ``value`` should be a duration that is expressable by a note length and
+    a number of dots. A Fraction is returned. ``log`` is the scaling as a power
+    of 2; and ``dotcount`` the number of dots to be added (or removed, by
+    specifying a negative value).
+
+    For example::
+
+        >>> shift_duration(Fraction(1, 8), -1)
+        Fraction(1, 4)
+        >>> shift_duration(Fraction(1, 8), -2)
+        Fraction(1, 2)
+        >>> shift_duration(Fraction(1, 4), 1, 1)
+        Fraction(3, 16)
+        >>> to_string(shift_duration(Fraction(1,4), 1, 1))
+        '8.'
+        >>> to_string(shift_duration(to_fraction('2'), 1, 1))
+        '4.'
+        >>> shift_duration(Fraction(7, 8), 0, -2)
+        Fraction(1, 2)
+        >>> shift_duration(Fraction(7, 8), 0, -1)
+        Fraction(3, 4)
+
+    When removing too much dots, a ValueError is raised.
+
+    """
+    old_log, old_dotcount = log_dotcount(value)
+    return duration(old_log + log, old_dotcount + dotcount)
 
 
 def to_string(value):
@@ -110,7 +157,7 @@ def to_string(value):
     return '{}{}'.format(dur, '.' * dotcount)
 
 
-def to_fraction(text, dotcount=None):
+def from_string(text, dotcount=None):
     r"""Convert a LilyPond duration string (e.g. ``'4.'``) to a Fraction.
 
     The durations ``\breve``, ``\longa`` and ``\maxima`` may be used with or
@@ -138,20 +185,5 @@ def to_fraction(text, dotcount=None):
     except ValueError:
         log = -1 - NAMED_DURATIONS.index(text.lstrip('\\'))
     return duration(log, dotcount)
-
-
-def shift_duration(value, log, dotcount=0):
-    r"""Shift the duration.
-
-    The ``value`` should be a normalized Fraction, a new Fraction is returned.
-    ``log`` is the scaling as a power of 2; and ``dotcount`` the number of dots
-    to be added (or removed, by specifying a negative value). The value should
-    be expressable by a note length and a number of dots.
-
-    When removing too much dots, a ValueError is raised.
-
-    """
-    old_log, old_dotcount = log_dotcount(value)
-    return duration(old_log + log, old_dotcount + dotcount)
 
 

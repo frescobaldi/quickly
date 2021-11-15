@@ -1096,7 +1096,7 @@ class Duration(element.TextElement):
     def read_head(cls, origin):
         """Read the duration value from the origin tokens."""
         dur, *dots = origin
-        return duration.to_fraction(dur.text, len(dots))
+        return duration.from_string(dur.text, len(dots))
 
     def write_head(self):
         """Write back the duration fraction to a string like ``4.``"""
