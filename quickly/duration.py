@@ -116,7 +116,7 @@ def shift_duration(value, log, dotcount=0):
         Fraction(3, 16)
         >>> to_string(shift_duration(Fraction(1,4), 1, 1))
         '8.'
-        >>> to_string(shift_duration(to_fraction('2'), 1, 1))
+        >>> to_string(shift_duration(from_string('2'), 1, 1))
         '4.'
         >>> shift_duration(Fraction(7, 8), 0, -2)
         Fraction(1, 2)
@@ -166,12 +166,12 @@ def from_string(text, dotcount=None):
 
     For example::
 
-        >>> from quickly.duration import to_fraction
-        >>> to_fraction('8')
+        >>> from quickly.duration import from_string
+        >>> from_string('8')
         Fraction(1, 8)
-        >>> to_fraction('8..')
+        >>> from_string('8..')
         Fraction(7, 32)
-        >>> to_fraction('8', dotcount=2)
+        >>> from_string('8', dotcount=2)
         Fraction(7, 32)
 
     Raises a ValueError if an invalid duration is specified.
