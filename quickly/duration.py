@@ -20,10 +20,67 @@
 
 """
 Functions to deal with LilyPond's musical durations.
+
+A duration is a Fraction or an integer, where a whole note is 1. A duration can
+be split in two values, log and dot-count, where the log value is 0 for a whole
+note, 1 for a half note, 2 for a crotchet, -1 for a ``\\breve``, etc. This is
+the same way LilyPond handles durations.
+
+Durations can be scaled using multiplying, e.g. with a Fraction.
+
 """
 
 import fractions
 import math
+
+
+NAMED_DURATIONS = ('breve', 'longa', 'maxima')
+
+
+
+def log_dotcount(value):
+    r"""Return the integer two-tuple (log, dotcount) for the duration value.
+
+    The ``value`` may be a Fraction, integer or floating point value.
+
+    The returned log is 0 for a whole note, 1 for a half note, 2 for a
+    crotchet, -1 for a ``\\breve``, etc. This is the same way LilyPond handles
+    durations.
+
+    The value maybe truncated to a duration that can be expressed by a note
+    length and a number of dots. For example::
+
+        >>> from quickly.duration import log_dotcount
+        >>> log_dotcount(1)
+        (0, 0)
+        >>> log_dotcount(1/2)
+        (1, 0)
+        >>> log_dotcount(4)
+        (-2, 0)
+        >>> log_dotcount(1/4)
+        (2, 0)
+        >>> log_dotcount(3/4)
+        (1, 1)
+        >>> log_dotcount(7/16)
+        (2, 2)
+
+    """
+    mantisse, exponent = math.frexp(value)
+    dotcount = int(-1 - math.log2(1 - mantisse))
+    log = 1 - exponent
+    return log, dotcount
+
+
+def duration(log, dotcount=0):
+    r"""Return the duration as a Fraction.
+
+    See for an explanation of the ``log`` and ``dotcount`` values
+    :func:`log_dotcount`.
+
+    """
+    numer = ((2 << dotcount) - 1) << 3
+    denom = 1 << (dotcount + log + 3)
+    return fractions.Fraction(numer, denom)
 
 
 def to_string(value):
@@ -45,12 +102,11 @@ def to_string(value):
     ``\maxima``).
 
     """
-    mantisse, exponent = math.frexp(value)
-    dotcount = int(-1 - math.log2(1 - mantisse))
-    if exponent >= 2:
-        dur = (r'\breve', r'\longa', r'\maxima')[exponent-2]
+    log, dotcount = log_dotcount(value)
+    if log < 0:
+        dur = '\\' + NAMED_DURATIONS[-1-log]
     else:
-        dur = 1 << 1 - exponent
+        dur = 1 << log
     return '{}{}'.format(dur, '.' * dotcount)
 
 
@@ -76,17 +132,15 @@ def to_fraction(text, dotcount=None):
     """
     if dotcount is None:
         dotcount = text.count('.')
-        text = text.strip(' \t.')
-    # maxima, longa, breve, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
-    # i: 0    1      2      3  4  5  6  7   8   9   10   11   12   13    14
+    text = text.strip(' \t.')
     try:
-        i = int(text).bit_length() + 2
+        log = int(text).bit_length() - 1
     except ValueError:
-        i = ('maxima', 'longa', 'breve').index(text.lstrip('\\'))
-    return fractions.Fraction(8 * ((2 << dotcount) - 1), 1 << dotcount + i)
+        log = -1 - NAMED_DURATIONS.index(text.lstrip('\\'))
+    return duration(log, dotcount)
 
 
-def shift_duration(value, log, dotcount):
+def shift_duration(value, log, dotcount=0):
     r"""Shift the duration.
 
     The ``value`` should be a normalized Fraction, a new Fraction is returned.
@@ -97,11 +151,7 @@ def shift_duration(value, log, dotcount):
     When removing too much dots, a ValueError is raised.
 
     """
-    offset = max(0, -log - dotcount)
-    dots1 = value.numerator.bit_length() + dotcount # (actually #dots+1)
-    if dots1 <= 0:
-        raise ValueError("cannot remove more dots")
-    numer = 2 ** dots1 - 1 << offset
-    denom = value.denominator * 2 ** (log + dotcount + offset)
-    return fractions.Fraction(numer, denom)
+    old_log, old_dotcount = log_dotcount(value)
+    return duration(old_log + log, old_dotcount + dotcount)
+
 
