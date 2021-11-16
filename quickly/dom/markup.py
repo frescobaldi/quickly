@@ -294,6 +294,7 @@ def _main():
                 if factory:
                     func = factory(cmd)
                     func.__name__ = name
+                    func.__qualname__ = name
                     func.__doc__ = doc
                     globals()[name] = func
             else:
