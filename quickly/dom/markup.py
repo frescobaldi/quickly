@@ -153,7 +153,7 @@ def postscript(s):
 
 
 def rest(duration):
-    r"""The ``\rest`` command.
+    r"""The ``\rest`` markup command.
 
     The ``duration`` can be a markup object containing a word that is a
     duration, e.g. ``4..`` (for LilyPond >= 2.22) or a Scheme string like
@@ -166,12 +166,20 @@ def rest(duration):
 
 
 def score(*elements):
-    r"""The ``\score`` command. You may give Header, Layout and general Music nodes."""
+    r"""The ``\score`` markup command.
+
+    You may give Header, Layout and general Music nodes.
+
+    """
     return lily.MarkupScore(*elements)
 
 
 def score_lines(*elements):
-    r"""The ``\score-lines`` command. You may give Header, Layout and general Music nodes."""
+    r"""The ``\score-lines`` markup command.
+
+    You may give Header, Layout and general Music nodes.
+
+    """
     return lily.MarkupScoreLines(*elements)
 
 
@@ -188,7 +196,7 @@ def wordwrap_string(s):
 
 
 def note(duration, direction):
-    r"""The ``\note`` command.
+    r"""The ``\note`` markup command.
 
     The ``duration`` can be a markup object containing a word that is a
     duration, e.g. ``4..`` (for LilyPond >= 2.22) or a Scheme string like
@@ -204,7 +212,7 @@ def note(duration, direction):
 
 
 def override(prop, value, *args):
-    r"""The ``\override`` command.
+    r"""The ``\override`` markup command.
 
     The ``prop`` should be a string, the ``value`` a Scheme value (Python bool,
     int or float are handled automatically).

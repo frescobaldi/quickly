@@ -171,6 +171,10 @@ class Number(element.TextElement):
             s = format(int(v), self._fmt[self.radix])
         return self._prefix[self.radix] + s
 
+    def repr_head(self):
+        """Dump Scheme numbers in Scheme syntax."""
+        return self.write_head()
+
 
 class Bin(Number):
     """A Scheme binary integer value."""
