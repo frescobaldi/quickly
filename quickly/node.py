@@ -71,9 +71,9 @@ class Node(list):
     because it uses a linear search, so don't use it for every node in an
     iterative operation.
 
-    Besides the usual methods, Node defines four special query operators:
-    ``/``, ``//``, ``<<`` and ``^``. All these expect a Node (sub)class as
-    argument, and iterate in different ways over selected Nodes:
+    Besides the usual methods, Node defines six special query operators:
+    ``/``, ``//``, ``<<``, ``>``, ``<`` and ``^``. All these expect a Node
+    (sub)class as argument, and iterate in different ways over selected Nodes:
 
     * The ``/`` operator iterates over the children that are instances of the
       specified class::
@@ -92,13 +92,30 @@ class Node(list):
         for n in node << Header:
             n.blabla    # n is the youngest ancestor that is a Header instance
 
+    * The ``>`` operator iterates :meth:`forward` from the node, starting
+      with the right sibling::
+
+        for n in node > MyClass:
+            # do something on the MyClass instance that comes after the node
+            # (and is not a child)
+
+    * The ``<`` operator iterates :meth:`backward` from the node, starting
+      with the left sibling::
+
+        for n in node < MyClass:
+            # do something on the MyClass instance that precedes the node
+            # (and is not a child)
+
     * The ``^`` operator iterates over the children that are *not* an instance
       of the specified class(es)::
 
         node[:] = (node ^ MyClass)
         # deletes all children that are an instance of MyClass
 
-    Instead of one subclass, a tuple of more than one class may also be given.
+    Instead of one subclass, a class instance or a tuple of more than one class
+    may also be given. If a class instance is given, :meth:`body_equals` must
+    return true for the compared nodes. (Child nodes are not compared when using
+    a class instance to compare with.)
 
     """
 
@@ -238,6 +255,31 @@ class Node(list):
         """
         return True
 
+    def get_predicate_iterator(self, other, source_iterator, invert=False):
+        """Return an iterator or NotImplemented.
+
+        This is used by the ``/``, ``//``, ``<<``, ``^``, ``>``, and ``<``
+        operators.
+
+        If the argument ``other`` is a :class:`Node` instance, the type must
+        match and :meth:`body_equals` must return True. The argument may also
+        be a :class:`type` or a :class:`tuple`, in which case it is used as
+        argument for the :func:`isinstance` builtin function.
+
+        For other types of argument, NotImplemented is returned.
+
+        If ``invert`` is True, the condition is inverted, i.e. if the source
+        object does not match the ``other``, it is yielded.
+
+        """
+        if isinstance(other, Node):
+            predicate = lambda node: type(node) is type(other) and node.body_equals(other)
+        elif isinstance(other, (tuple, type)):
+            predicate = lambda node: isinstance(node, other)
+        else:
+            return NotImplemented
+        return (itertools.filterfalse if invert else filter)(predicate, source_iterator)
+
     def __eq__(self, other):
         """Identity compare to make Node.index robust and "faster"."""
         return self is other
@@ -248,27 +290,27 @@ class Node(list):
 
     def __lshift__(self, cls):
         """Iterate over the ancestors that inherit the specified class(es)."""
-        for node in self.ancestors():
-            if isinstance(node, cls):
-                yield node
+        return self.get_predicate_iterator(cls, self.ancestors())
+
+    def __gt__(self, cls):
+        """Iterate over the following nodes (see :meth:`forward`) that inherit the specified class(es)."""
+        return self.get_predicate_iterator(cls, self.forward())
+
+    def __lt__(self, cls):
+        """Iterate over the preceding nodes (see :meth:`backward`) that inherit the specified class(es)."""
+        return self.get_predicate_iterator(cls, self.backward())
 
     def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
-        for node in self:
-            if isinstance(node, cls):
-                yield node
+        return self.get_predicate_iterator(cls, self)
 
     def __floordiv__(self, cls):
         """Iterate over descendants inheriting the specified class(es), in document order."""
-        for node in self.descendants():
-            if isinstance(node, cls):
-                yield node
+        return self.get_predicate_iterator(cls, self.descendants())
 
     def __xor__(self, cls):
         """Iterate over children that do not inherit the specified class(es)."""
-        for node in self:
-            if not isinstance(node, cls):
-                yield node
+        return self.get_predicate_iterator(cls, self, True)
 
     def __repr__(self):
         c = "child" if len(self) == 1 else "children"

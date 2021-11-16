@@ -658,7 +658,7 @@ class TextElement(HeadElement):
         return True
 
     def body_equals(self, other):
-        """Compares the head values, called by :meth:`Node.equals`."""
+        """Compares the head values, called by :meth:`Node.equals() <quickly.node.Node.equals>`."""
         return self.head == other.head
 
     @classmethod

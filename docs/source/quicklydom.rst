@@ -536,17 +536,22 @@ to request the transformed DOM tree again::
 
 Let's apply another change, moving all slurs up::
 
-    >>> for slur in music // lily.Slur:
-    ...     if slur.head == "start":
-    ...         if isinstance(slur.parent, lily.Direction):
-    ...             slur.parent.head = 1
-    ...         else:
-    ...             direction = lily.Direction(1)
-    ...             slur.parent[slur.parent.index(slur)] = direction
-    ...             direction.append(slur)
+    >>> for slur in music // lily.Slur("start"):
+    ...     if isinstance(slur.parent, lily.Direction):
+    ...         slur.parent.head = 1
+    ...     else:
+    ...         direction = lily.Direction(1)
+    ...         slur.parent[slur.parent.index(slur)] = direction
+    ...         direction.append(slur)
     ...
     >>> list(music.edits(d.get_root()))
     [(14, 14, '^')]
+
+.. note::
+
+   Note that we can also use the special ``//`` operator with an instance
+   instead of a class; the :meth:`~element.TextElement.body_equals` method is
+   then called to compare the ``head`` values.
 
 One ``^`` needs to be added to the original document::
 
