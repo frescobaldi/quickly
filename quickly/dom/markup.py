@@ -152,8 +152,17 @@ def postscript(s):
     return _c('postscript', s)
 
 
-def rest(s):
-    return _c('rest', lily.String(s))
+def rest(duration):
+    r"""The ``\rest`` command.
+
+    The ``duration`` can be a markup object containing a word that is a
+    duration, e.g. ``4..`` (for LilyPond >= 2.22) or a Scheme string like
+    ``#"4.."`` (for LilyPond < 2.22).
+
+    """
+    if isinstance(duration, str):
+        duration = lily.MarkupList(lily.MarkupWord(duration))
+    return _c('rest', duration)
 
 
 def score(*elements):
@@ -189,7 +198,9 @@ def note(duration, direction):
     direction, the value the stem length.
 
     """
-    return _c('note', duration, _s(scm.Float(direction)))
+    if isinstance(duration, str):
+        duration = lily.MarkupList(lily.MarkupWord(duration))
+    return _c('note', duration, _s(scm.Number(direction)))
 
 
 def override(prop, value, *args):
