@@ -13,6 +13,7 @@ Modules in the ``dom`` package:
 
    dom/element.rst
    dom/base.rst
+   dom/indent.rst
    dom/lily.rst
    dom/scm.rst
    dom/markup.rst

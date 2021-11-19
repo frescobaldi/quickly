@@ -495,6 +495,9 @@ class Element(Node, metaclass=ElementType):
         """Return the combined (not yet indented) output of this node and its
         children.
 
+        To get indented output, use :meth:`write_indented` and/or the
+        :mod:`~quickly.dom.indent` module.
+
         """
         return combine_text((b, p.text, a) for b, p, a in self.points())[1]
 
@@ -586,6 +589,44 @@ class Element(Node, metaclass=ElementType):
         """
         self.append(node)
 
+    def indent_children(self):
+        """Return True if the children should indent a level, if they appear on
+        a new line.
+
+        """
+        return False
+
+    def indent_align_indices(self):
+        """Yield zero or more child indices that new lines could align with.
+
+        This only makes sense for nodes that trigger a new indent level when
+        pretty-printing their contents, in most cases this will be a
+        BlockElement node type.
+
+        When, within a BlockElement node, a new line is started, it will by
+        default be indented with, say, two spaces. But when there are already
+        child nodes on the current line, the next line's indent could be
+        aligned to one of them. This method yields the indices of the nodes, in
+        priority, that may be used to align the indent with. The first one that
+        matches will be used.
+
+        """
+        return
+        yield
+
+    def write_indented(self, indent_width=2, start_indent=''):
+        """Return the output of this node and its children with indentation
+        added.
+
+        Default ``indent_width`` is 2 spaces, and the additional
+        ``start_indent`` to prepend to every output line is the empty string.
+
+        See also the :mod:`~quickly.dom.indent` module.
+
+        """
+        from . import indent
+        return indent.Indenter(indent_width, start_indent).write_indented(self)
+
 
 class HeadElement(Element):
     """Element that has a fixed head value."""
@@ -612,6 +653,10 @@ class BlockElement(HeadElement):
         node.head_origin = head_origin
         node.tail_origin = tail_origin
         return node
+
+    def indent_children(self):
+        """Reimplemented to indent children of a BlockElement type by default."""
+        return True
 
 
 class TextElement(HeadElement):
