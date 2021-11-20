@@ -62,3 +62,65 @@ def combine_text(fragments):
         whitespace.append(after)
     return ''.join(result[:1]), ''.join(result[1:]), collapse_whitespace(whitespace)
 
+
+def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
+    """Set whitespace properties of all nodes according to the original text.
+
+    Only nodes with an origin are affected. When a node appears on a new line,
+    the ``space_before`` property is set; when the tail part of a node appears
+    on a new line, the ``space_before_tail`` property is set.
+
+    It is possible to set the ``block_separator`` (by default a single
+    newline); and the maximum amount of consecutive blank lines, using
+    ``max_blank_lines``.
+
+    This can be useful before re-indenting or reformatting a document
+    completely, to retain some aspects of the original formatting.
+
+    """
+    def next_block():
+        nonlocal current_block
+        if current_block < len(text):
+            current_block = text.find(block_separator, current_block + 1)
+            if current_block == -1:
+                current_block = len(text)
+            return True
+        return False
+
+    def get_newlines(pos):
+        count = 0
+        while pos > current_block:
+            if not next_block():
+                break
+            count += 1
+        count = max(count, max_blank_lines)
+        return '\n' * count
+
+    def handle_node(node):
+        try:
+            head_origin = node.head_origin
+        except AttributeError:
+            pass
+        else:
+            s = get_newlines(head_origin[0].pos)
+            if s:
+                node.space_before = s
+
+        if len(node):
+            for n in node:
+                handle_node(n)
+
+        try:
+            tail_origin = node.tail_origin
+        except AttributeError:
+            pass
+        else:
+            s = get_newlines(tail_origin[0].pos)
+            if s:
+                node.space_before_tail = s
+
+    current_block = -1
+    next_block()
+    handle_node(node)
+
+
