@@ -86,6 +86,17 @@ class Indenter:
         self._can_dedent = False
 
         self.output_node(node)
+
+        # strip preceding space
+        while self._result:
+            if self._result[0][1]:
+                if self._result[0][1][0].isspace():
+                    del self._result[0][1][0]
+                else:
+                    break
+            else:
+                del self._result[0]
+
         result = ''.join(
             "{}{}{}\n".format(self.start_indent, " " * indent, ''.join(line))
             for indent, line in self._result)
@@ -103,6 +114,8 @@ class Indenter:
         children = len(node) > 0
         indent = node.indent_children()
 
+        self.add_whitespace(node.space_before)
+
         if head:
             self.output_head(head, index, node.indent_override())
             if tail or children:
@@ -113,7 +126,6 @@ class Indenter:
 
         if children:
             n = node[0]
-            self.add_whitespace(n.space_before)
             self.output_node(n, 0)
             for i, m in enumerate(node[1:], 1):
                 self.add_whitespace(node.concat(n, m), m.space_before)

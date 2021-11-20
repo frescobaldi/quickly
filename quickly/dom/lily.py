@@ -880,6 +880,10 @@ class MusicList(element.BlockElement, Music):
     head = "{"
     tail = "}"
 
+    def indent_align_indices(self):
+        """How to align child nodes if on the same line as an indenting char."""
+        yield 0
+
 
 class SimultaneousMusicList(MusicList):
     """A list of music items between ``<<`` ... ``>>``."""
@@ -949,6 +953,10 @@ class Chord(element.BlockElement, Music):
     _space_between = " "
     head = "<"
     tail = ">"
+
+    def indent_align_indices(self):
+        """How to align child nodes if on the same line as an indenting char."""
+        yield 0
 
 
 class Note(element.TextElement, Music):
@@ -1620,6 +1628,10 @@ class MarkupList(element.BlockElement):
     _space_after_head = _space_before_tail = _space_between = " "
     head = "{"
     tail = "}"
+
+    def indent_align_indices(self):
+        """How to align child nodes if on the same line as an indenting char."""
+        yield 0
 
 
 class MarkupCommand(element.TextElement):

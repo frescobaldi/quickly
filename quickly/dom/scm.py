@@ -58,6 +58,8 @@ manually construct scheme expressions. For example::
 import fractions
 import math
 
+from parce.lang.scheme import scheme_is_indenting_keyword
+
 from . import base, element
 
 
@@ -117,6 +119,16 @@ class List(element.BlockElement):
     _space_between = " "
     head = "("
     tail = ")"
+
+    def indent_align_indices(self):
+        """How to align child nodes if on a new line."""
+        for n in self:
+            if isinstance(n, Identifier):
+                if scheme_is_indenting_keyword(n.head):
+                    return
+                yield 1     # prefer align at the second item
+            break
+        yield 0
 
 
 class Vector(element.BlockElement):
