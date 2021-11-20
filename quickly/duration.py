@@ -21,10 +21,10 @@
 """
 Functions to deal with LilyPond's musical durations.
 
-A duration is a Fraction or an integer, where a whole note is 1. A duration can
-be split in two values, log and dot-count, where the log value is 0 for a whole
-note, 1 for a half note, 2 for a crotchet, -1 for a ``\\breve``, etc. This is
-the same way LilyPond handles durations.
+A duration is a :class:`~fractions.Fraction` or an integer, where a whole note
+is 1. A duration can be split in two values, log and dot-count, where the log
+value is 0 for a whole note, 1 for a half note, 2 for a crotchet, -1 for a
+``\\breve``, etc. This is the same way LilyPond handles durations.
 
 Durations can be scaled using multiplying, e.g. with a Fraction.
 

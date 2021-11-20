@@ -81,7 +81,7 @@ class Indenter:
         #: the maximum number of spaces to indent to align a line with certain text on the previous line
         self.max_align_indent = max_align_indent
 
-        # working variables
+        # initialize working variables
         self._result = []               # the list in which the result output is built up
         self._indent_stack = []         # the list of indenting history
         self._indenters = []            # the list of indenters created in the current line

@@ -33,11 +33,12 @@ This DOM is used in two ways:
    a LilyPond document, although it in no way forces the output to be a valid
    LilyPond file.
 
-2. Transform a *parce* tree of an existing LilyPond source document. All
-   tokens are stored in the nodes (in the ``origin`` attributes), so it is
-   possible to write back modifications to the original document without
-   touching other parts of the document.
+2. Transforming a *parce* tree of an existing LilyPond source document to a DOM
+   document. All tokens are stored in the nodes (in the ``origin`` attributes),
+   so it is possible to write back modifications to the original document
+   without touching other parts of the document.
 
+All nodes in this DOM inherit from the :class:`~element.Element` class.
 
 """
 
