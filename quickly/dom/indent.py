@@ -52,21 +52,33 @@ class _IndentLevel:
 class Indenter:
     """Encapsulates the process of printing the indented output of a node.
 
+    The default ``indent_width`` can be given (in nr of spaces), and the
+    additional ``start_indent`` which is prepended to every output line,
+    defaulting to the empty string.
+
+    The ``max_align_indent`` argument determines the number of spaces used
+    at most to align indenting lines with text on previous lines. If the
+    number is exceeded, the default ``indent_width`` is used instead on
+    such lines.
+
+    Instead of specifying these values on construction, you may also change
+    the attributes of the same name between calls to
+    :meth:`write_indented`.
+
     """
     def __init__(self,
             indent_width=2,
             start_indent="",
             max_align_indent=16,
         ):
-        """Initialize ourselves.
 
-        The default ``indent_width`` can be given (in nr of spaces), and the
-        additional ``start_indent`` which is prepended to every output line,
-        defaulting to the empty string.
-
-        """
+        #: the default indent width
         self.indent_width = indent_width
+
+        #: the indent string to prepend to every output line
         self.start_indent = start_indent
+
+        #: the maximum number of spaces to indent to align a line with certain text on the previous line
         self.max_align_indent = max_align_indent
 
         # working variables

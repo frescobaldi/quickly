@@ -34,7 +34,8 @@ You can specify all child elements in the constructor, so theoretically you can
 build a whole document in one expression.
 
 To get the textual output of an element and all its child elements, use the
-:meth:`~Element.write` method. TODO: indenting.
+:meth:`~Element.write` method. Indented output is created by the
+:meth:`~Element.write_indented` method.
 
 Whitespace is handled in a smart way: Element subclasses can specify the
 preferred whitespace before, after and between elements, and elements that have
