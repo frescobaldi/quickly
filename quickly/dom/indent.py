@@ -165,24 +165,24 @@ class Indenter:
 
     def create_new_block(self):
         """Go to a new line."""
+        if self._dedenters:
+            # remove some levels
+            del self._indent_stack[self._dedenters:]
+            self._dedenters = 0
+
         if self._indenters:
             # add new indent levels
-            current_indent = self.current_indent()
+            new_indent = self.current_indent()
             for i in self._indenters:
                 pos = i.get_align_pos()
                 if pos is None:
-                    indent = self.indent_width
+                    new_indent += self.indent_width
                 else:
-                    indent = sum(map(len, self._result[-1][1][:pos]))
-                current_indent += indent
-                self._indent_stack.append(current_indent)
+                    new_indent = sum(map(len, self._result[-1][1][:pos]))
+                self._indent_stack.append(new_indent)
             self._indenters.clear()
-        else:
-            if self._dedenters:
-                # remove some levels
-                del self._indent_stack[self._dedenters:]
-                self._dedenters = 0
-            current_indent = self.current_indent()
+
+        current_indent = self.current_indent()
 
         self._can_dedent = bool(self._indent_stack)
         self._result.append([current_indent, []])
