@@ -23,6 +23,17 @@ Some utility functions.
 """
 
 
+def whitespace_key(text):
+    r"""Return a key to determine the importance of the whitespace.
+
+    This is used by e.g. the :func:`collapse_whitespace` function. A two-tuple
+    is returned: ``(newlines spaces)``, where the first value is the number of
+    newlines in the text, and the second value the number of spaces.
+
+    """
+    return text.count('\n'), text.count(' ')
+
+
 def collapse_whitespace(whitespaces):
     r"""Return the "most important" whitespace of the specified strings.
 
@@ -36,7 +47,7 @@ def collapse_whitespace(whitespaces):
         ' '
 
     """
-    return max(whitespaces, key=lambda s: (s.count('\n'), s.count(' ')), default='')
+    return max(whitespaces, key=whitespace_key, default='')
 
 
 def combine_text(fragments):
@@ -64,7 +75,8 @@ def combine_text(fragments):
 
 
 def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
-    """Set whitespace properties of all nodes according to the original text.
+    """Set whitespace properties of the node and all its descendents according
+    to the original text.
 
     Only nodes with an origin are affected. When a node appears on a new line,
     the ``space_before`` property is set; when the tail part of a node appears
@@ -93,7 +105,7 @@ def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
             if not next_block():
                 break
             count += 1
-        count = max(count, max_blank_lines)
+        count = min(count, max_blank_lines)
         return '\n' * count
 
     def handle_node(node):
@@ -103,12 +115,11 @@ def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
             pass
         else:
             s = get_newlines(head_origin[0].pos)
-            if s:
+            if s and whitespace_key(s) > whitespace_key(node.space_before):
                 node.space_before = s
 
-        if len(node):
-            for n in node:
-                handle_node(n)
+        for n in node:
+            handle_node(n)
 
         try:
             tail_origin = node.tail_origin
@@ -116,7 +127,7 @@ def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
             pass
         else:
             s = get_newlines(tail_origin[0].pos)
-            if s:
+            if s and whitespace_key(s) > whitespace_key(node.space_before_tail):
                 node.space_before_tail = s
 
     current_block = -1

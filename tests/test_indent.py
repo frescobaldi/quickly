@@ -71,6 +71,12 @@ def test_main():
         n.space_before = '\n'   # twee and drie on new line
     assert d.write_indented() == '''\
 ((blaat) (string-append "een"
+  "twee"
+  "drie"))
+'''
+
+    assert d.write_indented(max_align_indent=24) == '''\
+((blaat) (string-append "een"
                         "twee"
                         "drie"))
 '''

@@ -53,7 +53,11 @@ class Indenter:
     """Encapsulates the process of printing the indented output of a node.
 
     """
-    def __init__(self, indent_width=2, start_indent=""):
+    def __init__(self,
+            indent_width=2,
+            start_indent="",
+            max_align_indent=16,
+        ):
         """Initialize ourselves.
 
         The default ``indent_width`` can be given (in nr of spaces), and the
@@ -63,6 +67,7 @@ class Indenter:
         """
         self.indent_width = indent_width
         self.start_indent = start_indent
+        self.max_align_indent = max_align_indent
 
         # working variables
         self._result = []               # the list in which the result output is built up
@@ -172,13 +177,16 @@ class Indenter:
 
         if self._indenters:
             # add new indent levels
-            new_indent = self.current_indent()
+            new_indent = current_indent = self.current_indent()
             for i in self._indenters:
                 pos = i.get_align_pos()
                 if pos is None:
                     new_indent += self.indent_width
                 else:
                     new_indent = sum(map(len, self._result[-1][1][:pos]))
+                    if new_indent > self.max_align_indent:
+                        new_indent = self.indent_width
+                    new_indent += current_indent
                 self._indent_stack.append(new_indent)
             self._indenters.clear()
 

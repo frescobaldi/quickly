@@ -624,18 +624,24 @@ class Element(Node, metaclass=ElementType):
         """
         return None
 
-    def write_indented(self, indent_width=2, start_indent=''):
+    def write_indented(self,
+            indent_width=2,
+            start_indent='',
+            max_align_indent=16,
+        ):
         """Return the output of this node and its children with indentation
         added.
 
-        Default ``indent_width`` is 2 spaces, and the additional
-        ``start_indent`` to prepend to every output line is the empty string.
-
-        See also the :mod:`~quickly.dom.indent` module.
+        See for all the arguments the :class:`~quickly.dom.indent.Indenter`
+        class from the :mod:`~quickly.dom.indent` module.
 
         """
         from . import indent
-        return indent.Indenter(indent_width, start_indent).write_indented(self)
+        return indent.Indenter(
+            indent_width,
+            start_indent,
+            max_align_indent,
+        ).write_indented(self)
 
 
 class HeadElement(Element):
