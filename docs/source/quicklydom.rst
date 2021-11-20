@@ -231,7 +231,9 @@ After consulting all the whitespace wishes, the most important whitespace is
 chosen by the :meth:`~element.Element.write` method. E.g. ``"\n"`` prevails
 over ``" "`` and ``"\n\n"`` prevails over ``"\n"``.
 
-Indenting output has yet to be implemented.
+Indented output is created by the :meth:`~element.Element.write_indented`
+method. Indenting is quite advanced; indivial element types may influence
+the indenting, and possible aligning with other elements on previous lines.
 
 
 Modifying a DOM document

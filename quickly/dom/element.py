@@ -614,6 +614,16 @@ class Element(Node, metaclass=ElementType):
         return
         yield
 
+    def indent_override(self):
+        """Return an indent position that could be used if this node is the first
+        on a new line.
+
+        By default None is returned, causing the normal indenting rules to
+        apply.
+
+        """
+        return None
+
     def write_indented(self, indent_width=2, start_indent=''):
         """Return the output of this node and its children with indentation
         added.

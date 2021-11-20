@@ -60,6 +60,16 @@ class Comment(element.TextElement):
 
 class SinglelineComment(Comment):
     """Base class for a multiline comment element."""
+    def indent_override(self):
+        """Returns 0 if this comment has at least three comment characters
+        at the beginning.
+
+        If it is on a line on its own, the current indent will then be ignored.
+
+        """
+        head = self.write_head()[:3]
+        if len(head) == 3 and len(set(head)) == 1:
+            return 0
 
 
 class MultilineComment(Comment):

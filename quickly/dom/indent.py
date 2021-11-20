@@ -104,7 +104,7 @@ class Indenter:
         indent = node.indent_children()
 
         if head:
-            self.output_head(head, index)
+            self.output_head(head, index, node.indent_override())
             if tail or children:
                 self.add_whitespace(node.space_after_head)
 
@@ -184,16 +184,22 @@ class Indenter:
                 self._result[-1][1].append(c)
         self._whitespace.clear()
 
-    def output_head(self, text, index=-1):
+    def output_head(self, text, index=-1, override=None):
         """Output head text.
 
         The ``index``, if given, is the index of the node in its parent. This
         is used to get additional indenting hints for the node.
 
+        If ``override`` is not None, and this head text happens to be the first
+        on a new line, this value is used as the indent depth for this line,
+        in stead of the current indent.
+
         """
         self.output_space()
         self._can_dedent = False
         last_line = self._result[-1][1]
+        if not last_line and override is not None:
+            self._result[-1][0] = override
         if self._indenters and index in self._indenters[-1].align_indices:
             # store the position of the node on the current output line
             position = len(last_line)
