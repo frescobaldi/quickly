@@ -208,10 +208,10 @@ Intermezzo: Whitespace handling
 -------------------------------
 
 Some elements have whitespace between them, others don't. For example, the
-:class:`lily.SequentialMusic` and the :class:`lily.Chord` element put
-whitespace between their children, but :class:`lily.Note` doesn't.
-SequentialMusic also puts whitespace after the first brace (the "head") and
-before the closing brace ("tail"), but Chord doesn't.
+:class:`lily.MusicList` and the :class:`lily.Chord` element put whitespace
+between their children, but :class:`lily.Note` doesn't. MusicList also puts
+whitespace after the first brace (the "head") and before the closing brace
+("tail"), but Chord doesn't.
 
 This is handled by five properties that have sensible defaults for every
 element type, but can be modified for every individual element. These

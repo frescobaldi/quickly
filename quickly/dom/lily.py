@@ -337,8 +337,14 @@ class Header(Block):
         >>> h = lily.Header()
         >>> h.title = "My title"
         >>> h.composer = "Wilbert Berendsen"
-        >>> h.write()
-        '\\header {\ntitle = "My title"\ncomposer = "Wilbert Berendsen"\n}'
+        >>> h.tagline = False
+        >>> print(h.write_indented())
+        \header {
+          title = "My title"
+          composer = "Wilbert Berendsen"
+          tagline = ##f
+        }
+
         >>> h.dump()
         <lily.Header (2 children)>
          ├╴<lily.Assignment title (3 children)>
@@ -2330,7 +2336,7 @@ def create_element_from_value(value):
 
 
 def create_value_from_element(node):
-    """Gets the value from en Element node.
+    """Gets the value from an Element node.
 
     Returns:
 
