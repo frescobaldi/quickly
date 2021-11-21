@@ -1310,6 +1310,7 @@ class Glissando(element.HeadElement, Music):
 
 class Bar(element.HeadElement, Music):
     r"""A ``\bar``. Has a String child."""
+    _space_after_head = " "
     head = r'\bar'
 
     def signatures(self):

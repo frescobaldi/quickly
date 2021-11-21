@@ -626,9 +626,9 @@ class Element(Node, metaclass=ElementType):
         return None
 
     def write_indented(self,
-            indent_width=2,
-            start_indent='',
-            max_align_indent=16,
+            indent_width = 2,
+            start_indent = 0,
+            max_align_indent = 16,
         ):
         """Return the output of this node and its children with indentation
         added.

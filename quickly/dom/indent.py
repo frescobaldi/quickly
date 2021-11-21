@@ -52,9 +52,9 @@ class _IndentLevel:
 class Indenter:
     """Encapsulates the process of printing the indented output of a node.
 
-    The default ``indent_width`` can be given (in nr of spaces), and the
-    additional ``start_indent`` which is prepended to every output line,
-    defaulting to the empty string.
+    The default ``indent_width`` can be given, and the additional
+    ``start_indent`` which is prepended to every output line, both in number of
+    spaces and defaulting to 0.
 
     The ``max_align_indent`` argument determines the number of spaces used
     at most to align indenting lines with text on previous lines. If the
@@ -67,15 +67,15 @@ class Indenter:
 
     """
     def __init__(self,
-            indent_width=2,
-            start_indent="",
-            max_align_indent=16,
+            indent_width = 2,
+            start_indent = 0,
+            max_align_indent = 16,
         ):
 
         #: the default indent width
         self.indent_width = indent_width
 
-        #: the indent string to prepend to every output line
+        #: the number of spaces to prepend to every output line
         self.start_indent = start_indent
 
         #: the maximum number of spaces to indent to align a line with certain text on the previous line
@@ -95,29 +95,29 @@ class Indenter:
         Called by :meth:`Element.write_indented() <quickly.dom.element.Element.write_indented>`.
 
         """
-        self._result[:] = [[0, []]]
+        self._result.clear()
         self._indent_stack.clear()
         self._indenters.clear()
         self._dedenters = 0
         self._whitespace.clear()
-        self._can_dedent = False
-
+        self.create_new_block()
         self.output_node(node)
 
         # strip preceding space
-        while self._result:
-            if self._result[0][1]:
-                if self._result[0][1][0].isspace():
-                    del self._result[0][1][0]
+        result = self._result
+        while result:
+            if result[0][1]:
+                if result[0][1][0].isspace():
+                    del result[0][1][0]
                 else:
                     break
             else:
-                del self._result[0]
+                del result[0]
 
-        result = ''.join(
-            "{}{}{}\n".format(self.start_indent, " " * indent, ''.join(line))
-            for indent, line in self._result)
-        return result
+        join = ''.join
+        fmt = "{}{}\n".format
+        return join(fmt(" " * indent, join(line)) for indent, line in result)
+
 
     def output_node(self, node, index=-1):
         """Output one node and its children.
@@ -145,7 +145,7 @@ class Indenter:
             n = node[0]
             self.output_node(n, 0)
             for i, m in enumerate(node[1:], 1):
-                self.add_whitespace(node.concat(n, m), m.space_before)
+                self.add_whitespace(node.concat(n, m))
                 self.output_node(m, i)
                 n = m
 
@@ -158,13 +158,13 @@ class Indenter:
 
         self.add_whitespace(node.space_after)
 
-    def add_whitespace(self, *whitespace):
+    def add_whitespace(self, whitespace):
         """Adds whitespace, which is combined as soon as text is printed out."""
-        self._whitespace.extend(whitespace)
+        self._whitespace.append(whitespace)
 
     def enter_indent(self, node):
         """Enter a new indent level for the ``node``."""
-        self._indenters.append(_IndentLevel(node))  # TODO get from node?
+        self._indenters.append(_IndentLevel(node))
 
     def leave_indent(self):
         """Leave the younghest indent level."""
@@ -178,7 +178,7 @@ class Indenter:
         of spaces.
 
         """
-        return self._indent_stack[-1] if self._indent_stack else 0
+        return self._indent_stack[-1] if self._indent_stack else self.start_indent
 
     def create_new_block(self):
         """Go to a new line."""
@@ -191,14 +191,13 @@ class Indenter:
             # add new indent levels
             new_indent = current_indent = self.current_indent()
             for i in self._indenters:
+                new_indent += self.indent_width
                 pos = i.get_align_pos()
-                if pos is None:
-                    new_indent += self.indent_width
-                else:
-                    new_indent = sum(map(len, self._result[-1][1][:pos]))
-                    if new_indent > self.max_align_indent:
-                        new_indent = self.indent_width
-                    new_indent += current_indent
+                if pos is not None:
+                    last_line = self._result[-1][1]
+                    align_indent = sum(map(len, last_line[:pos]))
+                    if align_indent <= self.max_align_indent:
+                        new_indent = current_indent + align_indent
                 self._indent_stack.append(new_indent)
             self._indenters.clear()
 
