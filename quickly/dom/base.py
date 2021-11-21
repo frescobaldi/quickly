@@ -25,6 +25,7 @@ Some general element types and some base classes for the quickly.dom elements.
 import re
 
 import parce.action as a
+from parce import lexicon
 
 from . import element
 
@@ -111,5 +112,29 @@ class Line(element.Element):
     """
     _space_before = _space_after = '\n'
     _space_between = ' '
+
+
+class XmlLike:
+    """Mixin class for a language definition that bases on parce.lang.Xml.
+
+    Adds the comsume attribute to some lexicons, like comment and string, which
+    makes transforming easier.
+
+    """
+    @lexicon(consume=True)
+    def comment(cls):
+        yield from super().comment
+
+    @lexicon(consume=True)
+    def sqstring(cls):
+        yield from super().sqstring
+
+    @lexicon(consume=True)
+    def dqstring(cls):
+        yield from super().dqstring
+
+    @lexicon(consume=True)
+    def cdata(cls):
+        yield from super().cdata
 
 

@@ -31,11 +31,12 @@ from parce.rule import (
 from parce.lang import html, lilypond_words
 from parce.transform import Transform
 
-from quickly.dom import base, element, lily, scm
+
+from quickly.dom import base, element, htm
 from . import lilypond
 
 
-class Html(html.Html):
+class Html(base.XmlLike, html.Html):
     """Html language definition, with support for the lilypond-book tags.
 
     Those are: ``<lilypond ... />`` for short code, ``<lilypond> ...
@@ -95,6 +96,7 @@ class Html(html.Html):
 
 class HtmlTransform(Transform):
     """Transform Html (for lilypond-book) to quickly.dom.html"""
+
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
         """Create a node, keeping its origin.
@@ -107,4 +109,73 @@ class HtmlTransform(Transform):
         """
         return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
 
-    #TODO further define
+    ## transform methods
+    def root(self, items):
+        """Process the ``root`` context."""
+        return items
+
+    def attrs(self, items):
+        """Process the ``attrs`` context."""
+        return items
+
+    def cdata(self, items):
+        """Process the ``cdata`` context."""
+        return items
+
+    def comment(self, items):
+        """Process the ``comment`` context."""
+        return self.factory(htm.Comment, items)
+
+    def css_style_attribute(self, items):
+        """Process the ``css_style_attribute`` context."""
+        return items
+
+    def css_style_tag(self, items):
+        """Process the ``css_style_tag`` context."""
+        return items
+
+    def doctype(self, items):
+        """Process the ``doctype`` context."""
+        return items
+
+    def dqstring(self, items):
+        """Process the ``dqstring`` context."""
+        return items
+
+    def sqstring(self, items):
+        """Process the ``sqstring`` context."""
+        return items
+
+    def internal_dtd(self, items):
+        """Process the ``internal_dtd`` context."""
+        return items
+
+    def processing_instruction(self, items):
+        """Process the ``processing_instruction`` context."""
+        return items
+
+    def script_tag(self, items):
+        """Process the ``script_tag`` context."""
+        return items
+
+    def tag(self, items):
+        """Process the ``tag`` context."""
+        return items
+
+    def lilypond_book_options(self, items):
+        """Process the ``lilypond_book_options`` context."""
+        return items
+
+    def lilypond_tag(self, items):
+        """Process the ``lilypond_tag`` context."""
+        return items
+
+    def lilypondfile_tag(self, items):
+        """Process the ``lilypondfile_tag`` context."""
+        return items
+
+    def musicxmlfile_tag(self, items):
+        """Process the ``musicxmlfile_tag`` context."""
+        return items
+
+
