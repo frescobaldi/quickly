@@ -38,6 +38,46 @@ class Comment(base.MultilineComment):
     """A Html/Xml comment node."""
 
 
+class EntityRef(element.TextElement):
+    r"""An entity reference like ``&euml;``, ``&#123;`` or ``&#xed;``.
+
+    The ``head`` value is the part between the ``&`` and the ``;``.
+
+    """
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text[1:-1]  # strip & and ;
+
+    def write_head(self):
+        return "&{};".format(self.head)
+
+
+class String(element.BlockElement):
+    """Base class for strings."""
+    def indent_children(self):
+        return False
+
+
+class SqString(String):
+    """A single-quoted string.
+
+    Inside are Text or EntityRef elements.
+
+    """
+    head = tail = "'"
+
+
+class DqString(String):
+    """A double-quoted string.
+
+    Inside are Text or EntityRef elements.
+
+    """
+    head = tail = '"'
+
+
+
+
 def escape(text):
     r"""Escape &, < and > to use text in HTML."""
     return text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")

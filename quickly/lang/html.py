@@ -30,6 +30,7 @@ from parce.rule import (
     ARG, MATCH, TEXT, bygroup, dselect, findmember, ifarg, ifeq, pattern)
 from parce.lang import html, lilypond_words
 from parce.transform import Transform
+from parce.util import Dispatcher
 
 
 from quickly.dom import base, element, htm
@@ -140,11 +141,19 @@ class HtmlTransform(Transform):
 
     def dqstring(self, items):
         """Process the ``dqstring`` context."""
-        return items
+        head_origin = items[0],
+        if items[-1] == '"':
+            tail_origin = items.pop(),
+        children = (self._action(t.action, t) for t in items[1:])
+        return self.factory(htm.DqString, head_origin, tail_origin, *children)
 
     def sqstring(self, items):
         """Process the ``sqstring`` context."""
-        return items
+        head_origin = items[0],
+        if items[-1] == "'":
+            tail_origin = items.pop(),
+        children = (self._action(t.action, t) for t in items[1:])
+        return self.factory(htm.SqString, head_origin, tail_origin, *children)
 
     def internal_dtd(self, items):
         """Process the ``internal_dtd`` context."""
@@ -178,4 +187,15 @@ class HtmlTransform(Transform):
         """Process the ``musicxmlfile_tag`` context."""
         return items
 
+    _action = Dispatcher()
+
+    @_action(a.Escape)
+    @_action(a.String.Escape)
+    def entityref_action(self, token):
+        return self.factory(htm.EntityRef, (token,))
+
+    @_action(a.String.Single)
+    @_action(a.String.Double)
+    def string_action(self, token):
+        return self.factory(htm.Text, (token,))
 

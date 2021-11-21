@@ -137,4 +137,8 @@ class XmlLike:
     def cdata(cls):
         yield from super().cdata
 
+    @lexicon(consume=True)
+    def processing_instruction(cls):
+        yield from super().processing_instruction
+
 
