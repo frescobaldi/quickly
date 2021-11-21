@@ -11,6 +11,7 @@ Modules in the ``lang`` package:
 .. toctree::
    :maxdepth: 1
 
+   lang/html.rst
    lang/lilypond.rst
    lang/scheme.rst
 
