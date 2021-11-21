@@ -76,6 +76,14 @@ class DqString(String):
     head = tail = '"'
 
 
+class ProcessingInstruction(element.BlockElement):
+    """A processing instruction.
+
+    Inside are Text, String or EntityRef elements.
+
+    """
+    head = '<?'
+    tail = '?>'
 
 
 def escape(text):

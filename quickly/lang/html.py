@@ -142,16 +142,14 @@ class HtmlTransform(Transform):
     def dqstring(self, items):
         """Process the ``dqstring`` context."""
         head_origin = items[0],
-        if items[-1] == '"':
-            tail_origin = items.pop(),
+        tail_origin = (items.pop(),) if items[-1] == '"' else ()
         children = (self._action(t.action, t) for t in items[1:])
         return self.factory(htm.DqString, head_origin, tail_origin, *children)
 
     def sqstring(self, items):
         """Process the ``sqstring`` context."""
         head_origin = items[0],
-        if items[-1] == "'":
-            tail_origin = items.pop(),
+        tail_origin = (items.pop(),) if items[-1] == "'" else ()
         children = (self._action(t.action, t) for t in items[1:])
         return self.factory(htm.SqString, head_origin, tail_origin, *children)
 
@@ -161,7 +159,24 @@ class HtmlTransform(Transform):
 
     def processing_instruction(self, items):
         """Process the ``processing_instruction`` context."""
-        return items
+        head_origin = items[0],
+        tail_origin = (items.pop(),) if items[-1] == '?>' else ()
+        # combine multiple text tokens into Text elements, and keep [SD]qString
+        # and EntityRef elements
+        def children():
+            origin = []
+            for i in items[1:]:
+                obj = self._action(i.action, i) if i.is_token else i.obj
+                if obj:
+                    if origin:
+                        yield self.factory(htm.Text, origin)
+                        origin.clear()
+                    yield obj
+                else:
+                    origin.append(i)
+            if origin:
+                yield self.factory(htm.Text, origin)
+        return self.factory(htm.ProcessingInstruction, head_origin, tail_origin, *children())
 
     def script_tag(self, items):
         """Process the ``script_tag`` context."""
