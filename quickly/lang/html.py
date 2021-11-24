@@ -27,7 +27,7 @@ import re
 import parce.action as a
 from parce import lexicon
 from parce.rule import (
-    ARG, MATCH, TEXT, bygroup, dselect, findmember, ifarg, ifeq, pattern)
+    ARG, MATCH, TEXT, bygroup, dselect, findmember, ifeq, pattern)
 from parce.lang import html, lilypond_words
 from parce.transform import Transform
 from parce.util import Dispatcher
@@ -51,20 +51,13 @@ class Html(base.XmlLike, html.Html):
         yield r'(<)(lilypond(?:file)?|musicxmlfile)\b(>|/\s*>)?', bygroup(a.Delimiter, a.Name.Tag, a.Delimiter), \
             dselect(MATCH[2], {
                 "lilypond": dselect(MATCH[3],
-                    {'>': cls.lilypond_tag, None: cls.lilypond_book_options('lilypond')}),
+                    {'>': lilypond.LilyPond.html_lilypond_tag, None: cls.lilypond_book_options('lilypond')}),
                 "lilypondfile": dselect(MATCH[3],
                     {'>': cls.lilypondfile_tag, None: cls.lilypond_book_options("lilypondfile")}),
                 "musicxmlfile": dselect(MATCH[3],
                     {'>': cls.musicxmlfile_tag, None: cls.lilypond_book_options("musicxmlfile")}),
             })  # by default a close tag, stay in the context.
         yield from super().root
-
-    @lexicon
-    def lilypond_tag(cls):
-        """Contents of a <lilypond> </lilypond> tag."""
-        yield ifarg(r'/>'), a.Delimiter, -1
-        yield r'(<\s*/)\s*(lilypond)\s*(>)', bygroup(a.Delimiter, a.Name.Tag, a.Delimiter), -1
-        yield from lilypond.LilyPond.root
 
     @lexicon
     def lilypondfile_tag(cls):
@@ -82,17 +75,18 @@ class Html(base.XmlLike, html.Html):
     def lilypond_book_options(cls):
         """Options within the attribute space of a lilypond book tag."""
         yield r'>', a.Delimiter, -1, dselect(ARG, {
-            "lilypond": cls.lilypond_tag,
+            "lilypond": lilypond.LilyPond.html_lilypond_tag,
             "lilypondfile": cls.lilypondfile_tag,
             "musicxmlfile": cls.musicxmlfile_tag,
             })
-        yield pattern(ifeq(ARG, "lilypond", ":", None)), -1, cls.lilypond_tag("short form")
+        yield pattern(ifeq(ARG, "lilypond", ":", None)), a.Delimiter, -1, lilypond.LilyPond.html_lilypond_tag("short form")
         yield r'\d+(?:\.\d+)?', a.Number
         yield r'[^\W\d]\w*(?:-\w+)*', findmember(TEXT, (
             (lilypond_words.lilypond_book_options, a.Name.Attribute),
             (lilypond_words.lilypond_book_units, a.Name.Builtin.Unit)), a.Name)
         yield r'=', a.Operator
         yield from cls.find_strings()
+        yield r'/\s*>', a.Delimiter, -1   # self-closing tag, no LilyPond input here
 
 
 class HtmlTransform(Transform):
@@ -113,15 +107,20 @@ class HtmlTransform(Transform):
     ## transform methods
     def root(self, items):
         """Process the ``root`` context."""
-        return items
+        return htm.Document(*self.tag(items))
 
     def attrs(self, items):
-        """Process the ``attrs`` context."""
-        return items
+        """Process the ``attrs`` context.
+
+        Returns a list of :class:`htm.Attribute` elements and a ``tail_origin``
+        tuple.
+
+        """
+        return self.lilypond_book_options(items)
 
     def cdata(self, items):
         """Process the ``cdata`` context."""
-        return items
+        return self.factory(htm.CData, items)
 
     def comment(self, items):
         """Process the ``comment`` context."""
@@ -129,15 +128,15 @@ class HtmlTransform(Transform):
 
     def css_style_attribute(self, items):
         """Process the ``css_style_attribute`` context."""
-        return items
+        return items    # TODO implement (or not)
 
     def css_style_tag(self, items):
         """Process the ``css_style_tag`` context."""
-        return items
+        return items    # TODO implement (or not)
 
     def doctype(self, items):
         """Process the ``doctype`` context."""
-        return items
+        return items    # TODO implement (or not)
 
     def dqstring(self, items):
         """Process the ``dqstring`` context."""
@@ -155,7 +154,7 @@ class HtmlTransform(Transform):
 
     def internal_dtd(self, items):
         """Process the ``internal_dtd`` context."""
-        return items
+        return items    # TODO implement (or not)
 
     def processing_instruction(self, items):
         """Process the ``processing_instruction`` context."""
@@ -180,27 +179,111 @@ class HtmlTransform(Transform):
 
     def script_tag(self, items):
         """Process the ``script_tag`` context."""
-        return items
+        return items    # TODO implement (or not)
 
     def tag(self, items):
-        """Process the ``tag`` context."""
-        return items
+        """Process the ``tag`` context.
+
+        Returns a list of nodes representing the contents.
+
+        """
+        nodes = []
+        z = len(items)
+        i = 0
+        while i < z:
+            if items[i].is_token:
+                if items[i].action in (a.Text, a.Whitespace):
+                    nodes.append(self.factory(htm.Text, (items[i],)))
+                elif items[i].action is a.Escape:
+                    nodes.append(self.factory(htm.EntityRef, (items[i],)))
+                elif items[i].action is a.Delimiter:
+                    if i < z - 1:
+                        head_origin = items[i:i+1]
+                        tagname = self.factory(htm.TagName, items[i+1:i+2])
+                        if '/' in items[i].text: # and z - i < 2: (will always be the case)
+                            # closing tag, will also be the end of this context
+                            tail_origin = items[i+2:i+3]
+                            nodes.append(self.factory(htm.CloseTag, head_origin, tail_origin, tagname))
+                        elif i < z - 2:
+                            cls = None
+                            attrs = ()
+                            if items[i+2].is_token:
+                                if items[i+2].group == -2:
+                                    tail_origin = items[i+2:i+3]
+                                    if '/' in items[i+2].text:
+                                        # self closing tag without attributes
+                                        cls = htm.SingleTag
+                                    else:
+                                        # opening tag without attributes, new tag ctxt will follow
+                                        cls = htm.OpenTag
+                            elif items[i+2].name == 'attrs':
+                                attrs, tail_origin = items[i+2].obj
+                                # opening or self-closing tag with attributes that follow
+                                cls = htm.SingleTag if tail_origin and '/' in tail_origin[0].text else htm.OpenTag
+                            elif items[i+2].name == 'lilypond_book_options':
+                                # short form of LilyPond input within (self-closing) lilypond tag?
+                                attrs, tail_origin = items[i+2].obj
+                                if tail_origin and tail_origin[0] == ':' and i < z - 3 and not items[i+3].is_token and items[i+3].name == "html_lilypond_tag":
+                                    # yes, add the music to the attrs
+                                    attrs = list(attrs)
+                                    attrs.append(self.factory(htm.Colon, tail_origin))
+                                    objs, tail_origin = items[i+3].obj
+                                    attrs.extend(objs)
+                                    cls = htm.SingleTag
+                                    i += 1
+                                else:
+                                    # no, just handle the attrs
+                                    cls = htm.SingleTag if tail_origin and '/' in tail_origin[0].text else htm.OpenTag
+                            if cls:
+                                nodes.append(htm.Element(self.factory(cls, head_origin, tail_origin, tagname, *attrs)))
+                    i += 2
+            elif items[i].name == "tag":
+                nodes[-1].extend(items[i].obj) # add contents and CloseTag
+            elif items[i].name == "html_lilypond_tag":
+                nodes[-1].extend(items[i].obj[0]) # add contents and CloseTag
+            i += 1
+        return nodes
 
     def lilypond_book_options(self, items):
-        """Process the ``lilypond_book_options`` context."""
-        return items
+        """Process the ``lilypond_book_options`` context.
 
-    def lilypond_tag(self, items):
-        """Process the ``lilypond_tag`` context."""
-        return items
+        Returns a list of Attribute elements and a tuple with the ending
+        delimiter (``:`` or ``>`` or ``/>``).
+
+        """
+        attrs = []
+        tail_origin = ()
+        for i in items:
+            if i.is_token:
+                if i.action is a.Name.Attribute:
+                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (i,))))
+                elif i == '=':
+                    if attrs and len(attrs[-1]) == 1:
+                        attrs[-1].append(self.factory(htm.EqualSign, (i,)))
+                elif i.action is a.Delimiter:
+                    tail_origin = (i,)
+                    break
+                # only appear in lilypond_book_options
+                elif i.action is a.Number:
+                    if attrs and len(attrs[-1]) > 1:
+                        attrs[-1].append(self.factory(htm.Number, (i,)))
+                elif i.action is a.Name.Builtin.Unit:
+                    if attrs and len(attrs[-1]) > 2:
+                        attrs[-1].append(self.factory(htm.Unit, (i,)))
+                elif i.action is a.Name:
+                    # unknown LilyPond book attribute...
+                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (i,))))
+            elif attrs and len(attrs[-1]) == 2:
+                attrs[-1].append(i.obj) # a string value
+        return attrs, tail_origin
 
     def lilypondfile_tag(self, items):
         """Process the ``lilypondfile_tag`` context."""
-        return items
+        return items    # TODO implement
 
     def musicxmlfile_tag(self, items):
         """Process the ``musicxmlfile_tag`` context."""
-        return items
+        return items    # TODO implement
 
     _action = Dispatcher()
 

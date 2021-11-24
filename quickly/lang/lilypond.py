@@ -43,12 +43,13 @@ This ``quickly.dom`` tree can then be queried and modified at will.
 
 import itertools
 
+from parce import lexicon
 from parce.transform import Transform
 import parce.lang.lilypond
 import parce.action as a
+from parce.rule import ifarg, bygroup
 from parce.util import Dispatcher
-
-from quickly.dom import base, element, lily, scm
+from quickly.dom import base, element, lily, scm, htm
 
 
 class LilyPond(parce.lang.lilypond.LilyPond):
@@ -58,6 +59,14 @@ class LilyPond(parce.lang.lilypond.LilyPond):
         """Get *our* Scheme."""
         from .scheme import Scheme
         return Scheme.scheme
+
+    @lexicon
+    def html_lilypond_tag(cls):
+        """LilyPond from inside Html, contents of a <lilypond> </lilypond> tag."""
+        yield ifarg(r'/>'), a.Delimiter, -1 # short single tag version
+        yield r'(<\s*/)\s*(lilypond)\s*(>)', bygroup(a.Delimiter, a.Name.Tag, a.Delimiter), -1
+        yield from cls.root
+
 
 
 class LilyPondTransform(Transform):
@@ -301,6 +310,34 @@ class LilyPondTransform(Transform):
     def singleline_comment(self, items):
         """A SinglelineComment element."""
         return self.factory(lily.SinglelineComment, items)
+
+    ## LilyPond in HTML
+    def html_lilypond_tag(self, items):
+        """Contents of a LilyPond tag.
+
+        There are two forms of LilyPond input in lilypond-book Html:
+
+         * within the (self-closing) tag itself, after a colon
+         * between ``<lilypond>`` ... ``</lilypond>`` tags.
+
+        There may or may not be attributes.
+
+        Returns a two-tuple: ``([list of elements], tail_origin)``.
+
+        """
+        if items:
+            if items[-1] == '/>':
+                tail_origin = (items.pop(),)
+                close_tag = None
+            elif len(items) > 2 and all(i.is_token for i in items[-3:]) and \
+                    [i.action for i in items[-3:]] == [a.Delimiter, a.Name.Tag, a.Delimiter]:
+                tail_origin = ()
+                close_tag = self.factory(htm.CloseTag, items[-3:-2], items[-1:], self.factory(htm.TagName, items[-2:-1]))
+                del items[-3:]
+        nodes = [lily.Document(*self.handle_assignments(self.create_music(items)))]
+        if close_tag:
+            nodes.append(close_tag)
+        return nodes, tail_origin
 
     ## helper methods and factory
     def factory(self, element_class, head_origin, tail_origin=(), *children):
