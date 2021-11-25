@@ -92,7 +92,8 @@ class Element(element.Element):
 
         """
         if entity_resolver is None:
-            entity_resolver = html.entities.html5.get
+            def entity_resolver(name):
+                return html.unescape('&{};'.format(name))
 
         def to_text(obj):
             if isinstance(obj, Element):

@@ -73,8 +73,7 @@ class Html(base.XmlLike, html.Html):
 
 
 class HtmlTransform(Transform):
-    """Transform Html (for lilypond-book) to :module:`quickly.dom.htm`
-    elements.
+    """Transform Html (for lilypond-book) to :mod:`quickly.dom.htm` elements.
 
     Note that this transform currently ignores the following lexicons:
     ``css_style_attribute``, ``css_style_tag``, ``doctype``, ``internal_dtd``
