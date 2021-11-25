@@ -2,6 +2,15 @@ ChangeLog
 =========
 
 
+2021-11-25: quickly-0.1.0
+
+- requires parce-0.26.0
+- added html language and transform (for lilypond-book)
+- add dom.htm element types (for lilypond-book HTML documents)
+- added indent module and support for creating properly indented output
+- documentation improvements
+
+
 2021-11-11: quickly-0.0.9
 
 - requires parce-0.25.0
