@@ -22,21 +22,93 @@
 Elements needed for Html or Xml text.
 
 This module is called ``htm`` to keep its name short and to avoid confusion
-with the language modules ``parce.lang.html`` and ``quickly.lang.html``.
+with the language modules :mod:`parce.lang.html` and :mod:`quickly.lang.html`.
 
-Because entities can be resolved both in generic text and within attribute
-strings, strings are block elements with childnodes containing the text or
-entities, instead of TextElement such a LilyPond or Scheme strings.
+.. note::
 
-TODO: add Element types for DTD, Style, Script etc, or at least some way
-to catch the contents without traversing the full parce tree....
+   Although :mod:`parce` is perfectly capable of parsing CSS style and JavaScript
+   script tags and attributes, this module does not implement node types for that.
+
+   This means that although you can construct full Html documents with
+   JavaScript, CSS, (and LilyPond and Scheme of course), it is not possible to
+   write such documents back to text from the DOM, because *parce* neatly
+   parses the CSS and JavaScript, but the our transformer in
+   :mod:`quickly.lang.html` does not transform those to :mod:`~quickly.dom.htm`
+   elements, so they get lost when writing back a DOM document that was read
+   from text, back to text.
+
+   But you can construct html style and script elements manually of course and
+   write them out to text.
+
+Every Html tag maps to an :class:`Element` node, which normally has one or more
+chilren: either one :class:`SingleTag` node, or an :class:`OpenTag` node at the
+beginning and a :class:`CloseTag` at the end, and in between other Elements,
+:class:`Text` or :class:`EntityRef` nodes.
+
+The tag nodes inherit :class:`~quickly.dom.element.BlockElement`, have the
+delimiters (``<``, ``</``, ``>`` or ``/>``) in their head and tail, and have a
+:class:`TagName` child and possibly one or more :class:`Attribute` children.
+
+An attribute node normally has three children: an :class:`AttrName`, an
+:class:`EqualSign` and a :class:`DqString` or :class:`SqString` value.
+
+Because entity references can appear both in generic text and in attribute
+strings, those strings nodes are block elements with the quotes in their head
+and tail, and childnodes containing the Text or EntityRef elements.
+
+How LilyPond fits in
+--------------------
+
+LilyPond nodes (:mod:`lily.Document <quickly.dom.lily.Document>`) can appear as
+contents in an :class:`Element` that has a ``lilypond`` open tag (like:
+``<lilypond staffsize=2> { c d e f g } </lilypond>``); or within the
+:class:`SingleTag` node of an Element that has no further contents (this
+happens when the short form like ``<lilypond : { c d e f g } />`` is used).
+
+For the ``<lilypondfile>`` and ``<musicxmlfile>`` tags, the attributes are
+handled supporting the specialy LilyPond attributes (with or without value).
+The filename is in the Text contents.
 
 """
+
+import html.entities
 
 from . import base, element
 
 
-class Document(base.Document):
+class Element(element.Element):
+    """An Xml or Html element.
+
+    Has an OpenTag child, then contents (Text or Element), and then a CloseTag
+    child. Or alternatively, has only a SingleTag child.
+
+    """
+    def to_plaintext(self, entity_resolver=None):
+        """Return all text contents of all children as a concatenated string.
+
+        The entity resolver, if given, is a callable used to resolve entities
+        and may return a string or an Element node tree which is then
+        traversed. But by default, :func:`html.unescape` is used.
+
+        """
+        if entity_resolver is None:
+            entity_resolver = html.entities.html5.get
+
+        def to_text(obj):
+            if isinstance(obj, Element):
+                return obj.to_plaintext()
+            elif isinstance(obj, Text):
+                return obj.head
+            elif isinstance(obj, EntityRef):
+                return to_text(entity_resolver(obj.head))
+            elif isinstance(obj, str):
+                return obj
+            return ''
+
+        return ''.join(map(to_text, self))
+
+
+class Document(base.Document, Element):
     """An Html document, normally has one Element child,
     but could contain more elements or text.
 
@@ -47,7 +119,7 @@ class Document(base.Document):
 class Text(element.TextElement):
     """Html/Xml text contents (Text or Whitespace)."""
     def write_head(self):
-        return escape(self.head)
+        return html.escape(self.head)
 
 
 class Comment(base.MultilineComment):
@@ -116,7 +188,7 @@ class Number(element.TextElement):
     """
     @classmethod
     def read_head(cls, origin):
-        return (float if '.' in origin[0] else int)(origin[0])
+        return (float if '.' in origin[0].text else int)(origin[0].text)
 
     def write_head(self):
         return str(self.head)
@@ -139,6 +211,8 @@ class ProcessingInstruction(element.BlockElement):
 class Tag(element.BlockElement):
     """Base class for tags."""
     _space_between = ' '
+    def indent_children(self):
+        return False
 
 
 class OpenTag(Tag):
@@ -167,14 +241,6 @@ class TagName(element.TextElement):
     """The name of a tag, a child of a Tag element."""
 
 
-class Element(element.Element):
-    """An Xml or Html element.
-
-    Has an OpenTag child, then contents (Text or Element), and then a CloseTag
-    child. Or alternatively, has only a SingleTag child.
-
-    """
-
 class Attribute(element.Element):
     """An Xml or Html attribute within an OpenTag or SingleTag.
 
@@ -196,15 +262,5 @@ class EqualSign(element.HeadElement):
 class Colon(element.HeadElement):
     """The ``:`` in a short-form LilyPond html tag."""
     head = ':'
-
-
-def escape(text):
-    r"""Escape &, < and > to use text in HTML."""
-    return text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-
-
-def attrescape(text):
-    r"""Escape &, <, > and ", to use text in HTML."""
-    return escape(text).replace('"', "&quot;")
 
 
