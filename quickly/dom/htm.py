@@ -69,6 +69,92 @@ For the ``<lilypondfile>`` and ``<musicxmlfile>`` tags, the attributes are
 handled supporting the specialy LilyPond attributes (with or without value).
 The filename is in the Text contents.
 
+Some examples
+-------------
+
+Short LilyPond notation, the LilyPond node is a child of the ``lilypond``
+:class:`SingleTag` element::
+
+    >>> from quickly.lang.html import Html
+    >>> from parce.transform import transform_text
+    >>> d = transform_text(Html.root, '<html><h1>Title</h1><p>Some music...</p><lilypond staffsize=2: { c d e f g } /></html>')
+    >>> d.dump()
+    <htm.Document (1 child)>
+     ╰╴<htm.Element (5 children)>
+        ├╴<htm.OpenTag (1 child) [0:6]>
+        │  ╰╴<htm.TagName 'html' [1:5]>
+        ├╴<htm.Element (3 children)>
+        │  ├╴<htm.OpenTag (1 child) [6:10]>
+        │  │  ╰╴<htm.TagName 'h1' [7:9]>
+        │  ├╴<htm.Text 'Title' [10:15]>
+        │  ╰╴<htm.CloseTag (1 child) [15:20]>
+        │     ╰╴<htm.TagName 'h1' [17:19]>
+        ├╴<htm.Element (3 children)>
+        │  ├╴<htm.OpenTag (1 child) [20:23]>
+        │  │  ╰╴<htm.TagName 'p' [21:22]>
+        │  ├╴<htm.Text 'Some music...' [23:36]>
+        │  ╰╴<htm.CloseTag (1 child) [36:40]>
+        │     ╰╴<htm.TagName 'p' [38:39]>
+        ├╴<htm.Element (1 child)>
+        │  ╰╴<htm.SingleTag (4 children) [40:79]>
+        │     ├╴<htm.TagName 'lilypond' [41:49]>
+        │     ├╴<htm.Attribute (3 children)>
+        │     │  ├╴<htm.AttrName 'staffsize' [50:59]>
+        │     │  ├╴<htm.EqualSign [59:60]>
+        │     │  ╰╴<htm.Number 2 [60:61]>
+        │     ├╴<htm.Colon [61:62]>
+        │     ╰╴<lily.Document (1 child)>
+        │        ╰╴<lily.MusicList (5 children) [63:76]>
+        │           ├╴<lily.Note 'c' [65:66]>
+        │           ├╴<lily.Note 'd' [67:68]>
+        │           ├╴<lily.Note 'e' [69:70]>
+        │           ├╴<lily.Note 'f' [71:72]>
+        │           ╰╴<lily.Note 'g' [73:74]>
+        ╰╴<htm.CloseTag (1 child) [79:86]>
+           ╰╴<htm.TagName 'html' [81:85]>
+
+LilyPond tag notation, the LilyPond node is a child of the ``lilypond``
+element::
+
+    >>> d = transform_text(Html.root, '<html><h1>Title</h1><p>Some music...</p><lilypond staffsize=2> { c d e f g } </lilypond></html>')
+    >>> d.dump()
+    <htm.Document (1 child)>
+     ╰╴<htm.Element (5 children)>
+        ├╴<htm.OpenTag (1 child) [0:6]>
+        │  ╰╴<htm.TagName 'html' [1:5]>
+        ├╴<htm.Element (3 children)>
+        │  ├╴<htm.OpenTag (1 child) [6:10]>
+        │  │  ╰╴<htm.TagName 'h1' [7:9]>
+        │  ├╴<htm.Text 'Title' [10:15]>
+        │  ╰╴<htm.CloseTag (1 child) [15:20]>
+        │     ╰╴<htm.TagName 'h1' [17:19]>
+        ├╴<htm.Element (3 children)>
+        │  ├╴<htm.OpenTag (1 child) [20:23]>
+        │  │  ╰╴<htm.TagName 'p' [21:22]>
+        │  ├╴<htm.Text 'Some music...' [23:36]>
+        │  ╰╴<htm.CloseTag (1 child) [36:40]>
+        │     ╰╴<htm.TagName 'p' [38:39]>
+        ├╴<htm.Element (3 children)>
+        │  ├╴<htm.OpenTag (2 children) [40:62]>
+        │  │  ├╴<htm.TagName 'lilypond' [41:49]>
+        │  │  ╰╴<htm.Attribute (3 children)>
+        │  │     ├╴<htm.AttrName 'staffsize' [50:59]>
+        │  │     ├╴<htm.EqualSign [59:60]>
+        │  │     ╰╴<htm.Number 2 [60:61]>
+        │  ├╴<lily.Document (1 child)>
+        │  │  ╰╴<lily.MusicList (5 children) [63:76]>
+        │  │     ├╴<lily.Note 'c' [65:66]>
+        │  │     ├╴<lily.Note 'd' [67:68]>
+        │  │     ├╴<lily.Note 'e' [69:70]>
+        │  │     ├╴<lily.Note 'f' [71:72]>
+        │  │     ╰╴<lily.Note 'g' [73:74]>
+        │  ╰╴<htm.CloseTag (1 child) [77:88]>
+        │     ╰╴<htm.TagName 'lilypond' [79:87]>
+        ╰╴<htm.CloseTag (1 child) [88:95]>
+           ╰╴<htm.TagName 'html' [90:94]>
+
+
+
 """
 
 import html.entities

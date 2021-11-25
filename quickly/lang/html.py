@@ -41,8 +41,11 @@ class Html(base.XmlLike, html.Html):
 
     Those are: ``<lilypond ... />`` for short code, ``<lilypond> ...
     </lilypond>`` for longer code, ``<lilypondfile>filename</lilypondfile>``
-    for a LilyPond file, and <musicxmlfile>filename</musicxmlfile> for a
+    for a LilyPond file, and ``<musicxmlfile>filename</musicxmlfile>`` for a
     MusicXml file.
+
+    These tags also support the attribute notation that's outlined in the
+    `LilyPond documentation <https://lilypond.org/doc/latest/Documentation/usage/html>`_.
 
     """
     @lexicon(re_flags=re.IGNORECASE)
