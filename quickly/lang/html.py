@@ -276,3 +276,9 @@ class HtmlTransform(Transform):
     def string_action(self, token):
         return self.factory(htm.Text, (token,))
 
+
+class HtmlAdHocTransform(HtmlTransform, base.AdHocTransform):
+    """Html Transform that does not keep the originating tokens."""
+    pass
+
+

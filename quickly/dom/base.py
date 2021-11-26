@@ -142,3 +142,24 @@ class XmlLike:
         yield from super().processing_instruction
 
 
+class AdHocTransform:
+    """Transform mixin class that does not keep the origin tokens.
+
+    This is used to create pieces (nodes) of a LilyPond document from text, and
+    then use that pieces to compose a larger Document or to edit an existing
+    document. It is undesirable that origin tokens then would mistakenly be
+    used as if they originated from the document that's being edited.
+
+    """
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
+        """Create an Item *without* keeping its origin.
+
+        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
+        Token instances. All items should be created using this method, so that
+        it can be overridden for the case you don't want to remember the
+        origin.
+
+        """
+        return element_class.from_origin(tuple(head_origin), tuple(tail_origin), *children)
+
+

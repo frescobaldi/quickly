@@ -57,7 +57,7 @@ from parce.util import cached_func
 #import quickly.lang.docbook
 #import quickly.lang.latex
 import quickly.lang.lilypond
-#import quickly.lang.html
+import quickly.lang.html
 import quickly.lang.scheme
 #import quickly.lang.texinfo
 
@@ -91,17 +91,24 @@ class Reader:
 
     """
     def __init__(self, *,
+            #docbook = quickly.lang.docbook.DocBook,
+            #docbook_transform = None,
+            #latex = quickly.lang.tex.Latex,
+            #latex_transform = None,
             lilypond = quickly.lang.lilypond.LilyPond,
             lilypond_transform = None,
+            html = quickly.lang.html.Html,
+            html_transform = None,
             scheme = quickly.lang.scheme.Scheme,
             scheme_transform = None,
-            # TODO add docbook, latex, html, texinfo, may be MUP?
+            #texinfo = quickly.lang.texinfo.TexInfo,
+            #texinfo_transform = None,
             ):
 
         self.docbook = None                          #: the DocBook language definition (NYI)
         self.docbook_transform = None                #: the DocBook transform to use (None⇒default)
-        self.html = None                             #: the HTML language definition (NYI)
-        self.html_transform = None                   #: the HTML transform to use (None⇒default)
+        self.html = html                             #: the HTML language definition (NYI)
+        self.html_transform = html_transform         #: the HTML transform to use (None⇒default)
         self.latex = None                            #: the Latex language definition (NYI)
         self.latex_transform = None                  #: the Latex transform to use (None⇒default)
         self.lilypond = lilypond                     #: the LilyPond language definition
@@ -126,6 +133,8 @@ class Reader:
         """
         self._transformer = transformer
 
+        if self.html_transform:
+            transformer.add_transform(self.html, self.html_transform)
         if self.lilypond_transform:
             transformer.add_transform(self.lilypond, self.lilypond_transform)
         if self.scheme_transform:
@@ -146,6 +155,7 @@ class Reader:
 
         """
         return cls(
+            html_transform = quickly.lang.html.HtmlAdHocTransform(),
             lilypond_transform = quickly.lang.lilypond.LilyPondAdHocTransform(),
             scheme_transform = quickly.lang.scheme.SchemeAdHocTransform(),
         )
@@ -178,6 +188,15 @@ class Reader:
         for node in self.scm_document(text):
             return node
 
+    def htm_document(self, text):
+        """Return a full :class:`.htm.Document` from the text."""
+        return self.transformer().transform_text(self.html.root, text)
+
+    def htm(self, text):
+        """Return one :class:`.htm.Element` from the text."""
+        for node in self.htm_document(text):
+            return node
+
 
 @cached_func
 def adhoc_reader():
@@ -189,6 +208,18 @@ def adhoc_reader():
 def reader():
     """Return a global Reader."""
     return Reader()
+
+
+def htm_document(text):
+    """Return a :class:`.htm.Document` from the text, using the global adhoc
+    :class:`Reader`."""
+    return adhoc_reader().htm_document(text)
+
+
+def htm(text):
+    """Return one element from the text, read in Html.root, using the global
+    adhoc :class:`Reader`."""
+    return adhoc_reader().htm(text)
 
 
 def lily_document(text):

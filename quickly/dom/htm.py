@@ -351,3 +351,80 @@ class Colon(element.HeadElement):
     head = ':'
 
 
+class _ElementConstructor:
+    """The ``m`` "element constructor" object can be used to manually make
+    :class:`Element` nodes easily. You call any method on it; the name will
+    become the tag name. Arguments can be either strings or other quickly.dom
+    nodes, they become the child tags. Keyword arguments become attributes of
+    the created tag.
+
+    For example::
+
+        >>> from quickly.dom.htm import m
+        >>> n = m.div(m.h1('title', style="font-weight: bold;"), m.img(src="bla.png"))
+        >>> n.dump()
+        <htm.Element (4 children)>
+         ├╴<htm.OpenTag (1 child)>
+         │  ╰╴<htm.TagName 'div'>
+         ├╴<htm.Element (3 children)>
+         │  ├╴<htm.OpenTag (2 children)>
+         │  │  ├╴<htm.TagName 'h1'>
+         │  │  ╰╴<htm.Attribute (3 children)>
+         │  │     ├╴<htm.AttrName 'style'>
+         │  │     ├╴<htm.EqualSign>
+         │  │     ╰╴<htm.DqString (1 child)>
+         │  │        ╰╴<htm.Text 'font-weight: bold;'>
+         │  ├╴<htm.Text 'title'>
+         │  ╰╴<htm.CloseTag (1 child)>
+         │     ╰╴<htm.TagName 'h1'>
+         ├╴<htm.Element (1 child)>
+         │  ╰╴<htm.SingleTag (2 children)>
+         │     ├╴<htm.TagName 'img'>
+         │     ╰╴<htm.Attribute (3 children)>
+         │        ├╴<htm.AttrName 'src'>
+         │        ├╴<htm.EqualSign>
+         │        ╰╴<htm.DqString (1 child)>
+         │           ╰╴<htm.Text 'bla.png'>
+         ╰╴<htm.CloseTag (1 child)>
+            ╰╴<htm.TagName 'div'>
+        >>> n.write()
+        '<div><h1 style="font-weight: bold;">title</h1><img src="bla.png"/></div>'
+
+    If an element has no child elements, a :class:`SingleTag` is used
+    automatically.
+
+    If you need an attribute name that is not a valid Python identifier name,
+    use a dictionary to specify the attributes::
+
+        >>> m.html(**{"xmlns:html": "http://www.w3.org/1999/xhtml"}).write()
+        '<html xmlns:html="http://www.w3.org/1999/xhtml"/>'
+
+    If you need a tag name that is not a valid Python member name, call ``m``
+    directly, with the tag name as the first argument::
+
+        >>> m('asds:yo', 'title', **{'blurk:ns': "taop"}).write()
+        '<asds:yo blurk:ns="taop">title</asds:yo>'
+
+    """
+    def __getattr__(self, name):
+        def func(*children, **attrs):
+            attributes = [
+                (Attribute(AttrName(key), EqualSign(), DqString(Text(value))) if value is not None
+                 else Attribute(AttrName(key))) for key, value in attrs.items()]
+            node = Element()
+            if children:
+                node.append(OpenTag(TagName(name), *attributes))
+                node.extend(Text(c) if isinstance(c, str) else c for c in children)
+                node.append(CloseTag(TagName(name)))
+            else:
+                node.append(SingleTag(TagName(name), *attributes))
+            return node
+        return func
+
+    def __call__(self, name, *children, **attrs):
+        return self.__getattr__(name)(*children, **attrs)
+
+
+m = _ElementConstructor()
+m.__globals__ = {}  # avoid Sphinx error: see e.g. https://github.com/sphinx-doc/sphinx/issues/8917
+
