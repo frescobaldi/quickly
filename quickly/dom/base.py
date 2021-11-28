@@ -25,7 +25,7 @@ Some general element types and some base classes for the quickly.dom elements.
 import re
 
 import parce.action as a
-from parce import lexicon
+from parce import lexicon, transform
 
 from . import element
 
@@ -142,8 +142,26 @@ class XmlLike:
         yield from super().processing_instruction
 
 
+class Transform(transform.Transform):
+    """Transform base class that keeps the origin tokens.
+
+    Provides the :meth:`factory` method that creates the DOM node.
+
+    """
+    def factory(self, element_class, head_origin, tail_origin=(), *children):
+        """Create an Element, keeping its origin.
+
+        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
+        Token instances. All elements should be created using this method, so
+        that it can be overridden for the case you don't want to remember the
+        origin.
+
+        """
+        return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
+
+
 class AdHocTransform:
-    """Transform mixin class that does not keep the origin tokens.
+    """Transform mixin class that does *not* keep the origin tokens.
 
     This is used to create pieces (nodes) of a LilyPond document from text, and
     then use that pieces to compose a larger Document or to edit an existing

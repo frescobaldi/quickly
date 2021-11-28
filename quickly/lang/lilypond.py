@@ -44,7 +44,6 @@ This ``quickly.dom`` tree can then be queried and modified at will.
 import itertools
 
 from parce import lexicon
-from parce.transform import Transform
 import parce.lang.lilypond
 import parce.action as a
 from parce.rule import ifarg, bygroup
@@ -64,12 +63,18 @@ class LilyPond(parce.lang.lilypond.LilyPond):
     def html_lilypond_tag(cls):
         """LilyPond from inside Html, contents of a <lilypond> </lilypond> tag."""
         yield ifarg(r'/>'), a.Delimiter, -1 # short single tag version
-        yield r'(<\s*/)\s*(lilypond)\s*(>)', bygroup(a.Delimiter, a.Name.Tag, a.Delimiter), -1
+        yield ifarg(None, r'(<\s*/)\s*(lilypond)\s*(>)'), bygroup(a.Delimiter, a.Name.Tag, a.Delimiter), -1
+        yield from cls.root
+
+    @lexicon
+    def latex_lilypond_environment(cls):
+        yield ifarg(r'\}'), a.Delimiter.Brace, -1   # short \lilypond{ ... } version
+        yield ifarg(None, r'(\\end)(?:\s*(\{)(.*?)(\})|(?=[\W\d]))'), \
+            bygroup(a.Name.Builtin, a.Delimiter, a.Name.Tag, a.Delimiter), -1
         yield from cls.root
 
 
-
-class LilyPondTransform(Transform):
+class LilyPondTransform(base.Transform):
     """Transform LilyPond to Music."""
 
     ## when implementing the transform, keep in mind that the parce transformer
@@ -339,18 +344,12 @@ class LilyPondTransform(Transform):
             nodes.append(close_tag)
         return nodes, tail_origin
 
-    ## helper methods and factory
-    def factory(self, element_class, head_origin, tail_origin=(), *children):
-        """Create an Element, keeping its origin.
+    ## LilyPond in Latex
+    def latex_lilypond_environment(self, items):
+        """Contents of a ``lilypond`` command or environment."""
 
-        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
-        Token instances. All elements should be created using this method, so
-        that it can be overridden for the case you don't want to remember the
-        origin.
 
-        """
-        return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
-
+    ## helper methods
     def common(self, items):
         """Find comment, string, scheme, markup and common tokens.
 
@@ -627,7 +626,7 @@ class LilyPondTransform(Transform):
         return self.factory(lily.DefaultChild, (token,))
 
 
-class LilyPondAdHocTransform(LilyPondTransform, base.AdHocTransform):
+class LilyPondAdHocTransform(base.AdHocTransform, LilyPondTransform):
     """LilyPondTransform that does not keep the origin tokens.
 
     This is used to create pieces (nodes) of a LilyPond document from text, and

@@ -24,7 +24,6 @@ Scheme language and transformation definition.
 
 import itertools
 
-from parce.transform import Transform
 import parce.lang.scheme
 import parce.action as a
 
@@ -40,21 +39,9 @@ class Scheme(parce.lang.scheme.SchemeLily):
         yield from super(parce.lang.scheme.SchemeLily, cls).common(pop)
 
 
-class SchemeTransform(Transform):
+class SchemeTransform(base.Transform):
     """Transform Scheme quickly.dom."""
-    ## helper methods and factory
-    def factory(self, element_class, head_origin, tail_origin=(), *children):
-        """Create an Item, keeping its origin.
-
-        The ``head_origin`` and optionally ``tail_origin`` is an iterable of
-        Token instances. All items should be created using this method, so that
-        it can be overridden for the case you don't want to remember the
-        origin.
-
-        """
-        return element_class.with_origin(tuple(head_origin), tuple(tail_origin), *children)
-
-    # both mappings are used in common, below
+    # mapping is used in common, below
     _common_mapping = {
         a.Character: scm.Char,
         a.Delimiter.Dot: scm.Dot,
@@ -63,6 +50,7 @@ class SchemeTransform(Transform):
         a.Literal.Number.Boolean: scm.Bool,
     }
 
+    ## helper method
     def common(self, items):
         """Yield dom nodes from tokens."""
         quotes = []
@@ -140,7 +128,7 @@ class SchemeTransform(Transform):
             return i
 
 
-class SchemeAdHocTransform(SchemeTransform, base.AdHocTransform):
+class SchemeAdHocTransform(base.AdHocTransform, SchemeTransform):
     """SchemeTransform that does not keep the origin tokens."""
     pass
 

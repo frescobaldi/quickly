@@ -29,7 +29,6 @@ from parce import lexicon
 from parce.rule import (
     ARG, MATCH, TEXT, bygroup, dselect, findmember, ifeq, pattern)
 from parce.lang import html, lilypond_words
-from parce.transform import Transform
 from parce.util import Dispatcher
 
 from quickly.dom import base, element, htm
@@ -75,7 +74,7 @@ class Html(base.XmlLike, html.Html):
         yield r'/\s*>', a.Delimiter, -1   # self-closing tag, no LilyPond input here
 
 
-class HtmlTransform(Transform):
+class HtmlTransform(base.Transform):
     """Transform Html (for lilypond-book) to :mod:`quickly.dom.htm` elements.
 
     Note that this transform currently ignores the following lexicons:
@@ -277,7 +276,7 @@ class HtmlTransform(Transform):
         return self.factory(htm.Text, (token,))
 
 
-class HtmlAdHocTransform(HtmlTransform, base.AdHocTransform):
+class HtmlAdHocTransform(base.AdHocTransform, HtmlTransform):
     """Html Transform that does not keep the originating tokens."""
     pass
 
