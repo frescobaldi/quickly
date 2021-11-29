@@ -55,7 +55,7 @@ from parce.util import cached_func
 
 
 #import quickly.lang.docbook
-#import quickly.lang.latex
+import quickly.lang.latex
 import quickly.lang.lilypond
 import quickly.lang.html
 import quickly.lang.scheme
@@ -93,8 +93,8 @@ class Reader:
     def __init__(self, *,
             #docbook = quickly.lang.docbook.DocBook,
             #docbook_transform = None,
-            #latex = quickly.lang.tex.Latex,
-            #latex_transform = None,
+            latex = quickly.lang.latex.Latex,
+            latex_transform = None,
             lilypond = quickly.lang.lilypond.LilyPond,
             lilypond_transform = None,
             html = quickly.lang.html.Html,
@@ -109,8 +109,8 @@ class Reader:
         self.docbook_transform = None                #: the DocBook transform to use (None⇒default)
         self.html = html                             #: the HTML language definition (NYI)
         self.html_transform = html_transform         #: the HTML transform to use (None⇒default)
-        self.latex = None                            #: the Latex language definition (NYI)
-        self.latex_transform = None                  #: the Latex transform to use (None⇒default)
+        self.latex = latex                           #: the Latex language definition (NYI)
+        self.latex_transform = latex_transform       #: the Latex transform to use (None⇒default)
         self.lilypond = lilypond                     #: the LilyPond language definition
         self.lilypond_transform = lilypond_transform #: the LilyPond Transform to use (None⇒default)
         self.scheme = scheme                         #: the Scheme language definition
@@ -133,6 +133,8 @@ class Reader:
         """
         self._transformer = transformer
 
+        if self.latex_transform:
+            transformer.add_transform(self.latex, self.latex_transform)
         if self.html_transform:
             transformer.add_transform(self.html, self.html_transform)
         if self.lilypond_transform:
@@ -155,15 +157,24 @@ class Reader:
 
         """
         return cls(
+            latex_transform = quickly.lang.latex.LatexAdHocTransform(),
             html_transform = quickly.lang.html.HtmlAdHocTransform(),
             lilypond_transform = quickly.lang.lilypond.LilyPondAdHocTransform(),
             scheme_transform = quickly.lang.scheme.SchemeAdHocTransform(),
         )
 
-
     def tree(self, tree):
         """Transform a full *parce* tree."""
         return self.transformer().transform_tree(tree)
+
+    def htm_document(self, text):
+        """Return a full :class:`.htm.Document` from the text."""
+        return self.transformer().transform_text(self.html.root, text)
+
+    def htm(self, text):
+        """Return one :class:`.htm.Element` from the text."""
+        for node in self.htm_document(text):
+            return node
 
     def lily_document(self, text):
         """Return a full :class:`.lily.Document` from the text.
@@ -187,14 +198,13 @@ class Reader:
         """Return one element from the text, read in Scheme.root."""
         for node in self.scm_document(text):
             return node
+    def tex_document(self, text):
+        """Return a full :class:`.tex.Document` from the text."""
+        return self.transformer().transform_text(self.latex.root, text)
 
-    def htm_document(self, text):
-        """Return a full :class:`.htm.Document` from the text."""
-        return self.transformer().transform_text(self.html.root, text)
-
-    def htm(self, text):
-        """Return one :class:`.htm.Element` from the text."""
-        for node in self.htm_document(text):
+    def tex(self, text):
+        """Return one :mod:`tex` node from the text."""
+        for node in self.tex_document(text):
             return node
 
 
@@ -299,5 +309,19 @@ def scm(text):
     """Return one element from the text, read in Scheme.root, using the global
     adhoc :class:`Reader`."""
     return adhoc_reader().scm(text)
+
+
+def tex_document(text):
+    """Return a :class:`.tex.Document` from the text, using the global adhoc
+    :class:`Reader`."""
+    return adhoc_reader().tex_document(text)
+
+
+def tex(text):
+    """Return one :mod:`tex` node from the text using the global adhoc
+    :class:`Reader`.
+
+    """
+    return adhoc_reader().tex(text)
 
 

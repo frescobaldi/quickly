@@ -48,7 +48,7 @@ import parce.lang.lilypond
 import parce.action as a
 from parce.rule import ifarg, bygroup
 from parce.util import Dispatcher
-from quickly.dom import base, element, lily, scm, htm
+from quickly.dom import base, element, htm, lily, scm, tex
 
 
 class LilyPond(parce.lang.lilypond.LilyPond):
@@ -334,8 +334,7 @@ class LilyPondTransform(base.Transform):
             if items[-1] == '/>':
                 tail_origin = (items.pop(),)
                 close_tag = None
-            elif len(items) > 2 and all(i.is_token for i in items[-3:]) and \
-                    [i.action for i in items[-3:]] == [a.Delimiter, a.Name.Tag, a.Delimiter]:
+            elif items.peek(-3, a.Delimiter, a.Name.Tag, a.Delimiter):
                 tail_origin = ()
                 close_tag = self.factory(htm.CloseTag, items[-3:-2], items[-1:], self.factory(htm.TagName, items[-2:-1]))
                 del items[-3:]
@@ -346,8 +345,32 @@ class LilyPondTransform(base.Transform):
 
     ## LilyPond in Latex
     def latex_lilypond_environment(self, items):
-        """Contents of a ``lilypond`` command or environment."""
+        r"""Contents of a ``lilypond`` command or environment.
 
+        Returns a three-tuple(options, contents, tail_origin). The first is the
+        options that must be added to the environment opening command, if any;
+        the second is the contents of the Environment node; and the third is
+        the tail origin of the last brace in the short, ``\lilypond{ ... }``
+        form.
+
+        """
+        opts = []
+        if items.peek(0, "option"):
+            opts.extend(items[0].obj[0])
+            items = items[1:]
+        end = None
+        tail_origin = ()
+        if items.peek(-4, a.Name.Builtin, a.Delimiter, a.Name.Tag, a.Delimiter):
+            end = self.factory(tex.Command, items[-4:-3])
+            end.append(self.factory(tex.EnvironmentName, items[-3:]))
+            items = items[:-4]
+        elif items[-1] == '}' and items[-1].action is a.Delimiter.Brace:
+            # short form \lilypond { ... }
+            tail_origin = (items.pop(),)
+        nodes = [lily.Document(*self.handle_assignments(self.create_music(items)))]
+        if end:
+            nodes.append(end)
+        return opts, nodes, tail_origin
 
     ## helper methods
     def common(self, items):
