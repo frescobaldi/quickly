@@ -660,7 +660,7 @@ class Element(Node, metaclass=ElementType):
 
         This only makes sense for nodes that trigger a new indent level when
         pretty-printing their contents, in most cases this will be a
-        BlockElement node type.
+        :class:`BlockElement` node type.
 
         When, within a BlockElement node, a new line is started, it will by
         default be indented with, say, two spaces. But when there are already
@@ -775,7 +775,8 @@ class TextElement(HeadElement):
     @classmethod
     def check_head(cls, head):
         """Returns whether the proposed head value is valid."""
-        return True
+        ### Raise error when forgetting the head value, and abusively using the first child
+        return not isinstance(head, Element)
 
     def body_equals(self, other):
         """Compares the head values, called by :meth:`Node.equals() <quickly.node.Node.equals>`."""

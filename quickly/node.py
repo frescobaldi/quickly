@@ -71,9 +71,10 @@ class Node(list):
     because it uses a linear search, so don't use it for every node in an
     iterative operation.
 
-    Besides the usual methods, Node defines six special query operators:
-    ``/``, ``//``, ``<<``, ``>``, ``<`` and ``^``. All these expect a Node
-    (sub)class as argument, and iterate in different ways over selected Nodes:
+    Besides the usual methods, Node defines six special query operators: ``/``,
+    ``//``, ``<<``, ``>``, ``<`` and ``^``. All these expect a Node (sub)class
+    (or instance) as argument, and iterate in different ways over selected
+    Nodes:
 
     * The ``/`` operator iterates over the children that are instances of the
       specified class::
@@ -112,7 +113,7 @@ class Node(list):
         node[:] = (node ^ MyClass)
         # deletes all children that are an instance of MyClass
 
-    Instead of one subclass, a class instance or a tuple of more than one class
+    Instead of a subclass, a class instance or a tuple of more than one class
     may also be given. If a class instance is given, :meth:`body_equals` must
     return true for the compared nodes. (Child nodes are not compared when using
     a class instance to compare with.)

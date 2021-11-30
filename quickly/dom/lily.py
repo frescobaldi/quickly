@@ -92,6 +92,10 @@ class _ConvertUnpitchedToInt:
 class _StripBackslash:
     r"""Mixin class to remove the ``\`` from the head value."""
     @classmethod
+    def check_head(cls, head):
+        return not head.startswith('\\')
+
+    @classmethod
     def read_head(cls, origin):
         return origin[0].text.lstrip('\\')
 
@@ -911,7 +915,7 @@ class Simultaneous(element.HeadElement, Music):
         yield MUSIC,
 
 
-class LyricMode(element.TextElement, Music):
+class LyricMode(_StripBackslash, element.TextElement, Music):
     r"""``\lyricmode``, ``\lyrics`` or ``\lyricsto``."""
 
     def signatures(self):
@@ -921,14 +925,14 @@ class LyricMode(element.TextElement, Music):
             yield MUSIC,
 
 
-class ChordMode(element.TextElement, Music):
+class ChordMode(_StripBackslash, element.TextElement, Music):
     r"""``\chordmode`` or ``\chords``."""
 
     def signatures(self):
         yield MUSIC,
 
 
-class DrumMode(element.TextElement, Music):
+class DrumMode(_StripBackslash, element.TextElement, Music):
     r"""``\drummode`` or ``\drums``."""
 
     def signatures(self):
@@ -943,7 +947,7 @@ class NoteMode(element.HeadElement, Music):
         yield MUSIC,
 
 
-class FigureMode(element.TextElement, Music):
+class FigureMode(_StripBackslash, element.TextElement, Music):
     r"""``\figuremode`` or ``\figures``."""
 
     def signatures(self):
@@ -1214,11 +1218,13 @@ class Articulation(element.TextElement):
     r"""An ArticulationEvent."""
 
 
-class Modifier(element.TextElement):
+class Modifier(_StripBackslash, element.TextElement):
     r"""A generic modifier that is not an articulation but added to
     the Articulations after a note.
 
     For example ``\noBeam``.
+
+    The backslash is not in the head value.
 
     """
 
@@ -1419,7 +1425,7 @@ class Tremolo(element.HeadElement):
     head = ":"
 
 
-class Mode(element.TextElement):
+class Mode(_StripBackslash, element.TextElement):
     r"""The mode subcommand of the ``\key`` statement."""
 
 
