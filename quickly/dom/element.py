@@ -233,6 +233,64 @@ class Element(Node, metaclass=ElementType):
                     yield '[{}:{}]'.format(pos, end)
         return "<{}>".format(" ".join(result()))
 
+    def py_dump(self, file=None, indent_width=4):
+        r"""Print out the node to the console in Python syntax.
+
+        This can be used to speed up developing code that creates DOM
+        documents. If the head value of every :class:`HeadElement` has a proper
+        :func:`repr` value, the code can be directly executed in Python.
+
+        For example::
+
+            >>> from quickly.lang.latex import Latex
+            >>> from parce.transform import transform_text
+            >>> transform_text(Latex.root, r"\begin[opts]{lilypond}music = { c }\end{lilypond}").py_dump()
+            tex.Document(
+                tex.Environment(
+                    tex.Command('begin',
+                        tex.Option(
+                            tex.Text('opts')),
+                        tex.EnvironmentName('lilypond')),
+                    lily.Document(
+                        lily.Assignment(
+                            lily.Identifier(
+                                lily.Symbol('music')),
+                            lily.EqualSign(),
+                            lily.MusicList(
+                                lily.Note('c')))),
+                    tex.Command('end',
+                        tex.EnvironmentName('lilypond'))))
+
+        """
+        def generate_text():
+            stack = []
+            gen = iter((self,))
+            while True:
+                for node in gen:
+                    cls = node.__class__
+                    mod = cls.__module__.split('.')[-1]
+                    yield ' ' * len(stack) * indent_width
+                    yield "{}.{}(".format(mod, cls.__name__)
+                    if isinstance(node, TextElement):
+                        yield repr(node.head)
+                        if len(node):
+                            yield ','
+                    text = '),\n' if node.parent and not node.is_last() else ')'
+                    if len(node):
+                        yield '\n'
+                        stack.append((gen, text))
+                        gen = iter(node)
+                        break
+                    else:
+                        yield text
+                else:
+                    if stack:
+                        gen, text = stack.pop()
+                        yield text
+                    else:
+                        break
+        print(''.join(generate_text()), file=file)
+
     @property
     def pos(self):
         """Return the position of this element.
