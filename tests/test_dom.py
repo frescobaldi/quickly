@@ -77,7 +77,7 @@ def test_main():
                                     lily.Duration(2),
                                     lily.Articulations(
                                         lily.Direction(1,
-                                            lily.Markup(r'\markup',
+                                            lily.Markup(r'markup',
                                                 lily.MarkupCommand('italic',
                                                     lily.MarkupList(
                                                         lily.MarkupWord("YO!"))))))),

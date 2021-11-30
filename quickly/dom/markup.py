@@ -92,12 +92,12 @@ def _auto_arg(arg):
 
 def markup(*args):
     r"""Return `\markup`; automatically wraps arguments in brackets."""
-    return lily.Markup(r'\markup', _create_list(args))
+    return lily.Markup(r'markup', _create_list(args))
 
 
 def markuplist(*args):
     r"""Return `\markuplist`; automatically wraps arguments in brackets."""
-    return lily.Markup(r'\markuplist', lily.MarkupList(*map(_auto_arg, args)))
+    return lily.Markup(r'markuplist', lily.MarkupList(*map(_auto_arg, args)))
 
 
 ### markup commands with special agument handling

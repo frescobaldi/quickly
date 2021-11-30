@@ -89,6 +89,16 @@ class _ConvertUnpitchedToInt:
         super().add_argument(node)
 
 
+class _StripBackslash:
+    r"""Mixin class to remove the ``\`` from the head value."""
+    @classmethod
+    def read_head(cls, origin):
+        return origin[0].text.lstrip('\\')
+
+    def write_head(self):
+        return '\\' + self.head
+
+
 class HandleAssignments:
     __slots__ = ()
 
@@ -595,7 +605,7 @@ class Identifier(List):
         self.set_list(name)
 
 
-class IdentifierRef(element.TextElement):
+class IdentifierRef(_StripBackslash, element.TextElement):
     r"""A ``\variable`` name.
 
     The first symbol part is in the head of this element. Additional nodes can
@@ -616,13 +626,6 @@ class IdentifierRef(element.TextElement):
         '\\music.1'
 
     """
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text.lstrip('\\')
-
-    def write_head(self):
-        return '\\' + self.head
-
     @classmethod
     def with_name(cls, name):
         """Convenience method to create a IdentifierRef with specified name.
@@ -682,7 +685,7 @@ class IdentifierRef(element.TextElement):
                 self.append(n)
 
 
-class MusicFunction(element.TextElement, Music):
+class MusicFunction(_StripBackslash, element.TextElement, Music):
     r"""A generic music function with a backslash, like ``\stemUp``
 
     To be used if there is no special Element type for the music function.
@@ -695,13 +698,6 @@ class MusicFunction(element.TextElement, Music):
 
     """
     _space_between = _space_after_head = " "
-
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text[1:]
-
-    def write_head(self):
-        return '\\' + self.head
 
     def signatures(self):
         if self.head == "defineBarLine":
@@ -1231,14 +1227,8 @@ class Fingering(element.TextElement):
     r"""A FingeringEvent."""
 
 
-class Dynamic(element.TextElement):
+class Dynamic(_StripBackslash, element.TextElement):
     r"""A dynamic symbol, like ``pp``."""
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text[1:]    # remove the backslash
-
-    def write_head(self):
-        return r'\{}'.format(self.head)
 
 
 class Slur(Spanner):
@@ -1618,8 +1608,12 @@ class SinglelineComment(base.SinglelineComment):
         return '%{}'.format(self.head)
 
 
-class Markup(element.TextElement):
-    r"""A ``\markup``, ``\markuplines`` or ``\markuplist`` expression."""
+class Markup(_StripBackslash, element.TextElement):
+    r"""A ``\markup``, ``\markuplines`` or ``\markuplist`` expression.
+
+    When manually constructing a Markup, the backslash is not needed.
+
+    """
     _space_before = ""
     _space_after = " "
     _space_between = _space_after_head = " "
@@ -1641,20 +1635,13 @@ class MarkupList(element.BlockElement):
         yield 0
 
 
-class MarkupCommand(element.TextElement):
+class MarkupCommand(_StripBackslash, element.TextElement):
     r"""A markup command, like ``\bold <arg>``.
 
     When manually constructing a MarkupCommand, the backslash is not needed.
 
     """
     _space_after_head = _space_before_tail = _space_between = " "
-
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text.lstrip('\\')
-
-    def write_head(self):
-        return '\\' + self.head
 
 
 class MarkupScore(Score):
