@@ -184,104 +184,105 @@ class LatexTransform(base.Transform):
 
     ## Helper methods
     def common(self, items):
-        """Compose and yield Latex nodes; used in most contexts.
-
-        """
+        """Compose and yield Latex nodes; used in most contexts."""
         result = []
         text = []
         z = len(items)
         i = 0
+
+        def get_options(options):
+            """Yield Option nodes; i must be at the ``[``."""
+            if isinstance(options[0], tuple):
+                head = items[i:i+1]
+                contents, tail = options[0]
+                yield self.factory(tex.Option, head, tail, *contents)
+                options = options[1:]
+            yield from options
+
+        def command(t):
+            """Return a generic Command node. Arguments are appended as child."""
+            nonlocal i
+            cmd = self.factory(tex.Command, (t,))
+            # options? append as child
+            if items.peek(i, a.Delimiter.Bracket, "option"):
+                cmd.extend(get_options(items[i+1].obj[0]))
+                i += 2
+            # braced piece of text? append as child
+            if items.peek(i, "brace"):
+                cmd.append(items[i].obj)
+                i += 1
+            return cmd
+
+        def lilypond_command(t):
+            r"""Return the Command node for a \lilypond { ... } command."""
+            nonlocal i
+            cmd = self.factory(tex.Command, (t,))
+            if items.peek(i, a.Delimiter.Brace, 'latex_lilypond_environment'):
+                options, music, tail = items[i+1].obj
+                cmd.append(self.factory(tex.Brace, items[i:i+1], tail, *music))
+                i += 2
+            elif items.peek(i, a.Delimiter, 'option'):
+                options, cmd_head = items[i+1].obj
+                cmd.extend(get_options(options))
+                i += 2
+                if items.peek(i, 'latex_lilypond_environment'):
+                    options, music, tail = items[i].obj
+                    cmd.append(self.factory(tex.Brace, cmd_head, tail, *music))
+                    i += 1
+            return cmd
+
+        def environment(t):
+            """Return an Environment node, possibly containing LilyPond music."""
+            nonlocal i
+            env = tex.Environment(self.factory(tex.Command, (t,)))
+            if items.peek(i, a.Delimiter, a.Name.Tag, a.Delimiter):
+                # no options, add the name
+                env[-1].append(self.factory(tex.EnvironmentName, items[i:i+3]))
+                i += 3
+            elif items.peek(i, a.Delimiter.Bracket, "environment_option"):
+                # environment options
+                options, env_name = items[i+1].obj
+                env[-1].extend(get_options(options))
+                if env_name:
+                    env[-1].append(env_name)
+                i += 2
+            # now add the environment
+            if i < z and not items[i].is_token:
+                if items[i].name in ('environment', 'environment_math'):
+                    env.extend(items[i].obj)
+                elif items[i].name == 'latex_lilypond_environment':
+                    options, music, tail = items[i].obj
+                    env[-1].extend(options)
+                    env.extend(music)
+                else:
+                    print("unknown Latex environment:", items[i].name) #TEMP
+                i += 1
+            return env
+
         while i < z:
-            nodes = []
-            res = None
+            node = None
             t = items[i]
+            i += 1
             if t.is_token:
                 if t.action is a.Name.Builtin:
-                    i += 1
                     if t == r'\lilypond':
-                        cmd = self.factory(tex.Command, (t,))
-                        if items.peek(i, a.Delimiter.Brace, 'latex_lilypond_environment'):
-                            options, music, tail = items[i+1].obj
-                            cmd.append(self.factory(tex.Brace, items[i:i+1], tail, *music))
-                            i += 2
-                        elif items.peek(i, a.Delimiter, 'option'):
-                            options, cmd_head = items[i+1].obj
-                            if isinstance(options[0], tuple):
-                                head = items[i:i+1]
-                                contents, tail = options[0]
-                                cmd.append(self.factory(tex.Option, head, tail, *contents))
-                                options = options[1:]
-                            cmd.extend(options)
-                            i += 2
-                            if items.peek(i, 'latex_lilypond_environment'):
-                                options, music, tail = items[i].obj
-                                cmd.append(self.factory(tex.Brace, cmd_head, tail, *music))
-                                i += 1
-                        nodes.append(cmd)
+                        node = lilypond_command(t)
                     else:   # if t -- r'\begin':
-                        # begin environment
-                        env = tex.Environment(self.factory(tex.Command, (t,)))
-                        if items.peek(i, a.Delimiter, a.Name.Tag, a.Delimiter):
-                            # no options, add the name
-                            env[-1].append(self.factory(tex.EnvironmentName, items[i:i+3]))
-                            i += 3
-                        elif items.peek(i, a.Delimiter.Bracket, "environment_option"):
-                            # environment options
-                            options, env_name = items[i+1].obj
-                            if isinstance(options[0], tuple):
-                                head = items[i:i+1]
-                                contents, tail = options[0]
-                                env[-1].append(self.factory(tex.Option, head, tail, *contents))
-                                options = options[1:]
-                            env[-1].extend(options)
-                            if env_name:
-                                env[-1].append(env_name)
-                            i += 2
-                        # now add the environment
-                        if i < z and not items[i].is_token:
-                            if items[i].name in ('environment', 'environment_math'):
-                                env.extend(items[i].obj)
-                            elif items[i].name == 'latex_lilypond_environment':
-                                options, music, tail = items[i].obj
-                                env[-1].extend(options)
-                                env.extend(music)
-                            else:
-                                print("unknown Latex environment:", items[i].name) #TEMP
-                            i += 1
-                        nodes.append(env)
+                        node = environment(t)
                 elif t.action is a.Name.Command:
-                    nodes.append(self.factory(tex.Command, (t,)))
-                    i += 1
-                    # options? append as child
-                    if items.peek(i, a.Delimiter.Bracket, "option"):
-                        options, _ = items[i+1].obj
-                        if isinstance(options[0], tuple):
-                            head = items[i:i+1]
-                            contents, tail = options[0]
-                            nodes[-1].append(self.factory(tex.Option, head, tail, *contents))
-                            options = options[1:]
-                        nodes[-1].extend(options)
-                        i += 1
-                    # braced piece of text? append as child
-                    if items.peek(i, "brace"):
-                        nodes[-1].append(items[i].obj)
-                        i += 1
+                    node = command(t)
                 else:
                     text.append(t)
-                    i += 1
-                    continue
             # t is a context result
             elif isinstance(t.obj, element.Element):
-                nodes.append(t.obj)
-                i += 1
+                node = t.obj
             else:
                 print("unknown object:", t.name) # TEMP
-                i += 1
-            if nodes:
+            if node:
                 if text:
                     result.append(self.factory(tex.Text, text))
                     text = []
-                result.extend(nodes)
+                result.append(node)
         if text:
             result.append(self.factory(tex.Text, text))
         return result
