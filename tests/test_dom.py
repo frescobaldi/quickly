@@ -39,11 +39,15 @@ from quickly.dom import htm, lily, scm, tex
 
 
 def check_output(root_lexicon, text, tree):
-    """Return True when transforming text with root lexicon gives the same tree
-    as the one specified.
+    """Tests whether text->dom and dom->text works properly.
+
+    Transforms text with root_lexicon, then returns True if the created tree
+    compares equal with the given tree, and a tree transformed from the written
+    output of the specified tree also compares equal.
+
     """
     tree2 = transform_text(root_lexicon, text)
-    return tree.equals(tree2)
+    return tree.equals(tree2) and tree.equals(transform_text(root_lexicon, tree.write()))
 
 
 
@@ -63,30 +67,64 @@ def test_main():
 
     assert check_output(
         latex.Latex.root, "$x+2$",
-            tex.Document(tex.MathInlineDollar(tex.Text('x+2'))))
+        tex.Document(tex.MathInlineDollar(tex.Text('x+2')))
+    )
 
     assert check_output(
         latex.Latex.root, r"\lilypond[staffsize=26]{ { c\breve^\markup \italic { YO! } d'4 } }text.",
-            tex.Document(
-                tex.Command('lilypond',
-                    tex.Option(tex.Text('staffsize=26')),
-                    tex.Brace(
-                        lily.Document(
-                            lily.MusicList(
-                                lily.Note('c',
-                                    lily.Duration(2),
-                                    lily.Articulations(
-                                        lily.Direction(1,
-                                            lily.Markup(r'markup',
-                                                lily.MarkupCommand('italic',
-                                                    lily.MarkupList(
-                                                        lily.MarkupWord("YO!"))))))),
-                                lily.Note('d',
-                                    lily.Octave(1),
-                                    lily.Duration(fractions.Fraction(1, 4))))))),
-                tex.Text('text.')))
+        tex.Document(
+            tex.Command('lilypond',
+                tex.Option(tex.Text('staffsize=26')),
+                tex.Brace(
+                    lily.Document(
+                        lily.MusicList(
+                            lily.Note('c',
+                                lily.Duration(2),
+                                lily.Articulations(
+                                    lily.Direction(1,
+                                        lily.Markup(r'markup',
+                                            lily.MarkupCommand('italic',
+                                                lily.MarkupList(
+                                                    lily.MarkupWord("YO!"))))))),
+                            lily.Note('d',
+                                lily.Octave(1),
+                                lily.Duration(fractions.Fraction(1, 4))))))),
+            tex.Text('text.'))
+    )
 
+    assert check_output(
+        latex.Latex.root, r"\begin[opts]{lilypond}music = { c }\end{lilypond}",
+        tex.Document(
+            tex.Environment(
+                tex.Command('begin',
+                    tex.Option(tex.Text('opts')),
+                    tex.EnvironmentName('lilypond')),
+                lily.Document(
+                    lily.Assignment(
+                        lily.Identifier(lily.Symbol('music')),
+                        lily.EqualSign(),
+                        lily.MusicList(
+                            lily.Note('c')))),
+                tex.Command('end',
+                    tex.EnvironmentName('lilypond'))))
+    )
 
+    assert check_output(
+        latex.Latex.root, r"\begin{lilypond}[opts]music = { c }\end{lilypond}",
+        tex.Document(
+            tex.Environment(
+                tex.Command('begin',
+                    tex.EnvironmentName('lilypond'),
+                    tex.Option(tex.Text('opts'))),
+                lily.Document(
+                    lily.Assignment(
+                        lily.Identifier(lily.Symbol('music')),
+                        lily.EqualSign(),
+                        lily.MusicList(
+                            lily.Note('c')))),
+                tex.Command('end',
+                    tex.EnvironmentName('lilypond'))))
+    )
 
 
 if __name__ == "__main__" and 'test_main' in globals():
