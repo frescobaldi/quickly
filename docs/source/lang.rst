@@ -12,6 +12,7 @@ Modules in the ``lang`` package:
    :maxdepth: 1
 
    lang/html.rst
+   lang/latex.rst
    lang/lilypond.rst
    lang/scheme.rst
 
