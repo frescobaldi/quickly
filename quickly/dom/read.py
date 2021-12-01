@@ -198,7 +198,7 @@ def tex_document(text, with_origin=False):
 
 
 def tex(text, with_origin=False):
-    """Return one :mod:`tex` node from the text."""
+    """Return one :mod:`.tex` node from the text."""
     for node in tex_document(text, with_origin):
         return node
 
