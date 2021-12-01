@@ -237,7 +237,7 @@ class Element(Node, metaclass=ElementType):
         r"""Print out the node to the console in Python syntax.
 
         This can be used to speed up developing code that creates DOM
-        documents. If the head value of every :class:`HeadElement` has a proper
+        documents. If the head value of every :class:`TextElement` has a proper
         :func:`repr` value, the code can be directly executed in Python.
 
         For example::
