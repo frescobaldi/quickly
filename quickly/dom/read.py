@@ -19,40 +19,25 @@
 
 
 """
-Build DOM elements reading from text.
+Simple helper functions to easily build DOM elements reading from text.
 
-This module provides helper infrastructure to create DOM element nodes and
-documents from text or *parce* trees, using parce's :mod:`~parce.transform`
-module and the Transform classes in the :mod:`quickly.lang` modules.
+By default the generated DOM nodes do not know their position in the
+originating text, because the origin tokens are not preserved. This is the best
+when building DOM snippets using this module and inserting them in existing
+documents.
 
-The :class:`Reader` is the base of this infrastructure. In its default
-instantiation, it uses the language definitions from the ``quickly`` module,
-with their default Transforms. On instantiation, you can specify other language
-definitions, for example to add specific features or parse specific versions of
-the language. Also you can specify other than the default Transform classes.
-
-By default, a parce :class:`~parce.transform.Transformer` is set; but you can
-set another. The language definitions of the Reader are added to the
-Transformer so they get used when transforming text or a *parce* tree.
-
-Using the :meth:`Reader.adhoc` constructor, you can create a Reader that uses
-Transforms that do *not* retain the origin tokens in the DOM element nodes.
-This way, you can create DOM elements that are intended to be used in another
-DOM document that has origin tokens. So the newly added content will not have
-tokens that interfere with the tokens that are already in the document.
-
-There is a global default Reader, which is returned by :func:`reader`; and a
-global adhoc Reader is returned by :func:`adhoc_reader`.
-
-Finally, all Reader methods are also conveniently available as global
-functions, that operate with the global *adhoc* Reader.
+If you set the ``with_origin`` argument in the reader functions to True, the
+origin tokens are preserved, so the DOM nodes know their position in the
+originating text. Do not insert these nodes in a DOM document originating from
+another text source if you want to edit that text via the DOM document later,
+because the positions of the nodes can't be trusted then, and that may lead to
+errors. (Of course this is no problem when you are writing a document from
+scratch.)
 
 """
 
 
 import parce.transform
-from parce.util import cached_func
-
 
 #import quickly.lang.docbook
 import quickly.lang.latex
@@ -62,179 +47,76 @@ import quickly.lang.scheme
 #import quickly.lang.texinfo
 
 
-class Reader:
-    """A Reader contains the Language definitions to use and their associated
-    Transforms.
+# init two transformers, accessible by 0 (False) and 1 (True) :-)
+_transformer = [parce.transform.Transformer(), parce.transform.Transformer()]
+_transformer[0].transform_name_template = "{}AdHocTransform"
 
-    Those can be specified on instantiation, and have sensible defaults. The
-    language definitions are accessible in the attributes of an instance of
-    this class.
 
-    For example, the :attr:`lilypond` attribute points to the LilyPond language
-    definition. By default this is :class:`quickly.lang.lilypond.LilyPond`, but
-    you can specify another. The :attr:`lilypond_transform` attribute points to
-    the Transform to use for the lilypond language, if None the default
-    transform is chosen.
+def htm_document(text, with_origin=False):
+    """Return a :class:`.htm.Document` from the text.
 
-    Using the :meth:`adhoc` constructor, a Reader is instantiated
-    with so-called "ad hoc" Transforms. These Transform classes throw away
-    the parce tokens when creating DOM element nodes, instead of storing them
-    in the origin attributes of the elements.
+    Example::
 
-    Using an "ad hoc" Reader you can construct element nodes that will be
-    injected into DOM documents that have their own origin tokens, so the newly
-    inserted nodes will not point to the text the rest of the document
-    originated from.
+        >>> from quickly.dom import read
+        >>> node = read.htm_document('<html><h1>Title</h1><p>Text...</p></html>')
+        >>> node.dump()
+        <htm.Document (1 child)>
+         ╰╴<htm.Element (4 children)>
+            ├╴<htm.OpenTag (1 child)>
+            │  ╰╴<htm.TagName 'html'>
+            ├╴<htm.Element (3 children)>
+            │  ├╴<htm.OpenTag (1 child)>
+            │  │  ╰╴<htm.TagName 'h1'>
+            │  ├╴<htm.Text 'Title'>
+            │  ╰╴<htm.CloseTag (1 child)>
+            │     ╰╴<htm.TagName 'h1'>
+            ├╴<htm.Element (3 children)>
+            │  ├╴<htm.OpenTag (1 child)>
+            │  │  ╰╴<htm.TagName 'p'>
+            │  ├╴<htm.Text 'Text...'>
+            │  ╰╴<htm.CloseTag (1 child)>
+            │     ╰╴<htm.TagName 'p'>
+            ╰╴<htm.CloseTag (1 child)>
+               ╰╴<htm.TagName 'html'>
+        >>> node.write()
+        '<html><h1>Title</h1><p>Text...</p></html>'
 
-    TODO: Add basic docbook, latex, html, texinfo transforms, to support
-    LilyPond Book.
+    If you want the generated nodes to know the position in the original text,
+    you should keep the origin tokens and set ``with_origin`` to True:
+
+        >>> node = read.htm_document('<html><h1>Title</h1><p>Text...</p></html>', True)
+        >>> node.dump()
+        <htm.Document (1 child)>
+         ╰╴<htm.Element (4 children)>
+            ├╴<htm.OpenTag (1 child) [0:6]>
+            │  ╰╴<htm.TagName 'html' [1:5]>
+            ├╴<htm.Element (3 children)>
+            │  ├╴<htm.OpenTag (1 child) [6:10]>
+            │  │  ╰╴<htm.TagName 'h1' [7:9]>
+            │  ├╴<htm.Text 'Title' [10:15]>
+            │  ╰╴<htm.CloseTag (1 child) [15:20]>
+            │     ╰╴<htm.TagName 'h1' [17:19]>
+            ├╴<htm.Element (3 children)>
+            │  ├╴<htm.OpenTag (1 child) [20:23]>
+            │  │  ╰╴<htm.TagName 'p' [21:22]>
+            │  ├╴<htm.Text 'Text...' [23:30]>
+            │  ╰╴<htm.CloseTag (1 child) [30:34]>
+            │     ╰╴<htm.TagName 'p' [32:33]>
+            ╰╴<htm.CloseTag (1 child) [34:41]>
+               ╰╴<htm.TagName 'html' [36:40]>
 
     """
-    def __init__(self, *,
-            #docbook = quickly.lang.docbook.DocBook,
-            #docbook_transform = None,
-            latex = quickly.lang.latex.Latex,
-            latex_transform = None,
-            lilypond = quickly.lang.lilypond.LilyPond,
-            lilypond_transform = None,
-            html = quickly.lang.html.Html,
-            html_transform = None,
-            scheme = quickly.lang.scheme.Scheme,
-            scheme_transform = None,
-            #texinfo = quickly.lang.texinfo.TexInfo,
-            #texinfo_transform = None,
-            ):
-
-        self.docbook = None                          #: the DocBook language definition (NYI)
-        self.docbook_transform = None                #: the DocBook transform to use (None⇒default)
-        self.html = html                             #: the HTML language definition (NYI)
-        self.html_transform = html_transform         #: the HTML transform to use (None⇒default)
-        self.latex = latex                           #: the Latex language definition (NYI)
-        self.latex_transform = latex_transform       #: the Latex transform to use (None⇒default)
-        self.lilypond = lilypond                     #: the LilyPond language definition
-        self.lilypond_transform = lilypond_transform #: the LilyPond Transform to use (None⇒default)
-        self.scheme = scheme                         #: the Scheme language definition
-        self.scheme_transform = scheme_transform     #: the Scheme Transform to use (None⇒default)
-        self.texinfo = None                          #: the Texinfo language definition (NYI)
-        self.texinfo_transform = None                #: the Texinfo transform to use (None⇒default)
-
-        self.set_transformer(parce.transform.Transformer())
-
-    def set_transformer(self, transformer):
-        """Set the Transformer to use.
-
-        The languages and transforms that were specified on Reader
-        instantiation are added to the transformer.
-
-        On Reader instantiation a default :class:`~parce.transform.Transformer`
-        is already set, so only if you want to use another Transformer you need
-        this method.
-
-        """
-        self._transformer = transformer
-
-        if self.latex_transform:
-            transformer.add_transform(self.latex, self.latex_transform)
-        if self.html_transform:
-            transformer.add_transform(self.html, self.html_transform)
-        if self.lilypond_transform:
-            transformer.add_transform(self.lilypond, self.lilypond_transform)
-        if self.scheme_transform:
-            transformer.add_transform(self.scheme, self.scheme_transform)
-
-    def transformer(self):
-        """Get the current Transformer."""
-        return self._transformer
-
-    @classmethod
-    def adhoc(cls):
-        """Return a :class:`Reader` with default languages and ad hoc
-        transforms.
-
-        These transforms do not keep the origin in the element nodes, so
-        element nodes created with this Reader can be used in other documents
-        that have origin tokens.
-
-        """
-        return cls(
-            latex_transform = quickly.lang.latex.LatexAdHocTransform(),
-            html_transform = quickly.lang.html.HtmlAdHocTransform(),
-            lilypond_transform = quickly.lang.lilypond.LilyPondAdHocTransform(),
-            scheme_transform = quickly.lang.scheme.SchemeAdHocTransform(),
-        )
-
-    def tree(self, tree):
-        """Transform a full *parce* tree."""
-        return self.transformer().transform_tree(tree)
-
-    def htm_document(self, text):
-        """Return a full :class:`.htm.Document` from the text."""
-        return self.transformer().transform_text(self.html.root, text)
-
-    def htm(self, text):
-        """Return one :class:`.htm.Element` from the text."""
-        for node in self.htm_document(text):
-            return node
-
-    def lily_document(self, text):
-        """Return a full :class:`.lily.Document` from the text.
-
-        You can use this to get a one-shot full document, but also to create
-        fragments of a document that can be used in other documents.
-
-        """
-        return self.transformer().transform_text(self.lilypond.root, text)
-
-    def lily(self, text):
-        """Return one element from the text, read in LilyPond.root."""
-        for node in self.lily_document(text):
-            return node
-
-    def scm_document(self, text):
-        """Return a :class:`.scm.Document` from the text."""
-        return self.transformer().transform_text(self.scheme.root, text)
-
-    def scm(self, text):
-        """Return one element from the text, read in Scheme.root."""
-        for node in self.scm_document(text):
-            return node
-    def tex_document(self, text):
-        """Return a full :class:`.tex.Document` from the text."""
-        return self.transformer().transform_text(self.latex.root, text)
-
-    def tex(self, text):
-        """Return one :mod:`tex` node from the text."""
-        for node in self.tex_document(text):
-            return node
+    return _transformer[with_origin].transform_text(quickly.lang.html.Html.root, text)
 
 
-@cached_func
-def adhoc_reader():
-    """Return a global adhoc Reader."""
-    return Reader.adhoc()
+def htm(text, with_origin=False):
+    """Return one element from the text, read in Html.root."""
+    for node in htm_document(text, with_origin):
+        return node
 
 
-@cached_func
-def reader():
-    """Return a global Reader."""
-    return Reader()
-
-
-def htm_document(text):
-    """Return a :class:`.htm.Document` from the text, using the global adhoc
-    :class:`Reader`."""
-    return adhoc_reader().htm_document(text)
-
-
-def htm(text):
-    """Return one element from the text, read in Html.root, using the global
-    adhoc :class:`Reader`."""
-    return adhoc_reader().htm(text)
-
-
-def lily_document(text):
-    """Return a :class:`.lily.Document` from the text, using the global adhoc
-    :class:`Reader`.
+def lily_document(text, with_origin=False):
+    """Return a :class:`.lily.Document` from the text.
 
     Example::
 
@@ -243,7 +125,7 @@ def lily_document(text):
         >>> node.write()
         'music = { c d e f g }'
         >>> node.dump()
-        <lily.Document (1 child)>
+        <lily.Document (1 child)>        <lily.Document (1 child)>
          ╰╴<lily.Assignment music (3 children)>
             ├╴<lily.Identifier (1 child)>
             │  ╰╴<lily.Symbol 'music'>
@@ -260,12 +142,11 @@ def lily_document(text):
     construct and type.
 
     """
-    return adhoc_reader().lily_document(text)
+    return _transformer[with_origin].transform_text(quickly.lang.lilypond.LilyPond.root, text)
 
 
-def lily(text):
-    """Return one element from the text, read in LilyPond.root, using the
-    global adhoc :class:`Reader`.
+def lily(text, with_origin=False):
+    """Return one element from the text, read in LilyPond.root.
 
     Examples::
 
@@ -296,32 +177,29 @@ def lily(text):
     tedious to construct and type.
 
     """
-    return adhoc_reader().lily(text)
+    for node in lily_document(text, with_origin):
+        return node
 
 
-def scm_document(text):
-    """Return a :class:`.scm.Document` from the text, using the global adhoc
-    :class:`Reader`."""
-    return adhoc_reader().scm_document(text)
+def scm_document(text, with_origin=False):
+    """Return a :class:`.scm.Document` from the text."""
+    return _transformer[with_origin].transform_text(quickly.lang.scheme.Scheme.root, text)
 
 
-def scm(text):
-    """Return one element from the text, read in Scheme.root, using the global
-    adhoc :class:`Reader`."""
-    return adhoc_reader().scm(text)
+def scm(text, with_origin=False):
+    """Return one element from the text, read in Scheme.root."""
+    for node in scm_document(text, with_origin):
+        return node
 
 
-def tex_document(text):
-    """Return a :class:`.tex.Document` from the text, using the global adhoc
-    :class:`Reader`."""
-    return adhoc_reader().tex_document(text)
+def tex_document(text, with_origin=False):
+    """Return a :class:`.tex.Document` from the text."""
+    return _transformer[with_origin].transform_text(quickly.lang.latex.Latex.root, text)
 
 
-def tex(text):
-    """Return one :mod:`tex` node from the text using the global adhoc
-    :class:`Reader`.
-
-    """
-    return adhoc_reader().tex(text)
+def tex(text, with_origin=False):
+    """Return one :mod:`tex` node from the text."""
+    for node in tex_document(text, with_origin):
+        return node
 
 

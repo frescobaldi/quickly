@@ -52,7 +52,7 @@ def test_main():
       (string-substitute "&" "&amp;"
         s))))
 """
-    d = read.reader().scm(s)
+    d = read.scm(s, True)
     util.add_newlines(d, s)
     assert d.write_indented() == \
 r"""(define (attribute-escape s)
