@@ -89,21 +89,6 @@ class _ConvertUnpitchedToInt(element.Element):
         super().add_argument(node)
 
 
-class _StripBackslash(element.Element):
-    r"""Mixin class to remove the ``\`` from the head value."""
-
-    @classmethod
-    def check_head(cls, head):
-        return not head.startswith('\\')
-
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text.lstrip('\\')
-
-    def write_head(self):
-        return '\\' + self.head
-
-
 class HandleAssignments(element.Element):
     """Mixin class to handle Assignment children in a convenient way."""
     def find_assignment(self, name):
@@ -608,7 +593,7 @@ class Identifier(List):
         self.set_list(name)
 
 
-class IdentifierRef(_StripBackslash, element.TextElement):
+class IdentifierRef(base.BackslashCommand):
     r"""A ``\variable`` name.
 
     The first symbol part is in the head of this element. Additional nodes can
@@ -688,7 +673,7 @@ class IdentifierRef(_StripBackslash, element.TextElement):
                 self.append(n)
 
 
-class MusicFunction(_StripBackslash, element.TextElement, Music):
+class MusicFunction(base.BackslashCommand, Music):
     r"""A generic music function with a backslash, like ``\stemUp``
 
     To be used if there is no special Element type for the music function.
@@ -914,7 +899,7 @@ class Simultaneous(element.HeadElement, Music):
         yield MUSIC,
 
 
-class LyricMode(_StripBackslash, element.TextElement, Music):
+class LyricMode(base.BackslashCommand, Music):
     r"""``\lyricmode``, ``\lyrics`` or ``\lyricsto``."""
 
     def signatures(self):
@@ -924,14 +909,14 @@ class LyricMode(_StripBackslash, element.TextElement, Music):
             yield MUSIC,
 
 
-class ChordMode(_StripBackslash, element.TextElement, Music):
+class ChordMode(base.BackslashCommand, Music):
     r"""``\chordmode`` or ``\chords``."""
 
     def signatures(self):
         yield MUSIC,
 
 
-class DrumMode(_StripBackslash, element.TextElement, Music):
+class DrumMode(base.BackslashCommand, Music):
     r"""``\drummode`` or ``\drums``."""
 
     def signatures(self):
@@ -946,7 +931,7 @@ class NoteMode(element.HeadElement, Music):
         yield MUSIC,
 
 
-class FigureMode(_StripBackslash, element.TextElement, Music):
+class FigureMode(base.BackslashCommand, Music):
     r"""``\figuremode`` or ``\figures``."""
 
     def signatures(self):
@@ -1217,7 +1202,7 @@ class Articulation(element.TextElement):
     r"""An ArticulationEvent."""
 
 
-class Modifier(_StripBackslash, element.TextElement):
+class Modifier(base.BackslashCommand):
     r"""A generic modifier that is not an articulation but added to
     the Articulations after a note.
 
@@ -1232,7 +1217,7 @@ class Fingering(element.TextElement):
     r"""A FingeringEvent."""
 
 
-class Dynamic(_StripBackslash, element.TextElement):
+class Dynamic(base.BackslashCommand):
     r"""A dynamic symbol, like ``pp``."""
 
 
@@ -1424,7 +1409,7 @@ class Tremolo(element.HeadElement):
     head = ":"
 
 
-class Mode(_StripBackslash, element.TextElement):
+class Mode(base.BackslashCommand):
     r"""The mode subcommand of the ``\key`` statement."""
 
 
@@ -1613,7 +1598,7 @@ class SinglelineComment(base.SinglelineComment):
         return '%{}'.format(self.head)
 
 
-class Markup(_StripBackslash, element.TextElement):
+class Markup(base.BackslashCommand):
     r"""A ``\markup``, ``\markuplines`` or ``\markuplist`` expression.
 
     When manually constructing a Markup, the backslash is not needed.
@@ -1640,7 +1625,7 @@ class MarkupList(element.BlockElement):
         yield 0
 
 
-class MarkupCommand(_StripBackslash, element.TextElement):
+class MarkupCommand(base.BackslashCommand):
     r"""A markup command, like ``\bold <arg>``.
 
     When manually constructing a MarkupCommand, the backslash is not needed.

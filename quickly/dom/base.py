@@ -77,6 +77,28 @@ class MultilineComment(Comment):
     """Base class for a multiline comment element."""
 
 
+class BackslashCommand(element.TextElement):
+    r"""A command that starts with a backslash, like in LaTeX and LilyPond.
+
+    The backslash (``\``) is not in the head value.
+
+    """
+    @classmethod
+    def check_head(cls, head):
+        r"""Return False if the head value starts with a backslash (``\``)."""
+        return not head.startswith('\\')
+
+    @classmethod
+    def read_head(cls, origin):
+        """Strip the backslash of the origin token."""
+        text = ''.join(t.text for t in origin)[1:]
+        return text
+
+    def write_head(self):
+        """Add the backslash on write-out."""
+        return '\\' + self.head
+
+
 ## Generic elements:
 
 class Newline(element.Element):
@@ -113,6 +135,22 @@ class Line(element.Element):
     _space_before = _space_after = '\n'
     _space_between = ' '
 
+
+class Column(element.Element):
+    """Container that prints every child node on a new line.
+
+    Not created from existing documents, but you can insert this node in a
+    Document when you want some nodes to be stacked vertically.
+
+    """
+    _space_before = _space_after =  _space_between = '\n'
+
+
+class Text(element.TextElement):
+    """Generic text that is printed unmodified."""
+
+
+## Language and Transform base/helper classes
 
 class XmlLike:
     """Mixin class for a language definition that bases on parce.lang.Xml.

@@ -79,20 +79,15 @@ class MathDisplayDollar(Math):
     head = tail = '$$'
 
 
-class Command(element.TextElement):
+class Command(base.BackslashCommand):
     """A backslash-prefixed command.
 
-    The backslash is not in the head value, but added on :meth:`write`.
+    The backslash is not in the head value, but added on
+    :meth:`~.element.Element.write`.
 
     Arguments may be appended as children.
 
     """
-    @classmethod
-    def read_head(cls, origin):
-        return origin[0].text[1:]   # cut off the backslash
-
-    def write_head(self):
-        return '\\' + self.head
 
 
 class Text(element.TextElement):
