@@ -67,7 +67,7 @@ class _Variable:
         instance.unset_variable(self.name)
 
 
-class _ConvertUnpitchedToDuration:
+class _ConvertUnpitchedToDuration(element.Element):
     """Mixin class to convert Unpitched arguments to their Duration."""
     def add_argument(self, node):
         """Reimplemented to pick the Duration of an Unpitched node."""
@@ -78,7 +78,7 @@ class _ConvertUnpitchedToDuration:
         super().add_argument(node)
 
 
-class _ConvertUnpitchedToInt:
+class _ConvertUnpitchedToInt(element.Element):
     """Mixin class to convert Unpitched arguments to an Int."""
     def add_argument(self, node):
         """Reimplemented to read the Duration of an Unpitched node as a Int."""
@@ -89,8 +89,9 @@ class _ConvertUnpitchedToInt:
         super().add_argument(node)
 
 
-class _StripBackslash:
+class _StripBackslash(element.Element):
     r"""Mixin class to remove the ``\`` from the head value."""
+
     @classmethod
     def check_head(cls, head):
         return not head.startswith('\\')
@@ -103,9 +104,7 @@ class _StripBackslash:
         return '\\' + self.head
 
 
-class HandleAssignments:
-    __slots__ = ()
-
+class HandleAssignments(element.Element):
     """Mixin class to handle Assignment children in a convenient way."""
     def find_assignment(self, name):
         """Find the Assignment with the specified name."""
