@@ -700,7 +700,7 @@ class Element(Node, metaclass=ElementType):
             indent_width,
             start_indent,
             max_align_indent,
-        ).write_indented(self)
+        ).write(self)
 
 
 class HeadElement(Element):

@@ -49,8 +49,31 @@ class _IndentLevel:
                 pass
 
 
+class _Block:
+    """Keeps the administration of a line of output text.
+
+    The number of spaces to indent this line is in the ``indent`` attribute;
+    the line itself is built as a list in the ``line`` attribute.
+
+    """
+    def __init__(self, indent):
+        self.indent = indent
+        self.line = []
+
+    def offset(self, pos):
+        """Get the total length of the text in the first ``pos`` pieces."""
+        return sum(map(len, self.line[:pos]))
+
+    def output(self):
+        """Get the output line."""
+        return ' ' * self.indent + ''.join(self.line) + '\n'
+
+
 class Indenter:
-    """Encapsulates the process of printing the indented output of a node.
+    """Prints the indented output of a node.
+
+    Indentation preferences can be given on instantiation or by setting the
+    attributes of the same name.
 
     The default ``indent_width`` can be given, and the additional
     ``start_indent`` which is prepended to every output line, both in number of
@@ -61,9 +84,7 @@ class Indenter:
     number is exceeded, the default ``indent_width`` is used instead on
     such lines.
 
-    Instead of specifying these values on construction, you may also change
-    the attributes of the same name between calls to
-    :meth:`write_indented`.
+    Call :meth:`write` to get the indented text output of a node.
 
     """
     def __init__(self,
@@ -82,20 +103,20 @@ class Indenter:
         self.max_align_indent = max_align_indent
 
         # initialize working variables
-        self._result = []               # the list in which the result output is built up
+        self._output = []               # the list in which the result output is built up
         self._indent_stack = []         # the list of indenting history
         self._indenters = []            # the list of indenters created in the current line
         self._dedenters = 0             # the negative count of indent levels to end
         self._whitespace = []           # collects the minimal amount of whitespace between nodes
         self._can_dedent = False        # can the current line be dedented
 
-    def write_indented(self, node):
+    def write(self, node):
         """Get the indented output of the node.
 
         Called by :meth:`Element.write_indented() <quickly.dom.element.Element.write_indented>`.
 
         """
-        self._result.clear()
+        self._output.clear()
         self._indent_stack.clear()
         self._indenters.clear()
         self._dedenters = 0
@@ -104,23 +125,20 @@ class Indenter:
         self.output_node(node)
 
         # strip preceding space
-        result = self._result
+        result = self._output
         while result:
-            if result[0][1]:
-                if result[0][1][0].isspace():
-                    del result[0][1][0]
+            if result[0].line:
+                if result[0].line[0].isspace():
+                    del result[0].line[0]
                 else:
                     break
             else:
                 del result[0]
 
-        join = ''.join
-        fmt = "{}{}\n".format
-        return join(fmt(" " * indent, join(line)) for indent, line in result)
-
+        return ''.join(block.output() for block in result)
 
     def output_node(self, node, index=-1):
-        """Output one node and its children.
+        """*(Internal.)* Output one node and its children.
 
         The index, if given, is the index of this node in its parent. This is
         used to get additional indenting hints for the node.
@@ -159,29 +177,29 @@ class Indenter:
         self.add_whitespace(node.space_after)
 
     def add_whitespace(self, whitespace):
-        """Adds whitespace, which is combined as soon as text is printed out."""
+        """*(Internal.)* Add whitespace, which is combined as soon as text is printed out."""
         self._whitespace.append(whitespace)
 
     def enter_indent(self, node):
-        """Enter a new indent level for the ``node``."""
+        """*(Internal.)* Enter a new indent level for the ``node``."""
         self._indenters.append(_IndentLevel(node))
 
     def leave_indent(self):
-        """Leave the younghest indent level."""
+        """*(Internal.)* Leave the younghest indent level."""
         if self._indenters:
             self._indenters.pop()
         else:
             self._dedenters -= 1
 
     def current_indent(self):
-        """Get the current indent (not looking at ``self.start_indent``) in nr
-        of spaces.
+        """*(Internal.)* Get the current indent (including ``start_indent``)
+        in nr of spaces.
 
         """
         return self._indent_stack[-1] if self._indent_stack else self.start_indent
 
     def create_new_block(self):
-        """Go to a new line."""
+        """*(Internal.)* Go to a new line."""
         if self._dedenters:
             # remove some levels
             del self._indent_stack[self._dedenters:]
@@ -194,8 +212,7 @@ class Indenter:
                 new_indent += self.indent_width
                 pos = i.get_align_pos()
                 if pos is not None:
-                    last_line = self._result[-1][1]
-                    align_indent = sum(map(len, last_line[:pos]))
+                    align_indent = self._output[-1].offset(pos)
                     if align_indent <= self.max_align_indent:
                         new_indent = current_indent + align_indent
                 self._indent_stack.append(new_indent)
@@ -204,19 +221,19 @@ class Indenter:
         current_indent = self.current_indent()
 
         self._can_dedent = bool(self._indent_stack)
-        self._result.append([current_indent, []])
+        self._output.append(_Block(current_indent))
 
     def output_space(self):
-        """Output whitespace. Newlines start a new output line."""
+        """*(Internal.)* Output whitespace. Newlines start a new output line."""
         for c in util.collapse_whitespace(self._whitespace):
             if c == '\n':
                 self.create_new_block()
             else:
-                self._result[-1][1].append(c)
+                self._output[-1].line.append(c)
         self._whitespace.clear()
 
     def output_head(self, text, index=-1, override=None):
-        """Output head text.
+        """*(Internal.)* Output head text.
 
         The ``index``, if given, is the index of the node in its parent. This
         is used to get additional indenting hints for the node.
@@ -228,9 +245,9 @@ class Indenter:
         """
         self.output_space()
         self._can_dedent = False
-        last_line = self._result[-1][1]
+        last_line = self._output[-1].line
         if not last_line and override is not None:
-            self._result[-1][0] = override
+            self._output[-1].indent = override
         if self._indenters and index in self._indenters[-1].align_indices:
             # store the position of the node on the current output line
             position = len(last_line)
@@ -238,12 +255,12 @@ class Indenter:
         last_line.append(text)
 
     def output_tail(self, text):
-        """Output the tail text."""
+        """*(Internal.)* Output the tail text."""
         self.output_space()
         if self._can_dedent and self._dedenters:
             del self._indent_stack[self._dedenters]
             self._dedenters = 0
-            self._result[-1][0] = self.current_indent()
-        self._result[-1][1].append(text)
+            self._output[-1].indent = self.current_indent()
+        self._output[-1].line.append(text)
 
 
