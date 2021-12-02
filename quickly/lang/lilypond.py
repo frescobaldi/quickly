@@ -98,7 +98,7 @@ class LilyPondTransform(base.Transform):
 
     def book(self, items):
         """A Book or BookPart element."""
-        element_class = lily.BookPart if items[1] == r'\bookpart' else lily.Book
+        element_class = lily.BookPart if items[0] == r'\bookpart' else lily.Book
         return self.create_block(element_class, items, music=True)
 
     def score(self, items):

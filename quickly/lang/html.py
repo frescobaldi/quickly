@@ -209,7 +209,7 @@ class HtmlTransform(base.Transform):
                             elif items[i+2].name == 'lilypond_book_options':
                                 # short form of LilyPond input within (self-closing) lilypond tag?
                                 attrs, tail_origin = items[i+2].obj
-                                if tail_origin and tail_origin[0] == ':' and i < z - 3 and not items[i+3].is_token and items[i+3].name == "html_lilypond_tag":
+                                if tail_origin and tail_origin[0] == ':' and items.peek(i + 3, "html_lilypond_tag"):
                                     # yes, add the music to the attrs
                                     attrs = list(attrs)
                                     attrs.append(self.factory(htm.Colon, tail_origin))
