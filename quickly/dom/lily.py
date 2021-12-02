@@ -806,8 +806,8 @@ class Repeat(element.HeadElement, Music):
     _space_between = _space_after_head = " "
 
     def signatures(self):
-        yield Symbol, Int, MUSIC
-        yield Symbol, Int, MUSIC, Alternative
+        yield Symbol, INT, MUSIC
+        yield Symbol, INT, MUSIC, Alternative
 
 
 class Alternative(element.HeadElement, Music):
@@ -2345,3 +2345,4 @@ VALUE = (List, String, Scheme, Number, Markup, IdentifierRef, Etc, Unpitched)
 SYMBOL = (List, Symbol, String)
 TEXT = (List, Symbol, String, Markup, IdentifierRef, Etc)
 NUMBER = (Scheme, Number, Unpitched)
+INT = (Int, IdentifierRef, Scheme)
