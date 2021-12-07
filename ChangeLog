@@ -2,6 +2,18 @@ ChangeLog
 =========
 
 
+current: quickly-0.2.0
+
+- requires parce-0.27.0
+- added registry module to find and guess languages (like parce)
+- added LaTeX language and transform (for lilypond-book)
+- added element constructor helper for dom.htm module
+- added Element.py_dump() to create tree structures in Python code
+- simplified dom.read module and API, now that parce's Transform finding
+  algorithm is configurable
+- small bugfixes, improvements and documentation updates
+
+
 2021-11-25: quickly-0.1.0
 
 - requires parce-0.26.0

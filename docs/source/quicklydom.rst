@@ -437,24 +437,16 @@ There are two element methods dealing with this:
 Let's go back to the initial example, but now create a parce Document with the
 LilyPond source, instead of only creating a tree::
 
-    >>> import parce.transform
+    >>> import parce
     >>> from quickly.lang.lilypond import LilyPond
-    >>> d = parce.Document(LilyPond.root)
+    >>> d = parce.Document(LilyPond.root, transformer=True)
 
-We now create the transformer::
-
-    >>> t = parce.transform.Transformer()
-
-But we connect the source document's treebuilder to the transformer (see
-the *parce* documentation)::
-
-    >>> t.connect_treebuilder(d.builder())
-
+Using this constructor a default Transformer is automatically put in place.
 Now we set the text, the transformer then automatically builds the resulting
 DOM::
 
     >>> d.set_text("{ <c' g'>4( a'2) f:16-. }")
-    >>> music = t.result(d.get_root(True))
+    >>> music = d.get_transform(True)
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (3 children) [0:25]>
@@ -479,13 +471,6 @@ DOM::
               ╰╴<lily.Direction 0 (1 child) [21:22]>
                  ╰╴<lily.Articulation '.' [22:23]>
 
-.. note::
-
-    We give the root context to the :meth:`parce.transform.Transformer.result`
-    method, because one Transformer can build, update and cache the transformed
-    result for many source documents at once. By giving the root context, we
-    get the correct transformed result.
-
 Now we apply some manipulation to the music. Again add "is" to all the note
 heads::
 
@@ -508,10 +493,10 @@ The document has changed. The :meth:`~element.Element.edit` method returns the
 number of changes that were made. Now that the original document is modified,
 the transformer already has run again in the background to update the nodes
 that were changed. Nodes that didn't change (but maybe changed position) are
-retained and used again. So to start new manipulations on the document, we need
-to request the transformed DOM tree again::
+retained and used again. So to start new manipulations on the document, it is
+best to request the updated DOM tree again::
 
-    >>> music = t.result(d.get_root())
+    >>> music = d.get_transform()
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (3 children) [0:33]>
