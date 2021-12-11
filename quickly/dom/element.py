@@ -598,21 +598,22 @@ class Element(Node, metaclass=ElementType):
         if pos < tree.end:
             yield pos, tree.end, ''
 
-    def edit(self, document, root=None):
+    def edit(self, document, context=None):
         """Write back the modifications to the original parce document.
 
         Returns the number of changes that are made. If you don't specify the
-        root Context, it will be requested from the document's tree builder.
+        parce Context ``context``, the document's root context will be used.
 
         After writing back the modifications to the original document, you
         should transform a new dom.Document, because some parts need to be
         rebuilt.
 
         """
-        root = root or document.builder().root
+        if context is None:
+            context = document.builder().root
         n = 0
         with document:
-            for pos, end, text in self.edits(root):
+            for pos, end, text in self.edits(context):
                 document[pos:end] = text
                 n += 1
         return n

@@ -19,22 +19,32 @@
 
 
 """
-Template for test files that test quickly.
+Test DOM document editing features.
 """
 
 ### find quickly
 import sys
 sys.path.insert(0, '.')
 
-import quickly
 
+
+import parce
+
+import quickly
+from quickly.registry import find
+from quickly.dom import lily
 
 
 
 def test_main():
-    """Main text function."""
+    """Main test function."""
 
-
+    d = parce.Document(find('lilypond'), "{ c d e f g }", transformer=True)
+    music = d.get_transform(True)
+    for note in music // lily.Note('e'):
+        note.head = 'fis'
+    assert music.edit(d) == 1
+    assert d.text() == "{ c d fis f g }"
 
 
 
