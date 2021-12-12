@@ -560,14 +560,18 @@ class Element(Node, metaclass=ElementType):
         """
         return combine_text((b, p.text, a) for b, p, a in self.points())[1]
 
-    def edits(self, tree):
+    def edits(self, context, start=None, end=None):
         """Yield three-tuples (pos, end, text) denoting text changes.
 
-        Changes to whitespace attributes are not registered as text changes.
+        The ``context`` is a parce Context. If ``start`` and/or ``end`` are not
+        specified, the edits encompass the full context's range. All added or
+        modified text fragments will still be written to the document, but no
+        text outside the specified range will be deleted.
 
         """
-        tokens = tree.tokens()
-        pos = tree.pos
+        pos = context.pos if start is None else start
+        end = context.end if end is None else end
+        tokens = context.tokens()
         insert_after = None
         for before, point, after in self.points():
             b = '' if insert_after is None else collapse_whitespace((insert_after, before))
@@ -595,14 +599,19 @@ class Element(Node, metaclass=ElementType):
                     yield point.pos, point.end, point.text
                 pos = point.end
                 insert_after = after
-        if pos < tree.end:
-            yield pos, tree.end, ''
+        if pos < end:
+            yield pos, end, ''
 
-    def edit(self, document, context=None):
+    def edit(self, document, context=None, start=None, end=None,):
         """Write back the modifications to the original parce document.
 
         Returns the number of changes that are made. If you don't specify the
         parce Context ``context``, the document's root context will be used.
+
+        If ``start`` and/or ``end`` are not specified, the edits encompass the
+        full context's range. All added or modified text fragments will still
+        be written to the document, but no text outside the specified range
+        will be deleted.
 
         After writing back the modifications to the original document, you
         should transform a new dom.Document, because some parts need to be
@@ -613,7 +622,7 @@ class Element(Node, metaclass=ElementType):
             context = document.builder().root
         n = 0
         with document:
-            for pos, end, text in self.edits(context):
+            for pos, end, text in self.edits(context, start, end):
                 document[pos:end] = text
                 n += 1
         return n
