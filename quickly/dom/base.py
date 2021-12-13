@@ -150,6 +150,32 @@ class Text(element.TextElement):
     """Generic text that is printed unmodified."""
 
 
+## Special element:
+
+class Unknown(element.HeadElement):
+    """Represents a document region that is not transformed.
+
+    This element can only occur in documents transformed from source.
+    Calling :meth:`write_head` or on this element results in an exception,
+    because it does not know how it looks.
+    But it knows the position in the document, because the first and the last
+    untransformed tokens are in the origin.
+
+    Before you can write out a document fully out, you should replace the
+    :class:`Unknown` elements with e.g. :class:`Text` elements that have the
+    text such as it appears in the source document.
+
+    You *can* :meth:`element.Element.edit` documents with this element however,
+    it will simply leave the unknown parts of the document as they are.
+
+    """
+    def write_head(self):
+        """Raises RuntimeError."""
+        raise RuntimeError(
+            "can't write head value of Unknown element.\n"
+            "Hint: replace Unknown with Text elements.")
+
+
 ## Language and Transform base/helper classes
 
 class XmlLike:

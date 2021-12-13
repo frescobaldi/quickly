@@ -182,6 +182,11 @@ class HtmlTransform(base.Transform):
                     nodes.append(self.factory(htm.Text, (items[i],)))
                 elif items[i].action is a.Escape:
                     nodes.append(self.factory(htm.EntityRef, (items[i],)))
+                elif items.peek(i, a.Delimiter, a.Name.Tag, "attrs", "<unknown>") or \
+                     items.peek(i, a.Delimiter, a.Name.Tag, a.Delimiter, "<unknown>"):
+                    # untransformed css style or script tag
+                    nodes.append(self.factory(base.Unknown, (items[i], items[i+3].obj[-1])))
+                    i += 3
                 elif items[i].action is a.Delimiter:
                     if i < z - 2:
                         head_origin = items[i:i+1]
@@ -239,28 +244,37 @@ class HtmlTransform(base.Transform):
         """
         attrs = []
         tail_origin = ()
-        for i in items:
-            if i.is_token:
-                if i.action is a.Name.Attribute:
-                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (i,))))
-                elif i == '=':
+        z = len(items)
+        i = 0
+        while i < z:
+            t = items[i]
+            if t.is_token:
+                if t.action is a.Name.Attribute:
+                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (t,))))
+                elif t == '=':
                     if attrs and len(attrs[-1]) == 1:
-                        attrs[-1].append(self.factory(htm.EqualSign, (i,)))
-                elif i.action is a.Delimiter:
-                    tail_origin = (i,)
+                        attrs[-1].append(self.factory(htm.EqualSign, (t,)))
+                elif t.action is a.Delimiter:
+                    tail_origin = (t,)
                     break
-                # only appear in lilypond_book_options
-                elif i.action is a.Number:
+                elif t == '"' and items.peek(i, a.String, "<unknown>"):
+                    # this happens with a css style attribute; create Unknown
                     if attrs and len(attrs[-1]) > 1:
-                        attrs[-1].append(self.factory(htm.Number, (i,)))
-                elif i.action is a.Name.Builtin.Unit:
+                        attrs[-1].append(self.factory(base.Unknown, (t,) + items[i+1].obj))
+                    i += 1
+                # only appear in lilypond_book_options
+                elif t.action is a.Number:
+                    if attrs and len(attrs[-1]) > 1:
+                        attrs[-1].append(self.factory(htm.Number, (t,)))
+                elif t.action is a.Name.Builtin.Unit:
                     if attrs and len(attrs[-1]) > 2:
-                        attrs[-1].append(self.factory(htm.Unit, (i,)))
-                elif i.action is a.Name:
+                        attrs[-1].append(self.factory(htm.Unit, (t,)))
+                elif t.action is a.Name:
                     # unknown LilyPond book attribute...
-                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (i,))))
+                    attrs.append(htm.Attribute(self.factory(htm.AttrName, (t,))))
             elif attrs and len(attrs[-1]) == 2:
-                attrs[-1].append(i.obj) # a string value
+                attrs[-1].append(t.obj) # a string value
+            i += 1
         return attrs, tail_origin
 
     _action = Dispatcher()

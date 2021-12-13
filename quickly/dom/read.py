@@ -37,18 +37,20 @@ scratch.)
 """
 
 
-import parce.transform
+from . import transform
 
-#import quickly.lang.docbook
-import quickly.lang.latex
-import quickly.lang.lilypond
-import quickly.lang.html
-import quickly.lang.scheme
-#import quickly.lang.texinfo
+from ..lang import (
+#    docbook,
+    latex,
+    lilypond,
+    html,
+    scheme,
+#    texinfo,
+)
 
 
 # init two transformers, accessible by 0 (False) and 1 (True) :-)
-_transformer = [parce.transform.Transformer(), parce.transform.Transformer()]
+_transformer = [transform.Transformer(), transform.Transformer()]
 _transformer[0].transform_name_template = "{}AdHocTransform"
 
 
@@ -106,7 +108,7 @@ def htm_document(text, with_origin=False):
                ╰╴<htm.TagName 'html' [36:40]>
 
     """
-    return _transformer[with_origin].transform_text(quickly.lang.html.Html.root, text)
+    return _transformer[with_origin].transform_text(html.Html.root, text)
 
 
 def htm(text, with_origin=False):
@@ -142,7 +144,7 @@ def lily_document(text, with_origin=False):
     construct and type.
 
     """
-    return _transformer[with_origin].transform_text(quickly.lang.lilypond.LilyPond.root, text)
+    return _transformer[with_origin].transform_text(lilypond.LilyPond.root, text)
 
 
 def lily(text, with_origin=False):
@@ -183,7 +185,7 @@ def lily(text, with_origin=False):
 
 def scm_document(text, with_origin=False):
     """Return a :class:`.scm.Document` from the text."""
-    return _transformer[with_origin].transform_text(quickly.lang.scheme.Scheme.root, text)
+    return _transformer[with_origin].transform_text(scheme.Scheme.root, text)
 
 
 def scm(text, with_origin=False):
@@ -194,7 +196,7 @@ def scm(text, with_origin=False):
 
 def tex_document(text, with_origin=False):
     """Return a :class:`.tex.Document` from the text."""
-    return _transformer[with_origin].transform_text(quickly.lang.latex.Latex.root, text)
+    return _transformer[with_origin].transform_text(latex.Latex.root, text)
 
 
 def tex(text, with_origin=False):

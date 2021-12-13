@@ -32,7 +32,7 @@ import parce
 
 import quickly
 from quickly.registry import find
-from quickly.dom import lily
+from quickly.dom import lily, transform
 
 
 
@@ -63,7 +63,7 @@ def test_main():
 
     ### below some tests with modifying tree with parce tokens that are
     ### not supported by quickly.dom, e.g. CSS tokens. Those are ignored by
-    ### out transforms, so we should not rely on node.write() to produce
+    ### our transforms, so we should not rely on node.write() to produce
     ### complete output. Instead, we should only write in the reqions that
     ### are covered by Element types that are completely supported.
     d = parce.Document(find('html'), r'<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>', transformer=True)
@@ -98,6 +98,18 @@ def test_main():
     assert d.text() == '<p style="color:red;"><lilypond> { c d fis f g } </lilypond></p>\n' \
                      + '<p style="color:red;"><lilypond> { a b c d fis } </lilypond></p>\n'
 
+
+    ### the new Unknown element....
+    # Now we test the quickly transformer, which handles unknown pieces of text.
+    d = parce.Document(find('html'),
+        r'<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>',
+        transformer=transform.Transformer())
+    music = d.get_transform(True)
+    for note in music // lily.Note('e'):
+        note.head = 'fis'
+    assert music.edit(d) == 1
+    # NOTE we don't loose any text!!
+    assert d.text() == r'<p style="color:red;"><lilypond> { c d fis f g } </lilypond></p>'
 
 
 

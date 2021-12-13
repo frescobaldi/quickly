@@ -59,7 +59,8 @@ from ..node import Node
 from .util import collapse_whitespace, combine_text
 
 
-#: describes a piece of text at a certain position
+#: describes a piece of text at a certain position; ``text`` is a callable
+#: returning the text
 Point = collections.namedtuple("Point", "pos end text modified")
 
 
@@ -479,17 +480,6 @@ class Element(Node, metaclass=ElementType):
         Returns None for elements that don't have a head text.
 
         """
-        head = self.write_head()
-        if head is not None:
-            try:
-                origin = self.head_origin
-            except AttributeError:
-                pos = end = None
-            else:
-                pos = origin[0].pos
-                end = origin[-1].end
-            modified = bool(self._modified & HEAD_MODIFIED)
-            return Point(pos, end, head, modified)
 
     def tail_point(self):
         """Return the Point describing the tail text.
@@ -497,20 +487,6 @@ class Element(Node, metaclass=ElementType):
         Returns None for elements that can't have a tail text.
 
         """
-        tail = self.write_tail()
-        if tail is not None:
-            try:
-                origin = self.tail_origin
-            except AttributeError:
-                pos = end = None
-            else:
-                try:
-                    pos = origin[0].pos
-                    end = origin[-1].end
-                except IndexError:      # can happen when tail was missing
-                    pos = end = None
-            modified = bool(self._modified & TAIL_MODIFIED)
-            return Point(pos, end, tail, modified)
 
     def points(self, _last=''):
         """Yield three-tuples (before, point, after).
@@ -558,7 +534,7 @@ class Element(Node, metaclass=ElementType):
         :mod:`~quickly.dom.indent` module.
 
         """
-        return combine_text((b, p.text, a) for b, p, a in self.points())[1]
+        return combine_text((b, p.text(), a) for b, p, a in self.points())[1]
 
     def edits(self, context, start=None, end=None):
         """Yield three-tuples (pos, end, text) denoting text changes.
@@ -577,8 +553,9 @@ class Element(Node, metaclass=ElementType):
             b = '' if insert_after is None else collapse_whitespace((insert_after, before))
             if point.pos is None:
                 # new element
-                if point.text:
-                    yield pos, pos, b + point.text
+                text = point.text()
+                if text:
+                    yield pos, pos, b + text
                     insert_after = after
             else:
                 # existing element
@@ -596,7 +573,7 @@ class Element(Node, metaclass=ElementType):
                     yield point.pos, point.pos, b
                 # modified?
                 if point.modified:
-                    yield point.pos, point.end, point.text
+                    yield point.pos, point.end, point.text()
                 pos = point.end
                 insert_after = after
         if pos < end:
@@ -627,12 +604,28 @@ class Element(Node, metaclass=ElementType):
                 n += 1
         return n
 
-    def replace(self, index, node):
-        """Replace the node at index with the specified node.
+    def replace(self, node):
+        """Replace this node (in its parent) with another ``node``.
 
         The origin of the old node is copied to the new, so that when
         writing out the node, its output exactly comes on the same spot in the
-        document. For nodes without origin, this method does nothing more than
+        document.
+
+        For nodes without origin, this method does nothing more than
+        ``self.parent[self.parent.index(self)] = node``.
+
+        """
+        index = self.parent.index(self)
+        self.parent.replace_at(index, node)
+
+    def replace_at(self, index, node):
+        """Replace in this node the child at ``index`` with another ``node``.
+
+        The origin of the old node is copied to the new, so that when
+        writing out the node, its output exactly comes on the same spot in the
+        document.
+
+        For nodes without origin, this method does nothing more than
         ``self[index] = node``.
 
         """
@@ -727,6 +720,17 @@ class HeadElement(Element):
         node.head_origin = head_origin
         return node
 
+    def head_point(self):
+        try:
+            origin = self.head_origin
+        except AttributeError:
+            pos = end = None
+        else:
+            pos = origin[0].pos
+            end = origin[-1].end
+        modified = bool(self._modified & HEAD_MODIFIED)
+        return Point(pos, end, self.write_head, modified)
+
 
 class BlockElement(HeadElement):
     """Element that has a fixed head and tail value."""
@@ -742,6 +746,20 @@ class BlockElement(HeadElement):
     def indent_children(self):
         """Reimplemented to indent children of a BlockElement type by default."""
         return True
+
+    def tail_point(self):
+        try:
+            origin = self.tail_origin
+        except AttributeError:
+            pos = end = None
+        else:
+            try:
+                pos = origin[0].pos
+                end = origin[-1].end
+            except IndexError:      # can happen when tail was missing
+                pos = end = None
+        modified = bool(self._modified & TAIL_MODIFIED)
+        return Point(pos, end, self.write_tail, modified)
 
 
 class TextElement(HeadElement):
