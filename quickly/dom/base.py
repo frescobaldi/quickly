@@ -155,22 +155,32 @@ class Text(element.TextElement):
 class Unknown(element.HeadElement):
     """Represents a document region that is not transformed.
 
-    This element can only occur in documents transformed from source.
-    Calling :meth:`write_head` or on this element results in an exception,
-    because it does not know how it looks.
-    But it knows the position in the document, because the first and the last
-    untransformed tokens are in the origin.
+    This element can only occur in documents transformed from source. It is
+    used to denote reqions that are not transformed, such as CSS style tags or
+    attributes, or script tags, in Html documents containing LilyPond music.
 
-    Before you can write out a document fully out, you should replace the
-    :class:`Unknown` elements with e.g. :class:`Text` elements that have the
-    text such as it appears in the source document.
+    *Parce* has fancy highlighting for those text fragments, but it makes no
+    sense to try to transform those also to useful DOM nodes. So instead, we
+    simply record the positions in the source document of these fragments using
+    the first and the last token of such contexts that are not transformed.
 
-    You *can* :meth:`element.Element.edit` documents with this element however,
+    Calling :meth:`write_head` on this element results in an exception, because
+    it does not know how it looks. But it knows the position in the document,
+    because the first and the last untransformed tokens are in the origin.
+
+    Before you can write out a document containing :class:`Unknown` elements
+    fully out (e.g. using :meth:`~.element.Element.write` or
+    :meth:`~.element.Element.write_indented`), you should replace those
+    elements with e.g. :class:`Text` elements that have the text such as it
+    appears in the source document. This can be done using
+    :func:`.util.replace_unknown`.
+
+    You *can* :meth:`~element.Element.edit` documents with this element however,
     it will simply leave the unknown parts of the document as they are.
 
     """
     def write_head(self):
-        """Raises RuntimeError."""
+        """Raise RuntimeError."""
         raise RuntimeError(
             "can't write head value of Unknown element.\n"
             "Hint: replace Unknown with Text elements.")

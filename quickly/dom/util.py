@@ -135,3 +135,17 @@ def add_newlines(node, text, block_separator='\n', max_blank_lines=10):
     handle_node(node)
 
 
+def replace_unknown(tree, text):
+    """Replace all :class:`~.base.Unknown` nodes with :class:`~.base.Text` nodes
+    containing the respective text.
+
+    The ``text`` should be the text the DOM ``tree`` was generated from. Do
+    this before writing out a node using :meth:`~.element.Element.write` or
+    :meth:`~.element.Element.write_indented` or related methods.
+
+    """
+    from . import base
+    for n in tree // base.Unknown:
+        n.replace(base.Text(text[n.pos:n.end]))
+
+

@@ -30,7 +30,13 @@ import parce.transform
 
 
 class Transformer(parce.transform.Transformer):
-    """A Transformer that yields the origin for unknown parce contexts."""
+    """A Transformer that yields the origin for unknown parce contexts.
+
+    This creates the transform :class:`~parce.transform.Item` with name
+    ``<unknown>`` (including the angle brackets) which pops up whereever a
+    lexicon is encountered no transform method could be found for.
+
+    """
     def missing(self, context):
         """Returns the origin for untransformed parce contexts."""
         first = context.first_token()

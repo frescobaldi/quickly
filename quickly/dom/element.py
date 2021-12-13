@@ -59,10 +59,16 @@ from ..node import Node
 from .util import collapse_whitespace, combine_text
 
 
-#: describes a piece of text at a certain position; ``text`` is a callable
-#: returning the text
 Point = collections.namedtuple("Point", "pos end text modified")
+"""Point describes a piece of text at a certain position; ``text`` is a
+callable returning the text (it is the :meth:`~Element.write_head` or
+:meth:`~Element.write_tail` method of the respective element); ``pos`` and
+``end`` are integers denoting the original position of the text; and
+``modified`` is a boolean value indicating whether the text has been modified.
+For newly added nodes, ``pos`` and ``end`` both are None.
 
+.. seealso:: :meth:`Element.points`.
+"""
 
 HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
@@ -475,14 +481,14 @@ class Element(Node, metaclass=ElementType):
         return None
 
     def head_point(self):
-        """Return the Point describing the head text.
+        """Return the :class:`Point` describing the head text.
 
         Returns None for elements that don't have a head text.
 
         """
 
     def tail_point(self):
-        """Return the Point describing the tail text.
+        """Return the :class:`Point` describing the tail text.
 
         Returns None for elements that can't have a tail text.
 
@@ -491,11 +497,11 @@ class Element(Node, metaclass=ElementType):
     def points(self, _last=''):
         """Yield three-tuples (before, point, after).
 
-        Each ``point`` is a Point describing a text piece, ``before`` and
-        ``after`` are the desired whitespace before and after the piece. For
-        adjacent pieces, you may collapse whitespace. You don't have to supply
-        a value for the ``_last`` argument, it is used by recursive calls to
-        this method.
+        Each ``point`` is a :class:`Point` describing a text piece, ``before``
+        and ``after`` are the desired whitespace before and after the piece.
+        For adjacent pieces, you may collapse whitespace. You don't have to
+        supply a value for the ``_last`` argument, it is used by recursive
+        calls to this method.
 
         """
         head_point = self.head_point()

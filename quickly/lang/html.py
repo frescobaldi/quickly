@@ -182,13 +182,14 @@ class HtmlTransform(base.Transform):
                     nodes.append(self.factory(htm.Text, (items[i],)))
                 elif items[i].action is a.Escape:
                     nodes.append(self.factory(htm.EntityRef, (items[i],)))
-                elif items.peek(i, a.Delimiter, a.Name.Tag, "attrs", "<unknown>") or \
-                     items.peek(i, a.Delimiter, a.Name.Tag, a.Delimiter, "<unknown>"):
-                    # untransformed css style or script tag
-                    nodes.append(self.factory(base.Unknown, (items[i], items[i+3].obj[-1])))
-                    i += 3
                 elif items[i].action is a.Delimiter:
-                    if i < z - 2:
+                    if items.peek(i+1, a.Name.Tag, "attrs", "<unknown>") or \
+                       items.peek(i+1, a.Name.Tag, a.Delimiter, "<unknown>") or \
+                       items.peek(i+1, a.Keyword, a.Name.Tag.Definition, "<unknown>"):
+                        # untransformed css style, script tag or doctype declaration
+                        nodes.append(self.factory(base.Unknown, (items[i], items[i+3].obj[-1])))
+                        i += 1
+                    elif i < z - 2:
                         head_origin = items[i:i+1]
                         tagname = self.factory(htm.TagName, items[i+1:i+2])
                         if '/' in items[i].text: # and z - i < 2: (will always be the case)

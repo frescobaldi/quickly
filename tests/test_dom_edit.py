@@ -22,6 +22,8 @@
 Test DOM document editing features.
 """
 
+import pytest
+
 ### find quickly
 import sys
 sys.path.insert(0, '.')
@@ -32,7 +34,7 @@ import parce
 
 import quickly
 from quickly.registry import find
-from quickly.dom import lily, transform
+from quickly.dom import lily, transform, util
 
 
 
@@ -110,6 +112,37 @@ def test_main():
     assert music.edit(d) == 1
     # NOTE we don't loose any text!!
     assert d.text() == r'<p style="color:red;"><lilypond> { c d fis f g } </lilypond></p>'
+
+    # Again test a document with two music pieces in it:
+    d = parce.Document(find('html'),
+        '<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>\n'
+        '<p style="color:red;"><lilypond> { a b c d e } </lilypond></p>\n',
+        transformer=transform.Transformer())
+    music = d.get_transform(True)
+
+    # Now we do not store positions. Bluntly perform the manipulations!
+    for note in music // lily.Note('e'):
+        note.head = 'fis'
+
+    # And then bluntly edit the full document. "Unknown" elements will simply be
+    # skipped, as they are never modified.
+    assert music.edit(d) == 2
+    assert d.text() == '<p style="color:red;"><lilypond> { c d fis f g } </lilypond></p>\n' \
+                     + '<p style="color:red;"><lilypond> { a b c d fis } </lilypond></p>\n'
+
+    # writing out should raise a RuntimeError, as Unknown elements do not know
+    # the text they should print
+    with pytest.raises(RuntimeError):
+        music.write()
+
+    # but after replacing the Unknown elements, it should work:
+    music = d.get_transform(True)
+    util.replace_unknown(music, d.text())
+    assert music.write() == '<p style="color:red;"><lilypond>{ c d fis f g }</lilypond></p>\n' \
+                          + '<p style="color:red;"><lilypond>{ a b c d fis }</lilypond></p>\n'
+
+
+
 
 
 
