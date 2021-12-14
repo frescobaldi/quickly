@@ -22,6 +22,10 @@
 Some general element types and some base classes for the quickly.dom elements.
 """
 
+
+### NOTE: if adding classes/functions here, update docs/source/dom/base.rst!
+
+
 import re
 
 import parce.action as a
@@ -175,7 +179,7 @@ class Unknown(element.HeadElement):
     appears in the source document. This can be done using
     :func:`.util.replace_unknown`.
 
-    You *can* :meth:`~element.Element.edit` documents with this element however,
+    You *can* :meth:`~.element.Element.edit` documents with this element however,
     it will simply leave the unknown parts of the document as they are.
 
     """
