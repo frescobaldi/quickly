@@ -34,7 +34,7 @@ import parce
 
 import quickly
 from quickly.registry import find
-from quickly.dom import lily, transform, util
+from quickly.dom import lily, util
 
 
 
@@ -62,50 +62,10 @@ def test_main():
     assert music.edit(d) == 1
     assert d.text() == r"<lilypond> { c d fis f g } </lilypond>"
 
-
-    ### below some tests with modifying tree with parce tokens that are
-    ### not supported by quickly.dom, e.g. CSS tokens. Those are ignored by
-    ### our transforms, so we should not rely on node.write() to produce
-    ### complete output. Instead, we should only write in the reqions that
-    ### are covered by Element types that are completely supported.
-    d = parce.Document(find('html'), r'<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>', transformer=True)
-    music = d.get_transform(True)
-    for note in music // lily.Note('e'):
-        note.head = 'fis'
-    assert music.edit(d) == 2
-    # NOTE: we loose the contents of the style attribute, quickly cannot transform this
-    assert d.text() == r'<p style=><lilypond> { c d fis f g } </lilypond></p>'
-
-    # when modifying LilyPond documents within HTML or LaTeX, we should not
-    # bluntly write the whole tree, instead just the LilyPond nodes.
-    d = parce.Document(find('html'),
-        '<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>\n'
-        '<p style="color:red;"><lilypond> { a b c d e } </lilypond></p>\n', transformer=True)
-    music = d.get_transform(True)
-
-    # We need to store the regions covered by the nodes we modify. Why?
-    # Because deleting e.g. the first node that has an origin moves the ``pos``
-    # attribute of the encompassing element node. When writing back, the text
-    # of the deleted node would remain in the document.
-    lily_documents = [(n, n.pos, n.end) for n in music // lily.Document]
-
-    # now perform the manipulations
-    for note in music // lily.Note('e'):
-        note.head = 'fis'
-
-    # Edit only the LilyPond dom nodes:
-    with d:
-        for node, pos, end in lily_documents:
-            node.edit(d, start=pos, end=end)
-    assert d.text() == '<p style="color:red;"><lilypond> { c d fis f g } </lilypond></p>\n' \
-                     + '<p style="color:red;"><lilypond> { a b c d fis } </lilypond></p>\n'
-
-
     ### the new Unknown element....
     # Now we test the quickly transformer, which handles unknown pieces of text.
     d = parce.Document(find('html'),
-        r'<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>',
-        transformer=transform.Transformer())
+        r'<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>', transformer=True)
     music = d.get_transform(True)
     for note in music // lily.Note('e'):
         note.head = 'fis'
@@ -117,7 +77,7 @@ def test_main():
     d = parce.Document(find('html'),
         '<p style="color:red;"><lilypond> { c d e f g } </lilypond></p>\n'
         '<p style="color:red;"><lilypond> { a b c d e } </lilypond></p>\n',
-        transformer=transform.Transformer())
+        transformer=True)
     music = d.get_transform(True)
 
     # Now we do not store positions. Bluntly perform the manipulations!

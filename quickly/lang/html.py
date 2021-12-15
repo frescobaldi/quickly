@@ -30,6 +30,7 @@ from parce.rule import (
     ARG, MATCH, TEXT, bygroup, dselect, findmember, ifeq, pattern)
 from parce.lang import html, lilypond_words
 from parce.util import Dispatcher
+from parce.transform import add_untransformed
 
 from quickly.dom import base, element, htm
 from . import lilypond
@@ -111,10 +112,12 @@ class HtmlTransform(base.Transform):
     script_tag = None
 
     ## transform methods
+    @add_untransformed
     def root(self, items):
         """Process the ``root`` context."""
         return htm.Document(*self.tag(items))
 
+    @add_untransformed
     def attrs(self, items):
         """Process the ``attrs`` context.
 
@@ -167,6 +170,7 @@ class HtmlTransform(base.Transform):
                 yield self.factory(htm.Text, origin)
         return self.factory(htm.ProcessingInstruction, head_origin, tail_origin, *children())
 
+    @add_untransformed
     def tag(self, items):
         """Process the ``tag`` context.
 
@@ -183,11 +187,11 @@ class HtmlTransform(base.Transform):
                 elif items[i].action is a.Escape:
                     nodes.append(self.factory(htm.EntityRef, (items[i],)))
                 elif items[i].action is a.Delimiter:
-                    if items.peek(i+1, a.Name.Tag, "attrs", "<unknown>") or \
-                       items.peek(i+1, a.Name.Tag, a.Delimiter, "<unknown>") or \
-                       items.peek(i+1, a.Keyword, a.Name.Tag.Definition, "<unknown>"):
+                    if items.peek(i+1, a.Name.Tag, "attrs", "<untransformed>") or \
+                       items.peek(i+1, a.Name.Tag, a.Delimiter, "<untransformed>") or \
+                       items.peek(i+1, a.Keyword, a.Name.Tag.Definition, "<untransformed>"):
                         # untransformed css style, script tag or doctype declaration
-                        nodes.append(self.factory(base.Unknown, (items[i], items[i+3].obj[-1])))
+                        nodes.append(self.factory(base.Unknown, (items[i], items[i+3].obj.last_token())))
                         i += 1
                     elif i < z - 2:
                         head_origin = items[i:i+1]
@@ -236,6 +240,7 @@ class HtmlTransform(base.Transform):
             i += 1
         return nodes
 
+    @add_untransformed
     def lilypond_book_options(self, items):
         """Process the ``lilypond_book_options`` context.
 
@@ -258,10 +263,10 @@ class HtmlTransform(base.Transform):
                 elif t.action is a.Delimiter:
                     tail_origin = (t,)
                     break
-                elif t == '"' and items.peek(i, a.String, "<unknown>"):
+                elif t == '"' and items.peek(i, a.String, "<untransformed>"):
                     # this happens with a css style attribute; create Unknown
                     if attrs and len(attrs[-1]) > 1:
-                        attrs[-1].append(self.factory(base.Unknown, (t,) + items[i+1].obj))
+                        attrs[-1].append(self.factory(base.Unknown, (t, items[i+1].obj.last_token())))
                     i += 1
                 # only appear in lilypond_book_options
                 elif t.action is a.Number:

@@ -37,7 +37,7 @@ scratch.)
 """
 
 
-from . import transform
+from parce.transform import Transformer
 
 from ..lang import (
 #    docbook,
@@ -50,7 +50,7 @@ from ..lang import (
 
 
 # init two transformers, accessible by 0 (False) and 1 (True) :-)
-_transformer = [transform.Transformer(), transform.Transformer()]
+_transformer = [Transformer(), Transformer()]
 _transformer[0].transform_name_template = "{}AdHocTransform"
 
 
