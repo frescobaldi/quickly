@@ -29,7 +29,7 @@ import sys
 sys.path.insert(0, '.')
 
 import quickly
-from quickly.pitch import *
+from quickly.pitch import PitchNameProcessor, num_to_octave, octave_to_num
 
 
 

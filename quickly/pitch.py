@@ -155,9 +155,15 @@ class PitchNameProcessor:
         Adjust the preferences based on the encountered pitches.
         The default ``language`` is used if you don't specify one.
 
+        If the pitchnames iterable contains a language name, that language is
+        followed to test following pitchnames. (The default language is not
+        changed.)
+
         """
         if not language:
             language = self._language
+
+        pitchnames = iter(pitchnames)
 
         prefer_accented = None
         prefer_classic = None
@@ -166,35 +172,46 @@ class PitchNameProcessor:
         prefer_x = None
         prefer_deprecated = None
 
-        names = pitch_names[language]
-        for name in pitchnames:
-            if name in names:
-                if 'é' in name:
-                    prefer_accented = True
-                elif not prefer_accented and language.startswith('fran') and 'e' in name:
-                    prefer_accented = False
-                if '-' in name:
-                    prefer_long = True
-                elif not prefer_long and language == "english" and names[name][1] in {-1, -0.5, 0.5, 1}:
-                    prefer_long = False
-                elif language == "norsk" and 'ss' in name:
-                    prefer_double_s = True
-                elif not prefer_double_s and language == "norsk" and 's' in name:
-                    prefer_double_s = False
-                elif language == "nederlands" and name in {'es', 'eses', 'as', 'ases'}:
-                    prefer_classic = True
-                elif not prefer_classic and language == "nederlands" and name in {'ees', 'eeses', 'aes', 'aeses'}:
-                    prefer_classic = False
-                elif language == "deutsch" and name in {'eeh', 'ases', 'aseh', 'aeh'}:
-                    prefer_deprecated = True
-                elif not prefer_deprecated and language == "deutsch" and name in {'eh', 'asas', 'asah', 'ah'}:
-                    prefer_deprecated = False
-                elif name.endswith('x'):
-                    prefer_x = True
-                elif not prefer_x and (
-                           (name.endswith('ss') and language in ("english", "espanol", "español"))
-                        or (name.endswith('dd') and language.startswith("fran"))):
-                    prefer_x = False
+        while True:
+            names = pitch_names[language]
+            for name in pitchnames:
+                if name in names:
+                    if language in ("francais", "français"):
+                        if 'é' in name:
+                            prefer_accented = True
+                        elif not prefer_accented and 'e' in name:
+                            prefer_accented = False
+                    elif language == "english":
+                        if '-' in name:
+                            prefer_long = True
+                        elif not prefer_long and names[name][1] in {-1, -0.5, 0.5, 1}:
+                            prefer_long = False
+                    elif language == "norsk":
+                        if 'ss' in name:
+                            prefer_double_s = True
+                        elif not prefer_double_s and 's' in name:
+                            prefer_double_s = False
+                    elif language == "nederlands":
+                        if name in {'es', 'eses', 'as', 'ases'}:
+                            prefer_classic = True
+                        elif not prefer_classic and name in {'ees', 'eeses', 'aes', 'aeses'}:
+                            prefer_classic = False
+                    elif language == "deutsch":
+                        if name in {'eeh', 'ases', 'aseh', 'aeh'}:
+                            prefer_deprecated = True
+                        elif not prefer_deprecated and name in {'eh', 'asas', 'asah', 'ah'}:
+                            prefer_deprecated = False
+                    if name.endswith('x'):
+                        prefer_x = True
+                    elif not prefer_x and (
+                               (name.endswith('ss') and language in ("english", "espanol", "español"))
+                            or (name.endswith('dd') and language in ("francais", "français"))):
+                        prefer_x = False
+                elif name in pitch_names:
+                    language = name
+                    break
+            else:
+                break   # all names checked
 
         if prefer_accented is not None:
             self.prefer_accented = prefer_accented

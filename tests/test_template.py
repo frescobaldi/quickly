@@ -32,7 +32,7 @@ import quickly
 
 
 def test_main():
-    """Main text function."""
+    """Main test function."""
 
 
 
