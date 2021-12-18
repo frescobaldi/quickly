@@ -949,7 +949,102 @@ class Chord(element.BlockElement, Music):
         yield 0
 
 
-class Note(element.TextElement, Music):
+class Pitchable(element.TextElement, Music):
+    """Base class for a note or rest (that can be pitched).
+
+    This class provides convenient properties to manipulate the
+    :class:`Octave`, :class:`Accidental` and/or :class:`OctCheck` child nodes.
+
+    """
+    @property
+    def octave(self):
+        """Read or set the octave.
+
+        The octave is an integer value. Automatically creates an
+        :class:`Octave` child if needed. Delete this attribute or set it to 0
+        to remove the octave.
+
+        """
+        for n in self / Octave:
+            return n.head
+        return 0
+
+    @octave.setter
+    def octave(self, num):
+        for n in self / Octave:
+            n.head = num
+            return
+        if num != 0:
+            self.insert(0, Octave(num))
+
+    @octave.deleter
+    def octave(self):
+        self[:] = self ^ Octave
+
+    @property
+    def accidental(self):
+        """Read or set the accidental.
+
+        The accidental is ``None``, ``"cautionary"`` or ``"forced"``.
+        Automatically creates an :class:`Accidental` child if needed.
+        Delete this attribute to remove the accidental.
+
+        """
+        for n in self / Accidental:
+            return n.head
+
+    @accidental.setter
+    def accidental(self, value):
+        for n in self / Accidental:
+            if not value:
+                self.remove(n)
+            else:
+                n.head = value
+            return
+        if value:
+            self._insert_after(Octave, Accidental(value))
+
+    @accidental.deleter
+    def accidental(self):
+        self[:] = self ^ Accidental
+
+    @property
+    def oct_check(self):
+        """Read or set the octave check.
+
+        The octave check is an integer value, or None, when no octave check is
+        there. Automatically creates an :class:`OctCheck` child if set. Delete
+        this attribute or set it tot ``None`` to remove the octave check.
+
+        """
+        for n in self / OctCheck:
+            return n.head
+
+    @oct_check.setter
+    def oct_check(self, num):
+        for n in self / OctCheck:
+            if num is None:
+                self.remove(n)
+            else:
+                n.head = num
+            return
+        if num is not None:
+            self._insert_after((Octave, Accidental), OctCheck(num))
+
+    @oct_check.deleter
+    def oct_check(self):
+        self[:] = self ^ OctCheck
+
+    def _insert_after(self, skip, node):
+        """Insert a node after skipping specified classes."""
+        for n in self ^ skip:
+            i = self.index(n)
+            self.insert(i, node)
+            return
+        self.append(node)
+
+
+class Note(Pitchable):
     """A pitch note name."""
 
 
@@ -957,14 +1052,14 @@ class Unpitched(Music):
     """An unpitched note, always has a Duration child."""
 
 
-class Rest(element.TextElement, Music):
+class Rest(Pitchable):
     r"""A rest (``r`` or ``R``).
 
     The Rest element has normally a ``r`` or ``R`` value. In the latter case
     it is a multi measure rest.
 
     But the head value can also be a pitch name, and there can be an Octave or
-    OctCheck child in this case; this means that is is a positioned rest (e.g.
+    OctCheck child in this case; this means that it is a positioned rest (e.g.
     ``c\rest``).
 
     """
