@@ -152,11 +152,14 @@ class PitchNameProcessor:
     def distill_preferences(self, pitchnames, language=None):
         """Iterate over the ``pitchnames`` and try to distill the preferred style.
 
-        Adjust the preferences based on the encountered pitches.
-        The default ``language`` is used if you don't specify one.
+        Adjust the preferences based on the encountered pitches. The default
+        ``language`` is used if you don't specify one.
+
+        This can be used to analyze existing music and use the same pitch name
+        preferences for newly entered music.
 
         If the pitchnames iterable contains a language name, that language is
-        followed to test following pitchnames. (The default language is not
+        followed to test following pitch names. (The default language is not
         changed.)
 
         """
@@ -176,30 +179,35 @@ class PitchNameProcessor:
             names = pitch_names[language]
             for name in pitchnames:
                 if name in names:
-                    if language in ("francais", "français"):
-                        if 'é' in name:
-                            prefer_accented = True
-                        elif not prefer_accented and 'e' in name:
-                            prefer_accented = False
+                    if language in ("nederlands", "norsk"):
+                        if name[:2] in {'es', 'as'}:
+                            prefer_classic = True
+                        elif not prefer_classic and name[:2] in {'ee', 'ae'}:
+                            prefer_classic = False
+                        if language == "norsk":
+                            if 'ss' in name:
+                                prefer_double_s = True
+                            elif not prefer_double_s and 's' in name:
+                                prefer_double_s = False
                     elif language == "english":
                         if '-' in name:
                             prefer_long = True
                         elif not prefer_long and names[name][1] in {-1, -0.5, 0.5, 1}:
                             prefer_long = False
-                    elif language == "norsk":
-                        if 'ss' in name:
-                            prefer_double_s = True
-                        elif not prefer_double_s and 's' in name:
-                            prefer_double_s = False
-                    elif language == "nederlands":
-                        if name in {'es', 'eses', 'as', 'ases'}:
-                            prefer_classic = True
-                        elif not prefer_classic and name in {'ees', 'eeses', 'aes', 'aeses'}:
-                            prefer_classic = False
+                    elif language in ("francais", "français"):
+                        if 'é' in name:
+                            prefer_accented = True
+                        elif not prefer_accented and 'e' in name:
+                            prefer_accented = False
                     elif language == "deutsch":
                         if name in {'eeh', 'ases', 'aseh', 'aeh'}:
                             prefer_deprecated = True
                         elif not prefer_deprecated and name in {'eh', 'asas', 'asah', 'ah'}:
+                            prefer_deprecated = False
+                    elif language == "suomi":
+                        if name in {'ases', 'bb', 'heses'}:
+                            prefer_deprecated = True
+                        elif not prefer_deprecated and name in {'asas', 'bes'}:
                             prefer_deprecated = False
                     if name.endswith('x'):
                         prefer_x = True
