@@ -22,7 +22,7 @@
 LilyPond language and transform definition.
 
 The LilyPond language definitions inherits from parce's one, just like the
-Scheme language definition in the :mod:`scheme` module.
+Scheme language definition in the :mod:`.scheme` module.
 
 A LilyPondTransform is able to transform the parce tree to a quickly.dom
 document. Many contexts are transformed in corresponding nodes. Musical
