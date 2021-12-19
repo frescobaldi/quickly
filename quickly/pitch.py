@@ -24,6 +24,7 @@ Classes and functions to deal with LilyPond pitches.
 
 
 import collections
+import contextlib
 
 import parce.util
 from parce.lang.lilypond_words import pitch_names
@@ -42,7 +43,31 @@ pitch_names_reversed = dict(_make_reverse_pitch_table())
 del _make_reverse_pitch_table
 
 
-class PitchNameProcessor:
+class Pitch:
+    """A pitch with ``note``, ``alter`` and ``octave`` attributes.
+
+    Attributes may be manipulated directly.
+
+    """
+    def __init__(self, note=0, alter=0, octave=0):
+        self.note = note
+        self.alter = alter
+        self.octave = octave
+
+    def copy(self):
+        """Return a new Pitch with our attributes."""
+        return type(self)(self.note, self.alter, self.octave)
+
+    def make_absolute(self, prev_pitch):
+        """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
+        self.octave += prev_pitch.octave - (self.note - prev_pitch.note + 3) // 7
+
+    def make_relative(self, prev_pitch):
+        """Make ourselves relative, i.e. change our octave from ``prev_pitch``."""
+        self.octave -= prev_pitch.octave - (self.note - prev_pitch.note + 3) // 7
+
+
+class PitchProcessor:
     """Read and write pitch names in all LilyPond languages.
 
     The language to use by default can be set in the ``language`` attribute;
@@ -99,40 +124,35 @@ class PitchNameProcessor:
         """.format(langs = ", ".join('``"{}"``'.format(name)
             for name in sorted(pitch_names)))
 
-    def read(self, name, language=None):
+    def read(self, name):
         """Returns ``(note, alter)`` for the specified note name.
-
-        The default ``language`` is used if you don't specify one.
 
         Raises a :obj:`KeyError` if the language does not know the pitch name,
         or when the language name is unknown.
 
         For example::
 
-            >>> from quickly.pitch import PitchNameProcessor
-            >>> p=PitchNameProcessor()
+            >>> from quickly.pitch import PitchProcessor
+            >>> p=PitchProcessor()
             >>> p.read('cis')
             (0, 0.5)
 
         """
-        return pitch_names[language or self._language][name]
+        return pitch_names[self._language][name]
 
-    def write(self, note, alter=0, language=None):
+    def write(self, note, alter=0):
         """Return a pitch name for the specified note and alter.
 
         The ``note`` is a value in the range 0..6, and ``alter`` a value
         between -1 and 1. Most used alterations are -1, -0.5, 0, 0.5 and 1, but
         some languages also support quarter tones, like 0.25.
 
-        The default ``language`` is used if you don't specify one.
-
-        Raises a :obj:`KeyError` if the language does not contain a pitch name,
-        or when the language name is unknown.
+        Raises a :obj:`KeyError` if the language does not contain a pitch name.
 
         For example::
 
-            >>> from quickly.pitch import PitchNameProcessor
-            >>> p=PitchNameProcessor()
+            >>> from quickly.pitch import PitchProcessor
+            >>> p=PitchProcessor()
             >>> p.write(0)
             'c'
             >>> p.write(4, 1)
@@ -144,29 +164,25 @@ class PitchNameProcessor:
             'g-sharpsharp'
 
         """
-        names = pitch_names_reversed[language or self._language][note, alter]
+        names = pitch_names_reversed[self._language][note, alter]
         if len(names) == 1:
             return names[0]
-        return self._suitable(language, names) or names[-1]
+        return self._suitable(self._language, names) or names[-1]
 
-    def distill_preferences(self, pitchnames, language=None):
-        """Iterate over the ``pitchnames`` and try to distill the preferred style.
+    def distill_preferences(self, names):
+        """Iterate over the ``names`` and try to distill the preferred style.
 
-        Adjust the preferences based on the encountered pitches. The default
-        ``language`` is used if you don't specify one.
+        Adjust the preferences based on the encountered pitch names.
 
         This can be used to analyze existing music and use the same pitch name
         preferences for newly entered music.
 
-        If the pitchnames iterable contains a language name, that language is
+        If the names iterable contains a language name, that language is
         followed to test following pitch names. (The default language is not
         changed.)
 
         """
-        if not language:
-            language = self._language
-
-        pitchnames = iter(pitchnames)
+        language = self._language
 
         prefer_accented = None
         prefer_classic = None
@@ -175,51 +191,48 @@ class PitchNameProcessor:
         prefer_x = None
         prefer_deprecated = None
 
-        while True:
-            names = pitch_names[language]
-            for name in pitchnames:
-                if name in names:
-                    if language in ("nederlands", "norsk"):
-                        if name[:2] in {'es', 'as'}:
-                            prefer_classic = True
-                        elif not prefer_classic and name[:2] in {'ee', 'ae'}:
-                            prefer_classic = False
-                        if language == "norsk":
-                            if 'ss' in name:
-                                prefer_double_s = True
-                            elif not prefer_double_s and 's' in name:
-                                prefer_double_s = False
-                    elif language == "english":
-                        if '-' in name:
-                            prefer_long = True
-                        elif not prefer_long and names[name][1] in {-1, -0.5, 0.5, 1}:
-                            prefer_long = False
-                    elif language in ("francais", "français"):
-                        if 'é' in name:
-                            prefer_accented = True
-                        elif not prefer_accented and 'e' in name:
-                            prefer_accented = False
-                    elif language == "deutsch":
-                        if name in {'eeh', 'ases', 'aseh', 'aeh'}:
-                            prefer_deprecated = True
-                        elif not prefer_deprecated and name in {'eh', 'asas', 'asah', 'ah'}:
-                            prefer_deprecated = False
-                    elif language == "suomi":
-                        if name in {'ases', 'bb', 'heses'}:
-                            prefer_deprecated = True
-                        elif not prefer_deprecated and name in {'asas', 'bes'}:
-                            prefer_deprecated = False
-                    if name.endswith('x'):
-                        prefer_x = True
-                    elif not prefer_x and (
-                               (name.endswith('ss') and language in ("english", "espanol", "español"))
-                            or (name.endswith('dd') and language in ("francais", "français"))):
-                        prefer_x = False
-                elif name in pitch_names:
-                    language = name
-                    break
-            else:
-                break   # all names checked
+        pnames = pitch_names[language]
+        for name in names:
+            if name in pnames:
+                if language in ("nederlands", "norsk"):
+                    if name[:2] in {'es', 'as'}:
+                        prefer_classic = True
+                    elif not prefer_classic and name[:2] in {'ee', 'ae'}:
+                        prefer_classic = False
+                    if language == "norsk":
+                        if 'ss' in name:
+                            prefer_double_s = True
+                        elif not prefer_double_s and 's' in name:
+                            prefer_double_s = False
+                elif language == "english":
+                    if '-' in name:
+                        prefer_long = True
+                    elif not prefer_long and pnames[name][1] in {-1, -0.5, 0.5, 1}:
+                        prefer_long = False
+                elif language in ("francais", "français"):
+                    if 'é' in name:
+                        prefer_accented = True
+                    elif not prefer_accented and 'e' in name:
+                        prefer_accented = False
+                elif language == "deutsch":
+                    if name in {'eeh', 'ases', 'aseh', 'aeh'}:
+                        prefer_deprecated = True
+                    elif not prefer_deprecated and name in {'eh', 'asas', 'asah', 'ah'}:
+                        prefer_deprecated = False
+                elif language == "suomi":
+                    if name in {'ases', 'bb', 'heses'}:
+                        prefer_deprecated = True
+                    elif not prefer_deprecated and name in {'asas', 'bes'}:
+                        prefer_deprecated = False
+                if name.endswith('x'):
+                    prefer_x = True
+                elif not prefer_x and (
+                           (name.endswith('ss') and language in ("english", "espanol", "español"))
+                        or (name.endswith('dd') and language in ("francais", "français"))):
+                    prefer_x = False
+            elif name in pitch_names:
+                language = name
+                pnames = pitch_names[language]
 
         if prefer_accented is not None:
             self.prefer_accented = prefer_accented
@@ -233,6 +246,37 @@ class PitchNameProcessor:
             self.prefer_x = prefer_x
         if prefer_deprecated is not None:
             self.prefer_deprecated = prefer_deprecated
+
+    @contextlib.contextmanager
+    def pitch(self, node):
+        """Return a context manager that yields a :class:`Pitch` when entered.
+
+        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
+        :class:`~.dom.lily.Rest`). You can manipulate the Pitch, and when done,
+        the node will be updated. An example::
+
+            >>> from quickly.pitch import PitchProcessor
+            >>> from quickly.dom import lily
+            >>> n = lily.Note('c')
+            >>> p = PitchProcessor()
+            >>> with p.pitch(n) as pitch:
+            ...     pitch.note += 2
+            ...     pitch.alter = 0.5
+            ...     pitch.octave += 1
+            ...
+            >>> n.write()
+            "eis'"
+            >>> n.dump()
+            <lily.Note 'eis' (1 child)>
+             ╰╴<lily.Octave 1>
+
+
+        """
+        note, alter = self.read(node.head)
+        p = Pitch(note, alter, node.octave)
+        yield p
+        node.head = self.write(p.note, p.alter)
+        node.octave = p.octave
 
     _suitable = parce.util.Dispatcher()
 

@@ -29,34 +29,36 @@ import sys
 sys.path.insert(0, '.')
 
 import quickly
-from quickly.pitch import PitchNameProcessor, num_to_octave, octave_to_num
-
+from quickly.pitch import PitchProcessor, num_to_octave, octave_to_num
+from quickly.dom import read, lily
 
 
 def test_main():
     """Main test function."""
 
-    p = PitchNameProcessor()
+    p = PitchProcessor()
     assert 'c' == p.write(0)
     assert 'cis' == p.write(0, 0.5)
 
-    assert 'cs' == p.write(0, 0.5, 'english')
+    p.language = 'english'
+    assert 'cs' == p.write(0, 0.5)
     p.prefer_long = True
-    assert 'c-sharp' == p.write(0, 0.5, 'english')
+    assert 'c-sharp' == p.write(0, 0.5)
 
-    p.prefer_accented = True
-    assert 'ré' == p.write(1, 0, 'francais')
-    assert 'ré' == p.write(1, 0, 'français')
+    for language in 'francais', 'français':
+        p.language = language
+        p.prefer_accented = True
+        assert 'ré' == p.write(1, 0)
 
-    p.prefer_x = True
-    assert 'réx' == p.write(1, 1, 'francais')
-    p.prefer_x = False
-    assert 'rédd' == p.write(1, 1, 'francais')
-    p.prefer_accented = False
-    p.prefer_x = True
-    assert 'rex' == p.write(1, 1, 'francais')
-    p.prefer_x = False
-    assert 'redd' == p.write(1, 1, 'francais')
+        p.prefer_x = True
+        assert 'réx' == p.write(1, 1)
+        p.prefer_x = False
+        assert 'rédd' == p.write(1, 1)
+        p.prefer_accented = False
+        p.prefer_x = True
+        assert 'rex' == p.write(1, 1)
+        p.prefer_x = False
+        assert 'redd' == p.write(1, 1)
 
     with pytest.raises(KeyError):
         p.language = "does_not_exist"
@@ -68,43 +70,53 @@ def test_main():
     assert p.language == "nederlands"
     assert p.read('dis') == (1, 0.5)
 
-    assert p.read('réx', 'francais') == (1, 1)
-    assert p.read('rex', 'francais') == (1, 1)
-    assert p.read('rédd', 'francais') == (1, 1)
-    assert p.read('redd', 'francais') == (1, 1)
+    p.language = 'francais'
+    assert p.read('réx') == (1, 1)
+    assert p.read('rex') == (1, 1)
+    assert p.read('rédd') == (1, 1)
+    assert p.read('redd') == (1, 1)
 
     # distill prefs
-    w = PitchNameProcessor()
-    w.distill_preferences(['es', 'g'])
-    assert w.prefer_classic == True
-    w.distill_preferences(['ees', 'g'])
-    assert w.prefer_classic == False
+    p = PitchProcessor()
+    p.distill_preferences(['es', 'g'])
+    assert p.prefer_classic == True
+    p.distill_preferences(['ees', 'g'])
+    assert p.prefer_classic == False
 
     # a non-specific note does not change the pref
-    w.distill_preferences(['fis', 'g'])
-    assert w.prefer_classic == False
-    w.prefer_classic = True
-    w.distill_preferences(['fis', 'g'])
-    assert w.prefer_classic == True
+    p.distill_preferences(['fis', 'g'])
+    assert p.prefer_classic == False
+    p.prefer_classic = True
+    p.distill_preferences(['fis', 'g'])
+    assert p.prefer_classic == True
 
     # one note changes two prefs
-    w = PitchNameProcessor()
-    w.language = "francais"
-    w.prefer_x = False
-    w.prefer_accented = False
-    w.distill_preferences(['réx'])
-    assert w.prefer_x == True
-    assert w.prefer_accented == True
+    p = PitchProcessor()
+    p.language = "francais"
+    p.prefer_x = False
+    p.prefer_accented = False
+    p.distill_preferences(['réx'])
+    assert p.prefer_x == True
+    assert p.prefer_accented == True
 
     # unaccented pref set back
-    w.distill_preferences(['red'])
-    assert w.prefer_x == True
-    assert w.prefer_accented == False
+    p.distill_preferences(['red'])
+    assert p.prefer_x == True
+    assert p.prefer_accented == False
 
     # x pref set back
-    w.distill_preferences(['redd'])
-    assert w.prefer_x == False
-    assert w.prefer_accented == False
+    p.distill_preferences(['redd'])
+    assert p.prefer_x == False
+    assert p.prefer_accented == False
+
+    # node editing
+    pp = PitchProcessor()
+    n = lily.Note('c', octave=2)
+    with pp.pitch(n) as p:
+        p.note += 2
+        p.octave = 1
+    assert n.head == 'e'
+    assert n.octave == 1
 
 
     # other functions

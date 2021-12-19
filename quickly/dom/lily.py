@@ -332,7 +332,7 @@ class Spanner(element.MappingElement):
             <lily.Slur 'stop' [24:25]>
 
         """
-        upto = next(self << (Assignment, New, Document), None)
+        upto = next(self << (Assignment, New, Document, Score), None)
         nodes = self.forward(upto) if self.head == "start" else self.backward(upto)
         if limit:
             nodes = itertools.islice(nodes, limit)
@@ -2064,21 +2064,67 @@ class Version(element.HeadElement, Music):
 
 
 class Language(element.HeadElement):
-    r"""The ``\language`` command."""
+    r"""The ``\language`` command.
+
+    Has a :class:`String` child with the language name, which can be
+    conveniently edited via the :attr:`language` attribute.
+
+    """
     _space_after_head = _space_between = " "
     head = r'\language'
 
     def signatures(self):
         yield String,
 
+    @property
+    def language(self):
+        """The language."""
+        for n in self / String:
+            return n.head
+
+    @language.setter
+    def language(self, language):
+        for n in self / String:
+            n.head = language
+            return
+        self.insert(0, String(language))
+
 
 class Include(element.HeadElement):
-    r"""The ``\include`` command."""
+    r"""The ``\include`` command.
+
+    You can use the :attr:``language`` attribute, assuming that the included
+    file is a language definition file. If the filename is not recognized as a
+    language definition file, the property will return None.
+
+    """
     _space_after_head = _space_between = " "
     head = r'\include'
 
     def signatures(self):
         yield String,
+
+    @property
+    def language(self):
+        """The language, if the filename refers to a known language definition.
+
+        Setting the attribute appends the ``".ly"`` automatically.
+
+        """
+        from .. import pitch
+        for n in self / String:
+            if n.head.endswith(".ly"):
+                language = n.head[:-3]
+                if language in pitch.pitch_names:
+                    return language
+
+    @language.setter
+    def language(self, language):
+        filename = language + ".ly"
+        for n in self / String:
+            n.head = filename
+            return
+        self.insert(0, String(filename))
 
 
 class VoiceN(element.MappingElement):
