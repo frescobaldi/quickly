@@ -365,3 +365,26 @@ def octave_to_num(octave):
     return octave.count("'") - octave.count(",")
 
 
+def determine_language(names):
+    """Yield the language names that have all the specified pitch names.
+
+    This can be used to auto-determine the language of music if the language
+    name somehow is not set in a file. Just harvest all the pitch names and
+    call this function. The pitch names ``"r"``, ``"R"``, ``"s"`` and ``"q"``
+    are ignored. For example::
+
+        >>> from quickly.pitch import determine_language
+        >>> list(determine_language(['c', 'd', 'es', 'fis', 'bis']))
+        ['nederlands']
+        >>> list(determine_language(['c', 'do']))
+        []  # ambiguous
+
+    """
+    langs = ["nederlands", "english", "deutsch", "francais", "italiano"]
+    langs.extend(sorted(set(pitch_names) - set(langs) - {'français', 'español'}))
+    names = set(names) - set('rRsq') # remove language-agnostic names ;-)
+    for language in langs:
+        if not names - set(pitch_names[language]):
+            yield language
+
+
