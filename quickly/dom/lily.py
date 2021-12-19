@@ -168,7 +168,6 @@ class Document(HandleAssignments, base.Document):
 
     @version.setter
     def version(self, version):
-        """Set the version, as a tuple of ints."""
         version = '.'.join(map(str, version))
         for v in self//Version:
             for s in v/String:
@@ -1089,16 +1088,6 @@ class Drum(element.TextElement, Music):
     """A drum note."""
 
 
-class RestModifier(element.HeadElement):
-    r"""A ``\rest`` command after a note.
-
-    Is a child of a Rest element that has a pitch name and possibly
-    octave information instead of plain "r".
-
-    """
-    head = r'\rest'
-
-
 class Accidental(element.MappingElement):
     """The accidental after a note.
 
@@ -1160,8 +1149,8 @@ class Duration(element.TextElement):
     """A duration after a note.
 
     To the constructor the duration is specified using a numerical value, which
-    can be a Fraction. A whole note is 1, a breve 2, etc; a quarter note or
-    crotchet 1/4, etc.
+    can be a :class:`~fractions.Fraction`. A whole note is 1, a breve 2, etc; a
+    quarter note or crotchet 1/4, etc.
 
     The value must be expressable (is that English?:-) in a length value
     and zero or more dots. Examples::
@@ -1178,8 +1167,10 @@ class Duration(element.TextElement):
 
     """
     def duration(self):
-        """Return our duration value, including scaling if a DurationScaling
-        child is present. """
+        """Return our duration value, including scaling if a
+        :class:`DurationScaling` child is present.
+
+        """
         duration = self.head
         for e in self / DurationScaling:
             duration *= e.head
@@ -1197,7 +1188,7 @@ class Duration(element.TextElement):
 
 
 class DurationScaling(element.TextElement):
-    """An optional scaling after a Duration.
+    """An optional scaling after a :class:`Duration`.
 
     E.g. ``*1/2``. May be read from multiple ``*n/m`` parts, but always outputs
     a single ``*n/d`` value, or ``*n`` when the denominator is 1. To the
@@ -1306,6 +1297,15 @@ class Modifier(base.BackslashCommand):
     The backslash is not in the head value.
 
     """
+
+class RestModifier(element.HeadElement):
+    r"""A ``\rest`` command after a note.
+
+    Is a child of a Rest element that has a pitch name and possibly
+    octave information instead of plain "r".
+
+    """
+    head = r'\rest'
 
 
 class Fingering(element.TextElement):
