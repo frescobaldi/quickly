@@ -25,6 +25,7 @@ Elements needed for LilyPond expressions.
 
 import collections
 import fractions
+import itertools
 import re
 
 from .. import duration, pitch
@@ -292,13 +293,17 @@ class Spanner(element.MappingElement):
         cls.mapping = {cls.spanner_start: "start", cls.spanner_stop: "stop"}
         super().__init_subclass__(**kwargs)
 
-    def find_parallel(self):
+    def find_parallel(self, limit=0):
         r"""Try to find the other end of this spanner. May return None.
+
+        The ``limit`` can be used to restrict the number of nodes searched,
+        e.g. to prevent slowness in text editors that do not need to highlight
+        items far offscreen.
 
         For example::
 
             >>> from quickly.dom import lily, read
-            >>> n=read.lily(r"{ c\=1( d e f g\=2) a\=1) }", True)
+            >>> n = read.lily(r"{ c\=1( d e f g\=2) a\=1) }", True)
             >>> n.dump()
             <lily.MusicList (6 children) [0:27]>
              ├╴<lily.Note 'c' (1 child) [2:3]>
@@ -326,7 +331,13 @@ class Spanner(element.MappingElement):
             <lily.Slur 'stop' [24:25]>
 
         """
-        search = self > type(self) if self.head == 'start' else self < type(self)
+        search = self.forward() if self.head == "start" else self.backward()
+        if limit:
+            search = itertools.islice(search, limit)
+        cls = type(self)
+        head = self.head
+        pred = lambda n: type(n) is cls and n.head != head
+        search = filter(pred, search)
         if isinstance(self.parent, SpannerId):
             spanner_id = self.left_sibling
             if spanner_id:

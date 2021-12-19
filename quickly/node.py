@@ -426,7 +426,7 @@ class Node(list):
                     yield from n.descendants()
             node = node.parent
 
-    def backward(self, other=None):
+    def backward(self):
         """Iterate backward from this Node, starting with the left sibling."""
         node = self
         while node.parent:
