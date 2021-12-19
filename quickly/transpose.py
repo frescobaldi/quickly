@@ -74,3 +74,23 @@ class Transposer(AbstractTransposer):
             pitch.note = note
 
 
+def transpose_node(
+        node,
+        transposer,
+        pitch_processor = None,
+        writable = None,
+        relative_first_pitch_absolute = False,
+    ):
+    """Transpose pitches using the specified transposer.
+
+    If ``relative_first_pitch_absolute`` is True, the first pitch in a
+    ``\\relative`` expression is considered to be absolute, when a startpitch
+    is not given. This is LilyPond >= 2.18 behaviour.
+
+    If relative_first_pitch_absolute is False, the first pitch in a
+    ``\\relative`` expression is considered to be relative to c', is no
+    startpitch is given. This is LilyPond < 2.18 behaviour.
+
+    Currently, relative_first_pitch_absolute defaults to False.
+
+    """

@@ -35,7 +35,7 @@ from quickly.transpose import Transposer
 from quickly.dom import read, lily
 
 
-def test_pitch():
+def check_pitch():
     """Test pitch manipulations."""
     p = PitchProcessor()
     assert 'c' == p.write(0)
@@ -92,8 +92,7 @@ def test_pitch():
     assert p.prefer_classic == True
 
     # one note changes two prefs
-    p = PitchProcessor()
-    p.language = "francais"
+    p = PitchProcessor("francais")
     p.prefer_x = False
     p.prefer_accented = False
     p.distill_preferences(['réx'])
@@ -143,7 +142,7 @@ def test_pitch():
         ['francais']    # r is ignored, ré with accent is francais
 
 
-def test_transpose():
+def check_transpose():
     """Test Transposer."""
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
     p = Pitch(0, 0, 0)
@@ -154,10 +153,12 @@ def test_transpose():
     t.transpose(p)
     assert p == Pitch(1, 0.5, 1)
 
+
 def test_main():
     """Main test function."""
-    test_pitch()
-    test_transpose()
+    check_pitch()
+    check_transpose()
+
 
 if __name__ == "__main__" and 'test_main' in globals():
     test_main()

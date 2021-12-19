@@ -64,6 +64,21 @@ class Pitch:
         self.alter = alter
         self.octave = octave
 
+    @classmethod
+    def c1(cls):
+        """Return a pitch ``c'``."""
+        return cls(octave=1)
+
+    @classmethod
+    def c0(cls):
+        """Return a pitch ``c``."""
+        return cls()
+
+    @classmethod
+    def f0(cls):
+        """Return a pitch ``f``."""
+        return cls(3)
+
     def __repr__(self):
         try:
             name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + num_to_octave(self.octave)
@@ -147,6 +162,10 @@ class PitchProcessor:
 
     _language = "nederlands"
 
+    def __init__(self, language=None):
+        if language:
+            self.language = language
+
     @property
     def language(self):
         return self._language
@@ -217,6 +236,75 @@ class PitchProcessor:
         if len(names) == 1:
             return names[0]
         return self._suitable(self._language, names) or names[-1]
+
+    def read_node(self, node):
+        """Return a Pitch, initialized from the node.
+
+        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
+        :class:`~.dom.lily.Rest`). For example::
+
+            >>> from quickly.pitch import PitchProcessor
+            >>> from quickly.dom import lily
+            >>> n = lily.Note('re')
+            >>> p = PitchProcessor('français')
+            >>> p.read_node(n)
+            <Pitch note=1, alter=0, octave=0 (d)>
+
+        """
+        note, alter = self.read(node.head)
+        return Pitch(note, alter, node.octave)
+
+    def write_node(self, node, pitch):
+        """Write the Pitch's note, alter and octave to the node.
+
+        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
+        :class:`~.dom.lily.Rest`). Example::
+
+            >>> from quickly.pitch import Pitch, PitchProcessor
+            >>> from quickly.dom import lily
+            >>> n = lily.Note('c')
+            >>> p = PitchProcessor()
+            >>> p.write_node(n, Pitch(1, 0.5, 2))
+            >>> n.dump()
+            <lily.Note 'dis' (1 child)>
+             ╰╴<lily.Octave 2>
+
+        """
+        node.head = self.write(pitch.note, pitch.alter)
+        node.octave = pitch.octave
+
+    @contextlib.contextmanager
+    def pitch(self, node, write=True):
+        """Return a context manager that yields a :class:`Pitch` when entered.
+
+        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
+        :class:`~.dom.lily.Rest`). You can manipulate the Pitch, and when done,
+        the node will be updated. An example::
+
+            >>> from quickly.pitch import PitchProcessor
+            >>> from quickly.dom import lily
+            >>> n = lily.Note('c')
+            >>> p = PitchProcessor()
+            >>> with p.pitch(n) as pitch:
+            ...     pitch.note += 2
+            ...     pitch.alter = 0.5
+            ...     pitch.octave += 1
+            ...
+            >>> n.write()
+            "eis'"
+            >>> n.dump()
+            <lily.Note 'eis' (1 child)>
+             ╰╴<lily.Octave 1>
+
+        If you set the ``write`` parameter to False on invocation, the pitch
+        changes will not be written back to the DOM node, this enables you to
+        e.g. apply changes only within a certain range.
+
+        """
+        p = self.read_node(node)
+        yield p
+        if write:
+            self.write_node(node, p)
 
     def distill_preferences(self, names):
         """Iterate over the ``names`` and try to distill the preferred style.
@@ -296,36 +384,6 @@ class PitchProcessor:
             self.prefer_x = prefer_x
         if prefer_deprecated is not None:
             self.prefer_deprecated = prefer_deprecated
-
-    @contextlib.contextmanager
-    def pitch(self, node):
-        """Return a context manager that yields a :class:`Pitch` when entered.
-
-        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
-        :class:`~.dom.lily.Rest`). You can manipulate the Pitch, and when done,
-        the node will be updated. An example::
-
-            >>> from quickly.pitch import PitchProcessor
-            >>> from quickly.dom import lily
-            >>> n = lily.Note('c')
-            >>> p = PitchProcessor()
-            >>> with p.pitch(n) as pitch:
-            ...     pitch.note += 2
-            ...     pitch.alter = 0.5
-            ...     pitch.octave += 1
-            ...
-            >>> n.write()
-            "eis'"
-            >>> n.dump()
-            <lily.Note 'eis' (1 child)>
-             ╰╴<lily.Octave 1>
-
-        """
-        note, alter = self.read(node.head)
-        p = Pitch(note, alter, node.octave)
-        yield p
-        node.head = self.write(p.note, p.alter)
-        node.octave = p.octave
 
     _suitable = parce.util.Dispatcher()
 
