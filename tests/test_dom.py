@@ -35,7 +35,7 @@ import fractions
 
 from parce.transform import transform_text
 from quickly.lang import html, lilypond, scheme, latex
-from quickly.dom import htm, lily, scm, tex
+from quickly.dom import htm, lily, scm, tex, read
 
 
 def check_output(root_lexicon, text, tree):
@@ -50,11 +50,29 @@ def check_output(root_lexicon, text, tree):
     return tree.equals(tree2) and tree.equals(transform_text(root_lexicon, tree.write()))
 
 
+def check_spanners():
+    """Test various spanner features."""
+    # find slur end with spanner id 1
+    n = read.lily(r"{ c\=1( d e f g\=2) a\=1) }", True)
+    slur = n.find_descendant(6)
+    assert slur.find_parallel().pos == 24
+
+    # find slur end with no spanner id
+    n = read.lily(r"{ c( d e f g\=2) a) }", True)
+    slur = n.find_descendant(3)
+    assert slur.find_parallel().pos == 18
+
+    # does not look outside music assignment
+    n = read.lily_document(r"music = { c\=1( d e f } bmusic= { g\=2) a\=1) }", True)
+    slur = n.find_descendant(15)
+    assert slur.find_parallel() is None
 
 
 
 
 def test_main():
+
+    check_spanners()
 
     assert check_output(
         lilypond.LilyPond.root, "{c4}",

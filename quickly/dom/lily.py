@@ -296,7 +296,8 @@ class Spanner(element.MappingElement):
     def find_parallel(self, limit=0):
         r"""Try to find the other end of this spanner. May return None.
 
-        The ``limit`` can be used to restrict the number of nodes searched,
+        Does not look outside of the current New or Assignment node. The
+        ``limit`` can be used to further restrict the number of nodes searched,
         e.g. to prevent slowness in text editors that do not need to highlight
         items far offscreen.
 
@@ -331,19 +332,21 @@ class Spanner(element.MappingElement):
             <lily.Slur 'stop' [24:25]>
 
         """
-        search = self.forward() if self.head == "start" else self.backward()
+        upto = next(self << (Assignment, New, Document), None)
+        search = self.forward(upto) if self.head == "start" else self.backward(upto)
         if limit:
             search = itertools.islice(search, limit)
         cls = type(self)
         head = self.head
-        pred = lambda n: type(n) is cls and n.head != head
-        search = filter(pred, search)
-        if isinstance(self.parent, SpannerId):
-            spanner_id = self.left_sibling
-            if spanner_id:
-                pred = lambda n: isinstance(n.parent, SpannerId) and spanner_id.equals(n.left_sibling)
-                search = filter(pred, search)
-        for n in search:
+        predicate = lambda n: type(n) is cls and n.head != head
+        search = filter(predicate, search)
+
+        spanner_id = self.left_sibling() if isinstance(self.parent, SpannerId) else None
+        if spanner_id:
+            predicate = lambda n: isinstance(n.parent, SpannerId) and spanner_id.equals(n.left_sibling())
+        else:
+            predicate = lambda n: not isinstance(n.parent, SpannerId)
+        for n in filter(predicate, search):
             return n
 
 

@@ -189,13 +189,16 @@ class Node(list):
 
     @property
     def parent(self):
-        """Return the parent Node or None; uses a weak reference."""
+        """The parent Node or None; uses a weak reference."""
         return self._parent()
 
     @parent.setter
     def parent(self, node):
-        """Set the parent to Node node or None."""
         self._parent = _NO_PARENT if node is None else weakref.ref(node)
+
+    @parent.deleter
+    def parent(self):
+        self._parent = _NO_PARENT
 
     def append(self, node):
         """Append node to this node; the parent is set to this node."""
@@ -339,39 +342,28 @@ class Node(list):
                 return n
 
     def ancestors(self):
-        """Climb up the tree over the parents."""
+        """Yield the parent, then the parent's parent, etcetera."""
         n = self.parent
         while n:
             yield n
             n = n.parent
 
-    def descendants(self):
-        """Iterate over all the descendants of this node."""
-        stack = []
-        gen = iter(self)
-        while True:
-            for node in gen:
-                yield node
-                if len(node):
-                    stack.append(gen)
-                    gen = iter(node)
-                    break
-            else:
-                if stack:
-                    gen = stack.pop()
-                else:
-                    break
+    def descendants(self, reverse=False):
+        """Iterate over all the descendants of this node.
 
-    def descendants_backward(self):
-        """Iterate over all the descendants of this node in backward direction."""
+        If ``reverse`` is set to True, yields all descendants in backward
+        direction.
+
+        """
+        iterate = reversed if reverse else iter
         stack = []
-        gen = reversed(self)
+        gen = iterate(self)
         while True:
             for node in gen:
                 yield node
                 if len(node):
                     stack.append(gen)
-                    gen = reversed(node)
+                    gen = iterate(node)
                     break
             else:
                 if stack:
@@ -400,7 +392,6 @@ class Node(list):
             i = p.index(self)
             yield from reversed(p[:i])
 
-    @property
     def right_sibling(self):
         """The right sibling, if any."""
         p = self.parent
@@ -408,7 +399,6 @@ class Node(list):
             i = p.index(self)
             return p[i+1]
 
-    @property
     def left_sibling(self):
         """The left sibling, if any."""
         p = self.parent
@@ -416,24 +406,34 @@ class Node(list):
             i = p.index(self)
             return p[i-1]
 
-    def forward(self):
-        """Iterate forward from this Node, starting with the right sibling."""
+    def forward(self, upto=None):
+        """Iterate forward from this Node, starting with the right sibling.
+
+        If you specify an ancestor node ``upto``, will not go outside that
+        node.
+
+        """
         node = self
-        while node.parent:
+        while node.parent and node is not upto:
             for n in node.right_siblings():
                 yield n
                 if len(n):
                     yield from n.descendants()
             node = node.parent
 
-    def backward(self):
-        """Iterate backward from this Node, starting with the left sibling."""
+    def backward(self, upto=None):
+        """Iterate backward from this Node, starting with the left sibling.
+
+        If you specify an ancestor node ``upto``, will not go outside that
+        node.
+
+        """
         node = self
-        while node.parent:
+        while node.parent and node is not upto:
             for n in node.left_siblings():
                 yield n
                 if len(n):
-                    yield from n.descendants_backward()
+                    yield from n.descendants(reverse=True)
             node = node.parent
 
     def depth(self):
