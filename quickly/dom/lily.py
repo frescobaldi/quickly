@@ -292,6 +292,49 @@ class Spanner(element.MappingElement):
         cls.mapping = {cls.spanner_start: "start", cls.spanner_stop: "stop"}
         super().__init_subclass__(**kwargs)
 
+    def find_parallel(self):
+        r"""Try to find the other end of this spanner. May return None.
+
+        For example::
+
+            >>> from quickly.dom import lily, read
+            >>> n=read.lily(r"{ c\=1( d e f g\=2) a\=1) }", True)
+            >>> n.dump()
+            <lily.MusicList (6 children) [0:27]>
+             ├╴<lily.Note 'c' (1 child) [2:3]>
+             │  ╰╴<lily.Articulations (1 child)>
+             │     ╰╴<lily.SpannerId (2 children) [3:5]>
+             │        ├╴<lily.Int 1 [5:6]>
+             │        ╰╴<lily.Slur 'start' [6:7]>
+             ├╴<lily.Note 'd' [8:9]>
+             ├╴<lily.Note 'e' [10:11]>
+             ├╴<lily.Note 'f' [12:13]>
+             ├╴<lily.Note 'g' (1 child) [14:15]>
+             │  ╰╴<lily.Articulations (1 child)>
+             │     ╰╴<lily.SpannerId (2 children) [15:17]>
+             │        ├╴<lily.Int 2 [17:18]>
+             │        ╰╴<lily.Slur 'stop' [18:19]>
+             ╰╴<lily.Note 'a' (1 child) [20:21]>
+                ╰╴<lily.Articulations (1 child)>
+                   ╰╴<lily.SpannerId (2 children) [21:23]>
+                      ├╴<lily.Int 1 [23:24]>
+                      ╰╴<lily.Slur 'stop' [24:25]>
+            >>> slur = n.find_descendant(6)
+            >>> slur
+            <lily.Slur 'start' [6:7]>
+            >>> slur.find_parallel()
+            <lily.Slur 'stop' [24:25]>
+
+        """
+        search = self > type(self) if self.head == 'start' else self < type(self)
+        if isinstance(self.parent, SpannerId):
+            spanner_id = self.left_sibling
+            if spanner_id:
+                pred = lambda n: isinstance(n.parent, SpannerId) and spanner_id.equals(n.left_sibling)
+                search = filter(pred, search)
+        for n in search:
+            return n
+
 
 class Block(HandleAssignments, element.BlockElement):
     """Base class for a block, e.g. score, paper, etc.
