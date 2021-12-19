@@ -114,7 +114,7 @@ class PitchProcessor:
         self._language = "nederlands"
 
     language.__doc__ = \
-        """The language to use if none is specified (default: ``"nederlands"``).
+        """The language to use (default: ``"nederlands"``).
 
         Deleting this attribute sets it back to ``"nederlands"``.
 
@@ -177,9 +177,10 @@ class PitchProcessor:
         This can be used to analyze existing music and use the same pitch name
         preferences for newly entered music.
 
-        If the names iterable contains a language name, that language is
-        followed to test following pitch names. (The default language is not
-        changed.)
+        The ``names`` iterable may be a set but also an ordered sequence or
+        generator. If a name is encountered that is a language name, that
+        language is followed to test following pitch names. (The ``language``
+        attribute is not changed.)
 
         """
         language = self._language

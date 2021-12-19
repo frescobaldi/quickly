@@ -29,7 +29,8 @@ import sys
 sys.path.insert(0, '.')
 
 import quickly
-from quickly.pitch import PitchProcessor, num_to_octave, octave_to_num
+from quickly.pitch import (
+    PitchProcessor, num_to_octave, octave_to_num, determine_language)
 from quickly.dom import read, lily
 
 
@@ -125,6 +126,17 @@ def test_main():
     assert octave_to_num(",") == -1
     assert octave_to_num("''") == 2
     assert octave_to_num("',") == 0
+
+    assert list(determine_language(['c', 'd', 'e', 'f', 'g'])) == \
+        ['nederlands', 'english', 'deutsch', 'norsk', 'suomi', 'svenska']
+    assert list(determine_language(['c', 'd', 'es', 'f', 'g'])) == \
+        ['nederlands', 'english', 'deutsch', 'norsk', 'suomi']
+    assert list(determine_language(['c', 'd', 'es', 'fis', 'g', 'bis'])) == \
+        ['nederlands']
+    assert list(determine_language(['c', 'do'])) == [] # ambiguous
+    assert list(determine_language(['do', 'ré', 'r'])) == \
+        ['francais']    # r is ignored, ré with accent is francais
+
 
 
 if __name__ == "__main__" and 'test_main' in globals():
