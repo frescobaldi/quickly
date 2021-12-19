@@ -333,20 +333,19 @@ class Spanner(element.MappingElement):
 
         """
         upto = next(self << (Assignment, New, Document), None)
-        search = self.forward(upto) if self.head == "start" else self.backward(upto)
+        nodes = self.forward(upto) if self.head == "start" else self.backward(upto)
         if limit:
-            search = itertools.islice(search, limit)
-        cls = type(self)
-        head = self.head
-        predicate = lambda n: type(n) is cls and n.head != head
-        search = filter(predicate, search)
+            nodes = itertools.islice(nodes, limit)
+        cls, head = type(self), self.head
+        parallel = lambda n: type(n) is cls and n.head != head
 
         spanner_id = self.left_sibling() if isinstance(self.parent, SpannerId) else None
         if spanner_id:
-            predicate = lambda n: isinstance(n.parent, SpannerId) and spanner_id.equals(n.left_sibling())
+            spanner_ok = lambda n: isinstance(n.parent, SpannerId) and spanner_id.equals(n.left_sibling())
         else:
-            predicate = lambda n: not isinstance(n.parent, SpannerId)
-        for n in filter(predicate, search):
+            spanner_ok = lambda n: not isinstance(n.parent, SpannerId)
+
+        for n in filter(lambda n: parallel(n) and spanner_ok(n), nodes):
             return n
 
 
