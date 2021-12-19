@@ -30,13 +30,13 @@ sys.path.insert(0, '.')
 
 import quickly
 from quickly.pitch import (
-    PitchProcessor, num_to_octave, octave_to_num, determine_language)
+    Pitch, PitchProcessor, num_to_octave, octave_to_num, determine_language)
+from quickly.transpose import Transposer
 from quickly.dom import read, lily
 
 
-def test_main():
-    """Main test function."""
-
+def test_pitch():
+    """Test pitch manipulations."""
     p = PitchProcessor()
     assert 'c' == p.write(0)
     assert 'cis' == p.write(0, 0.5)
@@ -119,6 +119,11 @@ def test_main():
     assert n.head == 'e'
     assert n.octave == 1
 
+    # Pitch class
+    assert Pitch(0, 0, 0) < Pitch(1, 0, 0)
+    assert Pitch(0, 0, 0) > Pitch(1, 0, -1)
+    assert Pitch(1, .25, 0) == Pitch(1, .25, 0)
+
 
     # other functions
     assert num_to_octave(3) == "'''"
@@ -138,6 +143,21 @@ def test_main():
         ['francais']    # r is ignored, ré with accent is francais
 
 
+def test_transpose():
+    """Test Transposer."""
+    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    p = Pitch(0, 0, 0)
+    t.transpose(p)
+    assert p == Pitch(2, 0, 0)
+
+    p = Pitch(6, 0, 0)
+    t.transpose(p)
+    assert p == Pitch(1, 0.5, 1)
+
+def test_main():
+    """Main test function."""
+    test_pitch()
+    test_transpose()
 
 if __name__ == "__main__" and 'test_main' in globals():
     test_main()

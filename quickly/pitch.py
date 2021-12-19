@@ -46,13 +46,61 @@ del _make_reverse_pitch_table
 class Pitch:
     """A pitch with ``note``, ``alter`` and ``octave`` attributes.
 
-    Attributes may be manipulated directly.
+    The attributes may be manipulated directly.
+
+    The ``note`` is an integer in the 0..6 range, where 0 stands for C; the
+    ``alter`` is a float in the range -1..1, where all pitch languages support
+    the values -1, -0.5, 0, 0.5, 1, and some languages also support semi and
+    three-quarter alterations like 0.25; and ``octave`` is an integer where 0
+    stands for the octave below "middle C" (with no comma or apostrophe in
+    LilyPond's format).
+
+    Pitches compare equal when their attributes are the same, and also support
+    the ``>``, ``<``, ``>=`` and ``<=`` operators.
 
     """
     def __init__(self, note=0, alter=0, octave=0):
         self.note = note
         self.alter = alter
         self.octave = octave
+
+    def __repr__(self):
+        try:
+            name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + num_to_octave(self.octave)
+        except KeyError:
+            name = '?'
+        return "<{} note={}, alter={}, octave={} ({})>".format(
+            self.__class__.__name__, self.note, self.alter, self.octave, name)
+
+    def _as_tuple(self):
+        """Return our attributes as a sortable tuple."""
+        return (self.octave, self.note, self.alter)
+
+    def __eq__(self, other):
+        return isinstance(other, Pitch) and self._as_tuple() == other._as_tuple()
+
+    def __ne__(self, other):
+        return not isinstance(other, Pitch) or self._as_tuple() != other._as_tuple()
+
+    def __gt__(self, other):
+        if isinstance(other, Pitch):
+            return self._as_tuple() > other._as_tuple()
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, Pitch):
+            return self._as_tuple() < other._as_tuple()
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, Pitch):
+            return self._as_tuple() >= other._as_tuple()
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, Pitch):
+            return self._as_tuple() <= other._as_tuple()
+        return NotImplemented
 
     def copy(self):
         """Return a new Pitch with our attributes."""
@@ -157,10 +205,11 @@ class PitchProcessor:
             'c'
             >>> p.write(4, 1)
             'gisis'
-            >>> p.write(4, 1, 'english')
+            >>> p.language = 'english'
+            >>> p.write(4, 1)
             'gss'
             >>> p.prefer_long = True
-            >>> p.write(4, 1, 'english')
+            >>> p.write(4, 1)
             'g-sharpsharp'
 
         """
@@ -270,7 +319,6 @@ class PitchProcessor:
             >>> n.dump()
             <lily.Note 'eis' (1 child)>
              ╰╴<lily.Octave 1>
-
 
         """
         note, alter = self.read(node.head)
