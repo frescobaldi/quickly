@@ -329,7 +329,12 @@ class Node(list):
         return self.parent[0] is self
 
     def common_ancestor(self, other):
-        """Return the common ancestor, if any."""
+        """Return the common ancestor, if any.
+
+        When one node appears to be an ancestor of the other, that node is
+        returned.
+
+        """
         if other is self:
             return self
         ancestors = [self]
@@ -341,12 +346,56 @@ class Node(list):
             if n in ancestors:
                 return n
 
+    def common_ancestor_with_trail(self, other):
+        """Return a three-tuple(ancestor_node, trail_self, trail_other).
+
+        The ancestor node is the common ancestor such as returned by
+        :meth:`common_ancestor`. The trail_self is a list of indices from
+        the common ancestor upto self, and trail_other is a list of indices
+        from the same ancestor upto the other Node.
+
+        If one of the trails is empty, the corresponding node is then an
+        ancestor or the other.
+
+        If there is no common ancestor, (None, None, None) is returned. But
+        normally, all nodes share the root node, so that will normally be the
+        upmost common ancestor.
+
+        """
+        if other is self:
+            return self, [], []
+        ancestors = [self]
+        trail_self = []
+        n = self
+        for p, i in self.ancestors_with_index():
+            trail_self.append(i)
+            if p is other:
+                return p, trail_self[::-1], []
+            ancestors.append(p)
+            n = p
+        trail_other = []
+        for n, i in other.ancestors_with_index():
+            trail_other.append(i)
+            try:
+                i = ancestors.index(n)
+                return n, trail_self[i::-1], trail_other[::-1]
+            except ValueError:
+                pass
+        return None, None, None
+
     def ancestors(self):
         """Yield the parent, then the parent's parent, etcetera."""
         n = self.parent
         while n:
             yield n
             n = n.parent
+
+    def ancestors_with_index(self):
+        """Yield the ancestors and the index of each node in the parent."""
+        n = self
+        for p in self.ancestors():
+            yield p, p.index(n)
+            n = p
 
     def descendants(self, reverse=False):
         """Iterate over all the descendants of this node.
@@ -377,6 +426,17 @@ class Node(list):
         for root in self.ancestors():
             pass
         return root
+
+    def trail(self):
+        """Return the list of indices of all ancestors in their parents.
+
+        The node's own index is at the end. Using trails you can determine
+        arbitrary ranges in a DOM document, and you can compare trails to see
+        which node comes first in the document order.
+
+        """
+        trail = [i for p, i in self.ancestors_with_index()]
+        return trail[::-1]
 
     def right_siblings(self):
         """Iterate over the right siblings of this node."""
