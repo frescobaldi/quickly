@@ -30,6 +30,11 @@ from .pitch import PitchProcessor
 
 class AbstractTransposer:
     """Base class for a Transposer."""
+
+    #: a Transposer at least has an ``octave`` attribute, specifying how many
+    #: octaves a pitch will be transposed.
+    octave = 0
+
     def transpose(self, pitch):
         """Transpose the :class:`~.pitch.Pitch`, by modifying its ``note``,
         ``alter`` and possibly ``octave`` attribute."""
@@ -109,7 +114,7 @@ def transpose_node(
         def writable(node):
             return True
 
-    def notes(nodes):
+    def notes(nodes, relative_mode=False):
         """Yield notes to be transposed."""
         for n in nodes:
             if isinstance(n, lily.Pitchable):
@@ -134,8 +139,10 @@ def transpose_node(
                 yield from notes(rest)
             elif isinstance(n, (lily.Transposition, lily.StringTuning)):
                 pass    # don't change child nodes
+            elif relative_mode and isinstance(n, (lily.Chord, lily.OctaveCheck)):
+                yield n # transpose_relative is interested in those
             else:
-                yield from notes(n)
+                yield from notes(n, relative_mode)
 
     def transpose_pitches(nodes):
         """Transpose the notes, and yield their pitches for extra changes."""
@@ -170,7 +177,64 @@ def transpose_node(
 
     def transpose_relative(node):
         r"""Transpose \relative music."""
-        pass #TEMP
+
+        def transpose(note, last_pitch):
+            """Transpose one note, return its pitch in absolute form for the next."""
+            p = processor.read_node(note)
+            # absolute pitch determined from untransposed pitch of last_pitch
+            p.make_absolute(last_pitch)
+            if not writable(note):
+                return p
+            # we may change this pitch. Make it relative against the
+            # transposed last_pitch.
+            try:
+                last = last_pitch.transposed
+            except AttributeError:
+                last = last_pitch
+            # transpose a copy and store that in the transposed attribute of
+            # last_pitch. Next time that is used for making the next pitch
+            # relative correctly.
+            last_pitch = p.copy()
+            transposer.transpose(p)
+            last_pitch.transposed = p.copy()
+            if note.oct_check is not None:
+                note.oct_check = p.octave
+            p.make_relative(last)
+            processor.write_node(note, p)
+            return last_pitch
+
+        nodes = list(util.skip_comments(node))
+        offset = 0
+        if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
+            start_note, *nodes = nodes
+            last_pitch = processor.read_node(start_note)    # untransposed
+            if writable(start_note):
+                with processor.pitch(start_note) as p:
+                    transposer.transpose(p)
+                last_pitch.transposed = p
+                last_pitch.octave -= transposer.octave
+                last_pitch.transposed.octave -= transposer.octave
+        else:
+            last_pitch = Pitch.f0() if relative_first_pitch_absolute else Pitch.c1()
+        for n in notes(nodes, True):
+            if isinstance(n, lily.Pitchable):
+                # note (or positioned rest)
+                last_pitch = transpose(n, last_pitch)
+            elif isinstance(n, lily.Chord):
+                # chord
+                chord = [last_pitch]
+                for note in notes(n):
+                    chord.append(transpose(note, chord[-1]))
+                last_pitch = chord[:2][-1]  # first note of chord
+            elif isinstance(n, lily.OctaveCheck):
+                # OctaveCheck
+                for note in notes(n):
+                    p = processor.read_node(note)
+                    last_pitch = p.copy()
+                    if writable(note):
+                        transposer.transpose(p)
+                        last_pitch.transposed = p
+                        processor.write_node(note, p)
 
     transpose_absolute((node,))
 
