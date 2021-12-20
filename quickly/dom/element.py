@@ -346,37 +346,21 @@ class Element(Node, metaclass=ElementType):
         of its descendants has an origin.
 
         """
-        hi = len(self)
-        if hi:
-            nodes = list(self)
-            i = 0
-            while i < hi:
-                mid = (i + hi) // 2
-                n = nodes[mid]
-                pos = n.pos
-                while pos is None:
-                    del nodes[mid]
-                    if not nodes:
-                        return
-                    hi -= 1
-                    if mid == hi:
-                        mid -= 1
-                    n = nodes[mid]
-                    pos = n.pos
+        # we do not bisect because we need to loop anyway to skip position-less
+        # nodes
+        prev = None
+        for n in self:
+            pos = n.pos
+            if pos is not None:
                 if pos == position:
                     return n
                 elif pos > position:
-                    hi = mid
-                else:
-                    end = n.end
-                    if end == position:
-                        return n
-                    elif end < position:
-                        i = mid + 1
-                    else:
-                        hi = mid
-            i = min(i, len(nodes) - 1)
-            return nodes[i]
+                    return prev
+                end = n.end
+                if end > position:
+                    return n
+                prev = n if end == position else None
+        return prev
 
     def find_descendant(self, position):
         """Return the youngest descendant node that contains position.
