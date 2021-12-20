@@ -204,7 +204,6 @@ def transpose_node(
             return last_pitch
 
         nodes = list(util.skip_comments(node))
-        offset = 0
         if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
             start_note, *nodes = nodes
             last_pitch = processor.read_node(start_note)    # untransposed
