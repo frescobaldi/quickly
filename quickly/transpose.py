@@ -24,7 +24,8 @@ Transpose pitches.
 
 from fractions import Fraction
 
-from .dom import lily
+from .dom import lily, util
+from .pitch import PitchProcessor
 
 
 class AbstractTransposer:
@@ -77,20 +78,99 @@ class Transposer(AbstractTransposer):
 def transpose_node(
         node,
         transposer,
-        pitch_processor = None,
+        processor = None,
         writable = None,
         relative_first_pitch_absolute = False,
     ):
-    """Transpose pitches using the specified transposer.
+    r"""Transpose pitches using the specified transposer.
+
+    The ``processor`` is a :class:`~.pitch.PitchProcessor`; a default one is
+    used if none is specified.
+
+    The ``writable`` function is a callable that is called with a node, and
+    should return True if the node may be modified. By default, all nodes may
+    be modified.
 
     If ``relative_first_pitch_absolute`` is True, the first pitch in a
-    ``\\relative`` expression is considered to be absolute, when a startpitch
+    ``\relative`` expression is considered to be absolute, when a startpitch
     is not given. This is LilyPond >= 2.18 behaviour.
 
     If relative_first_pitch_absolute is False, the first pitch in a
-    ``\\relative`` expression is considered to be relative to c', is no
+    ``\relative`` expression is considered to be relative to c', is no
     startpitch is given. This is LilyPond < 2.18 behaviour.
 
     Currently, relative_first_pitch_absolute defaults to False.
 
     """
+    if processor is None:
+        processor = PitchProcessor()
+
+    if writable is None:
+        def writable(node):
+            return True
+
+    def notes(nodes):
+        """Yield notes to be transposed."""
+        for n in nodes:
+            if isinstance(n, lily.Pitchable):
+                yield n
+                transpose_absolute(n)   # e.g. notes in markup scores
+            elif isinstance(n, (lily.Language, lily.Include)):
+                lang = n.language
+                if lang:
+                    processor.language = lang
+            elif isinstance(n, (lily.ChordMode, lily.Key)):
+                transpose_no_octave(n)
+            elif isinstance(n, lily.Absolute):
+                transpose_absolute(n)
+            elif isinstance(n, lily.Relative):
+                transpose_relative(n)
+            elif isinstance(n, lily.Fixed):
+                transpose_fixed(n)
+            elif isinstance(n, lily.Transpose):
+                pitches, rest = n[:2], n[2:]
+                for p in transpose_pitches(pitches):
+                    p.octave -= transposer.octave
+                yield from notes(rest)
+            elif isinstance(n, (lily.Transposition, lily.StringTuning)):
+                pass    # don't change child nodes
+            else:
+                yield from notes(n)
+
+    def transpose_pitches(nodes):
+        """Transpose the notes, and yield their pitches for extra changes."""
+        for n in notes(nodes):
+            with processor.pitch(n, writable(n)) as p:
+                transposer.transpose(p)
+                yield p
+
+    def transpose_no_octave(nodes):
+        r"""Transpose without modifying octave, e.g. for \key or \chordmode."""
+        for p in transpose_pitches(nodes):
+            p.octave = 0
+
+    def transpose_absolute(nodes):
+        """Transpose absolute pitches."""
+        for p in transpose_pitches(nodes):
+            pass
+
+    def transpose_fixed(node):
+        r"""Transpose \fixed pitches: handle octave nicely."""
+        nodes = util.skip_comments(node)
+        for note in nodes:
+            if isinstance(note, lily.Pitchable) and writable(note):
+                # we may change this note, modify the octave
+                offset = transposer.octave
+                with processor.pitch(note) as p:
+                    transposer.transpose(p)
+            else:
+                offset = 0
+            for p in transpose_pitches(nodes):
+                p.octave -= offset
+
+    def transpose_relative(node):
+        r"""Transpose \relative music."""
+        pass #TEMP
+
+    transpose_absolute((node,))
+

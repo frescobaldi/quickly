@@ -149,3 +149,9 @@ def replace_unknown(tree, text):
         n.replace(base.Text(text[n.pos:n.end]))
 
 
+def skip_comments(node):
+    """Yield child nodes of the DOM node, skipping inheritants of base.Comment."""
+    from . import base
+    return (n for n in node if not isinstance(n, base.Comment))
+
+
