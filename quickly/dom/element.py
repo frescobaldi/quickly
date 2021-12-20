@@ -340,10 +340,11 @@ class Element(Node, metaclass=ElementType):
                 pass
 
     def find_child(self, position):
-        """Return the child node at or to the right of position.
+        """Return the child node touching the position.
 
-        Only returns a node that has a ``pos`` attribute, i.e. at least one
-        of its descendants has an origin.
+        If two child nodes touch the position, the one to the right is chosen.
+        Only returns a node that has a ``pos`` attribute, i.e. at least one of
+        its descendants has an origin.
 
         """
         # we do not bisect because we need to loop anyway to skip position-less
@@ -365,17 +366,16 @@ class Element(Node, metaclass=ElementType):
     def find_descendant(self, position):
         """Return the youngest descendant node that contains position.
 
-        Only returns a node that has a ``pos`` attribute, i.e. at least one of
-        its descendants has an origin. Returns None if there is no such node
-        that contains this position.
+        If two descendant nodes touch the position, the one to the right is
+        chosen. Only returns a node that has a ``pos`` attribute, i.e. at least
+        one of its descendants has an origin. Returns None if there is no such
+        node that contains this position.
 
         """
-        m = None
-        n = self.find_child(position)
-        while n and n.pos <= position <= n.end:
-            m = n
-            n = n.find_child(position)
-        return m
+        n = None
+        for n in self.find_descendants(position):
+            pass
+        return n
 
     def find_descendants(self, position):
         """Yield the child at position, then the grandchild, etc.
