@@ -16,11 +16,15 @@ transformed into a "Document Object Model", a more semantical tree structure of
 When a document is modified (e.g. by the user, typing in a text editor), the
 tokens and the DOM document are automatically updated.
 
-The cornerstone of *quickly* is the :class:`parce.Document` (or any class
-following this interface). Lexing the text in the document is done by *parce*,
-using a root lexicon, which belongs to a language definition. Transforming the
-lexed text into a DOM document is also done by *parce*, using a
-:class:`~parce.transform.Transform` that's coupled to the language definition.
+The two cornerstones of *quickly* are the :class:`parce.Document` (or any class
+following this interface), and the *quickly* DOM. Lexing the text in the
+document is done by *parce*, using a root lexicon, which belongs to a language
+definition. Transforming the lexed text into a DOM document is also done by
+*parce*, using a :class:`~parce.transform.Transform` that's coupled to the
+language definition.
+
+Most music manipulation functions operate on the *quickly* DOM, which
+afterwards can update the text document it originated from, if desired.
 
 To create a parce Document, with LilyPond contents::
 
@@ -29,7 +33,8 @@ To create a parce Document, with LilyPond contents::
     >>> doc = parce.Document(find("lilypond"), transformer=True)
     >>> doc.set_text(r"music = { c d e f g }")
 
-To target only specific regions in a text document, often a :class:`parce.Cursor` is used.
+To target only specific regions in a text document, often a
+:class:`parce.Cursor` is used.
 
 To get the transformed DOM document:
 

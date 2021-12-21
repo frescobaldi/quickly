@@ -66,21 +66,6 @@ class Pitch:
         self.alter = alter
         self.octave = octave
 
-    @classmethod
-    def c1(cls):
-        """Return a pitch ``c'``."""
-        return cls(octave=1)
-
-    @classmethod
-    def c0(cls):
-        """Return a pitch ``c``."""
-        return cls()
-
-    @classmethod
-    def f0(cls):
-        """Return a pitch ``f``."""
-        return cls(3)
-
     def __repr__(self):
         try:
             name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + num_to_octave(self.octave)

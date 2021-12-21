@@ -8,12 +8,13 @@ Supported document types
 TexInfo are in the works.
 
 Html, LaTeX, DocBook and TexInfo are used to edit documents for
-``lilypond-book``, a script provided by the LilyPond project that can extract
+``lilypond-book``, a script provided by the `LilyPond`_ project that can extract
 fragments of LilyPond music and run other document processors to produce output
 of the texts with the musical fragments properly inserted. *quickly* is able to
 recognize LilyPond music inside these document formats and allows the user to
 manipulate the music.
 
+.. _LilyPond: http://lilypond.org/
 
 Music manipulations
 -------------------
@@ -40,8 +41,8 @@ Create a transposer::
 
     >>> from quickly.pitch import Pitch
     >>> from quickly.transpose import transpose, Transposer
-    >>> p1 = Pitch(0, 0, 0)     # -> c
-    >>> p2 = Pitch(3, 0, 0)     # -> f
+    >>> p1 = Pitch(0)     # -> c
+    >>> p2 = Pitch(3)     # -> f
     >>> t = Transposer(p1, p2)
 
 Now transpose the music from ``c`` to ``f`` and view the result::

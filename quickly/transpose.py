@@ -219,7 +219,7 @@ def transpose_node(node, transposer, processor = None, writable = None,
                 last_pitch.octave -= transposer.octave
                 last_pitch.transposed.octave -= transposer.octave
         else:
-            last_pitch = Pitch.f0() if relative_first_pitch_absolute else Pitch.c1()
+            last_pitch = Pitch(3) if relative_first_pitch_absolute else Pitch(0, 0, 1)
 
         # transpose the notes in the relative expression
         for n in notes(nodes, True):
