@@ -31,7 +31,7 @@ sys.path.insert(0, '.')
 import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, num_to_octave, octave_to_num, determine_language)
-from quickly.transpose import Transposer
+from quickly.transpose import Transposer, transpose_node
 from quickly.dom import read, lily
 
 
@@ -152,6 +152,41 @@ def check_transpose():
     p = Pitch(6, 0, 0)
     t.transpose(p)
     assert p == Pitch(1, 0.5, 1)
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    music = read.lily_document("{ c d e f g }")
+    transpose_node(music, t)
+    assert music.write() == "{ e fis gis a b }"
+    transpose_node(music, t)
+    assert music.write() == "{ gis ais bis cis' dis' }"
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 0, 1))
+    music = read.lily_document(r"\relative { c' d e f g }")
+    transpose_node(music, t)
+    assert music.write() == r"\relative { c'' d e f g }"
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(4, 0, 0))
+    music = read.lily_document(r"\relative c' { c d e f g }")
+    transpose_node(music, t)
+    assert music.write() == r"\relative g' { g a b c d }"
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(6, -.5, -1))
+    music = read.lily_document(r"\relative { g a b c d }")
+    transpose_node(music, t, relative_first_pitch_absolute=False)
+    assert music.write() == r"\relative { f, g a bes c }"
+
+    music = read.lily_document(r"\relative { g a b c d }")
+    transpose_node(music, t, relative_first_pitch_absolute=True)
+    assert music.write() == r"\relative { f g a bes c }"
+
+    music = read.lily_document("""\\version "2.12.0"\n\\relative { g a b c d }\n""")
+    transpose_node(music, t)
+    assert music[1].write() == r"\relative { f, g a bes c }"
+
+    music = read.lily_document("""\\version "2.22.0"\n\\relative { g a b c d }\n""")
+    transpose_node(music, t)
+    assert music[1].write() == r"\relative { f g a bes c }"
+
 
 
 def test_main():

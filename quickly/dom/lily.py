@@ -162,23 +162,17 @@ class Document(HandleAssignments, base.Document):
 
     @property
     def version(self):
-        """The LilyPond version number, as a tuple of ints."""
+        """The LilyPond version number, as a tuple of ints (may be empty)."""
         for v in self//Version:
-            for s in v/String:
-                return tuple(map(int, re.findall(r'\d+', s.head)))
+            return v.version
+        return ()
 
     @version.setter
     def version(self, version):
-        version = '.'.join(map(str, version))
         for v in self//Version:
-            for s in v/String:
-                s.head = version
-                break
-            else:
-                v.clear()
-                v.append(String(version))
+            v.version = version
             return
-        self.insert(0, Version(String(version)))
+        self.insert(0, Version(version=version))
 
 
 class Number(element.TextElement):
@@ -2058,6 +2052,22 @@ class Version(element.HeadElement, Music):
     r"""The ``\version`` command."""
     _space_after_head = _space_between = " "
     head = r'\version'
+
+    @property
+    def version(self):
+        """The version number, as a tuple of ints (may be empty)."""
+        for s in self/String:
+            return tuple(map(int, re.findall(r'\d+', s.head)))
+        return ()
+
+    @version.setter
+    def version(self, version):
+        version = '.'.join(map(str, version))
+        for s in self/String:
+            s.head = version
+            break
+        else:
+            self.insert(0, String(version))
 
     def signatures(self):
         yield String,

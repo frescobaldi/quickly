@@ -25,7 +25,7 @@ Transpose pitches.
 from fractions import Fraction
 
 from .dom import lily, util
-from .pitch import PitchProcessor
+from .pitch import Pitch, PitchProcessor
 
 
 class AbstractTransposer:
@@ -85,7 +85,7 @@ def transpose_node(
         transposer,
         processor = None,
         writable = None,
-        relative_first_pitch_absolute = False,
+        relative_first_pitch_absolute = None,
     ):
     r"""Transpose pitches using the specified transposer.
 
@@ -97,14 +97,12 @@ def transpose_node(
     be modified.
 
     If ``relative_first_pitch_absolute`` is True, the first pitch in a
-    ``\relative`` expression is considered to be absolute, when a startpitch
-    is not given. This is LilyPond >= 2.18 behaviour.
-
-    If relative_first_pitch_absolute is False, the first pitch in a
-    ``\relative`` expression is considered to be relative to c', is no
-    startpitch is given. This is LilyPond < 2.18 behaviour.
-
-    Currently, relative_first_pitch_absolute defaults to False.
+    ``\relative`` expression is considered to be absolute, when a startpitch is
+    not given. This is LilyPond >= 2.18 behaviour. If False, the first pitch in
+    a ``\relative`` expression is considered to be relative to c', if no
+    startpitch is given. This is LilyPond < 2.18 behaviour. If not specified,
+    the function looks at the LilyPond version from the document. If the
+    version can't be determined, defaults to False, the old behaviour.
 
     """
     if processor is None:
@@ -114,8 +112,19 @@ def transpose_node(
         def writable(node):
             return True
 
+    if relative_first_pitch_absolute is None:
+        for v in node.root() // lily.Version:
+            relative_first_pitch_absolute = v.version >= (2, 18)
+            break
+        else:
+            relative_first_pitch_absolute = False
+
     def notes(nodes, relative_mode=False):
-        """Yield notes to be transposed."""
+        """Yield notes (lily.Pitchable) to be transposed.
+
+        If relative_mode is True, also Chord and OctaveCheck nodes are yielded.
+
+        """
         for n in nodes:
             if isinstance(n, lily.Pitchable):
                 yield n
@@ -203,6 +212,7 @@ def transpose_node(
             processor.write_node(note, p)
             return last_pitch
 
+        # handle the start pitch
         nodes = list(util.skip_comments(node))
         if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
             start_note, *nodes = nodes
@@ -215,18 +225,20 @@ def transpose_node(
                 last_pitch.transposed.octave -= transposer.octave
         else:
             last_pitch = Pitch.f0() if relative_first_pitch_absolute else Pitch.c1()
+
+        # transpose the notes in the relative expression
         for n in notes(nodes, True):
             if isinstance(n, lily.Pitchable):
                 # note (or positioned rest)
                 last_pitch = transpose(n, last_pitch)
             elif isinstance(n, lily.Chord):
                 # chord
-                chord = [last_pitch]
+                stack = [last_pitch]
                 for note in notes(n):
-                    chord.append(transpose(note, chord[-1]))
-                last_pitch = chord[:2][-1]  # first note of chord
+                    stack.append(transpose(note, stack[-1]))
+                last_pitch = stack[:2][-1]  # first note of chord, or the old if chord was empty
             elif isinstance(n, lily.OctaveCheck):
-                # OctaveCheck
+                # OctaveCheck, also transpose and keep as new last_pitch
                 for note in notes(n):
                     p = processor.read_node(note)
                     last_pitch = p.copy()
