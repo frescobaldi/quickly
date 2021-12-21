@@ -13,6 +13,8 @@ Last update: |today|.
    :maxdepth: 2
    :caption: Contents:
 
+   overview.rst
+   features.rst
    quicklydom.rst
    modoverview.rst
 
