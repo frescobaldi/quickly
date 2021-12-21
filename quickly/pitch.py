@@ -56,7 +56,9 @@ class Pitch:
     LilyPond's format).
 
     Pitches compare equal when their attributes are the same, and also support
-    the ``>``, ``<``, ``>=`` and ``<=`` operators.
+    the ``>``, ``<``, ``>=`` and ``<=`` operators. These operators compare on
+    octave first, then note, then alter.
+
 
     """
     def __init__(self, note=0, alter=0, octave=0):
