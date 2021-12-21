@@ -2,6 +2,17 @@ ChangeLog
 =========
 
 
+2021-12-21: quickly-0.3.0
+
+- requires parce-0.28.0
+- DOM elegantly handles untransformed parce stuff such as CSS/JS in Html
+- Note and positioned Rest now have attrs for octave, accidental and oct_check
+- pitch: added Pitch and PitchProcessor to read/write pitch names in all
+  languages, with style preferences for writing pitch names
+- added lily.Spanner.find_parallel() to find the other end of a spanner
+- added transpose module, transpose music in a node or (part of) parce.Document
+
+
 2021-12-09: quickly-0.2.0
 
 - requires parce-0.27.0
