@@ -28,11 +28,14 @@ import pytest
 import sys
 sys.path.insert(0, '.')
 
+import parce
+
 import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, num_to_octave, octave_to_num, determine_language)
-from quickly.transpose import Transposer, transpose_node
+from quickly.transpose import Transposer, transpose_node, transpose
 from quickly.dom import read, lily
+from quickly.registry import find
 
 
 def check_pitch():
@@ -186,6 +189,12 @@ def check_transpose():
     music = read.lily_document("""\\version "2.22.0"\n\\relative { g a b c d }\n""")
     transpose_node(music, t)
     assert music[1].write() == r"\relative { f g a bes c }"
+
+    doc = parce.Document(find('lilypond'), "{ c d e f g }", transformer=True)
+    cur = parce.Cursor(doc).select(4, 7)
+    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    transpose(cur, t)
+    assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 
 
 

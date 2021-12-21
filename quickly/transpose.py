@@ -80,13 +80,8 @@ class Transposer(AbstractTransposer):
             pitch.note = note
 
 
-def transpose_node(
-        node,
-        transposer,
-        processor = None,
-        writable = None,
-        relative_first_pitch_absolute = None,
-    ):
+def transpose_node(node, transposer, processor = None, writable = None,
+                   relative_first_pitch_absolute = None):
     r"""Transpose pitches using the specified transposer.
 
     The ``processor`` is a :class:`~.pitch.PitchProcessor`; a default one is
@@ -248,4 +243,26 @@ def transpose_node(
                         processor.write_node(note, p)
 
     transpose_absolute((node,))
+
+
+def transpose(cursor, transposer, processor = None,
+              relative_first_pitch_absolute = None):
+    """Transpose pitches in the selected range of the :class:`~parce.Cursor`'s
+    document.
+
+    If there is no selection, the whole document is transposed.
+
+    For the other arguments see :func:`transpose_node`.
+
+    """
+    if cursor.has_selection():
+        pos, end = cursor.selection()
+        def writable(node):
+            return node.pos >= pos and node.end <= end
+    else:
+        writable = None
+
+    node = cursor.document().get_transform(True)
+    transpose_node(node, transposer, processor, writable, relative_first_pitch_absolute)
+    node.edit(cursor.document())
 
