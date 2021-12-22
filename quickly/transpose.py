@@ -108,11 +108,7 @@ def transpose_node(node, transposer, processor = None, writable = None,
             return True
 
     if relative_first_pitch_absolute is None:
-        for v in node.root() // lily.Version:
-            relative_first_pitch_absolute = v.version >= (2, 18)
-            break
-        else:
-            relative_first_pitch_absolute = False
+        relative_first_pitch_absolute = util.lilypond_version(node) >= (2, 18)
 
     def notes(nodes, relative_mode=False):
         """Yield notes (lily.Pitchable) to be transposed.
@@ -241,7 +237,7 @@ def transpose_node(node, transposer, processor = None, writable = None,
                         transposer.transpose(p)
                         last_pitch.transposed = p
                         processor.write_node(note, p)
-
+    # Do it!
     transpose_absolute((node,))
 
 

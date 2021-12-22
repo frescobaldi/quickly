@@ -31,7 +31,7 @@ Transposer is created that can actually transpose pitches according to the
 user's wish, and optionally a PitchProcessor that reads and writes LilyPond
 pitch names in all languages.
 
-An example; creating a document::
+An example; create a document::
 
     >>> import parce
     >>> from quickly.registry import find

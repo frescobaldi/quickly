@@ -155,3 +155,15 @@ def skip_comments(node):
     return (n for n in node if not isinstance(n, base.Comment))
 
 
+def lilypond_version(node):
+    """Return the LilyPond version in the node's document as a tuple of ints.
+
+    Returns the empty tuple if the version is not set.
+
+    """
+    from . import lily
+    for v in node.root() // lily.Version:
+        return v.version
+    return ()
+
+
