@@ -554,10 +554,12 @@ class Element(Node, metaclass=ElementType):
                     del_pos = del_end = pos
                     for t in tokens:
                         if t.pos >= point.pos:
+                            pos = t.pos
                             break
-                        if t.pos >= pos:
-                            del_end = t.end
+                        del_end = t.end
                     if del_end > del_pos:
+                        if b and del_end < pos:
+                            del_end = pos   # unparsed space can be ditched
                         yield del_pos, del_end, b
                 elif b:
                     yield point.pos, point.pos, b
