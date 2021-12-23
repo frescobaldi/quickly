@@ -1161,11 +1161,11 @@ class Octave(element.TextElement):
     @classmethod
     def read_head(cls, origin):
         """Read the octave from the token."""
-        return pitch.octave_to_num(origin[0].text)
+        return pitch.octave_from_string(origin[0].text)
 
     def write_head(self):
         """Write the octave, an empty string for octave 0."""
-        return pitch.num_to_octave(self.head)
+        return pitch.octave_to_string(self.head)
 
 
 class OctCheck(element.TextElement):
@@ -1179,11 +1179,11 @@ class OctCheck(element.TextElement):
     @classmethod
     def read_head(cls, origin):
         """Read the octave from the token."""
-        return pitch.octave_to_num(origin[0].text[1:])
+        return pitch.octave_from_string(origin[0].text[1:])
 
     def write_head(self):
         """Write the octave, an empty string for octave 0."""
-        return '=' + pitch.num_to_octave(self.head)
+        return '=' + pitch.octave_to_string(self.head)
 
 
 class OctaveCheck(element.HeadElement):

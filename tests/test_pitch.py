@@ -32,11 +32,16 @@ import parce
 
 import quickly
 from quickly.pitch import (
-    Pitch, PitchProcessor, num_to_octave, octave_to_num, determine_language)
+    Pitch, PitchProcessor, octave_to_string, octave_from_string, determine_language)
 from quickly.transpose import Transposer, transpose_node, transpose
 from quickly.relative import rel2abs, rel2abs_node, abs2rel, abs2rel_node
 from quickly.dom import read, lily
 from quickly.registry import find
+
+
+def lydoc(text):
+    """Return a parce LilyPond doc with text."""
+    return parce.Document(find('lilypond'), text, transformer=True)
 
 
 def check_pitch():
@@ -129,11 +134,11 @@ def check_pitch():
 
 
     # other functions
-    assert num_to_octave(3) == "'''"
-    assert num_to_octave(-3) == ",,,"
-    assert octave_to_num(",") == -1
-    assert octave_to_num("''") == 2
-    assert octave_to_num("',") == 0
+    assert octave_to_string(3) == "'''"
+    assert octave_to_string(-3) == ",,,"
+    assert octave_from_string(",") == -1
+    assert octave_from_string("''") == 2
+    assert octave_from_string("',") == 0
 
     assert list(determine_language(['c', 'd', 'e', 'f', 'g'])) == \
         ['nederlands', 'english', 'deutsch', 'norsk', 'suomi', 'svenska']
@@ -191,7 +196,7 @@ def check_transpose():
     transpose_node(music, t)
     assert music[1].write() == r"\relative { f g a bes c }"
 
-    doc = parce.Document(find('lilypond'), "{ c d e f g }", transformer=True)
+    doc = lydoc("{ c d e f g }")
     cur = parce.Cursor(doc).select(4, 7)
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
     transpose(cur, t)
@@ -200,27 +205,27 @@ def check_transpose():
 
 def check_relative():
     """Test functions in the relative module."""
-    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
     abs2rel(cur)
     assert doc.text() == r"\relative c' { c d e f g }"
 
-    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
     abs2rel(cur, start_pitch=False)
     assert doc.text() == r"\relative { c d e f g }"
 
-    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
     abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"\relative { c' d e f g }"
 
-    doc = parce.Document(find('lilypond'), "{ { c' d' e' f' g' } { d' e' fis' g' a' } }", transformer=True)
+    doc = lydoc("{ { c' d' e' f' g' } { d' e' fis' g' a' } }")
     cur = parce.Cursor(doc)
     abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"{ \relative { c' d e f g } \relative { d' e fis g a } }"
 
-    doc = parce.Document(find('lilypond'), "{ c { c' d' e' f' g' } { d' e' fis' g' a' } }", transformer=True)
+    doc = lydoc("{ c { c' d' e' f' g' } { d' e' fis' g' a' } }")
     cur = parce.Cursor(doc)
     abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"\relative { c { c' d e f g } { d e fis g a } }"

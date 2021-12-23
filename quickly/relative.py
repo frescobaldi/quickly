@@ -55,16 +55,12 @@ def rel2abs_node(node, processor=None, writable=None, first_pitch_absolute=None)
 
     def notes(nodes):
         """Yield note/rest, chord and octavecheck; follow pitch language."""
-        for n in nodes:
+        for n in processor.follow_language(nodes):
             if isinstance(n, lily.Pitchable):
                 yield n
                 # music in markup expressions?
                 for n in node.instances_of(lily.Relative):
                     make_absolute(n)
-            elif isinstance(n, (lily.Language, lily.Include)):
-                lang = n.language
-                if lang:
-                    processor.language = lang
             elif isinstance(n, (lily.Chord, lily.OctaveCheck)):
                 yield n
             elif isinstance(n, lily.Relative):
@@ -200,7 +196,7 @@ def abs2rel_node(node, processor=None, writable=None, start_pitch=True,
             return lp
 
         def relative_notes(node, last_pitch=None):
-            for n in node:
+            for n in processor.follow_language(node):
                 if isinstance(n, lily.Pitchable):
                     last_pitch = relative_note(n, last_pitch)
                 elif isinstance(n, lily.Chord):
@@ -208,10 +204,6 @@ def abs2rel_node(node, processor=None, writable=None, start_pitch=True,
                     for note in n / lily.Pitchable:
                         stack.append(relative_note(note, last_pitch))
                     last_pitch = stack[:2][-1]  # first of chord or old if empty
-                elif isinstance(n, (lily.Language, lily.Include)):
-                    lang = n.language
-                    if lang:
-                        processor.language = lang
                 elif isinstance(n, (
                     lily.ChordMode, lily.Key, lily.Absolute, lily.Fixed,
                     lily.Transpose, lily.Transposition, lily.StringTuning,

@@ -68,7 +68,7 @@ class Pitch:
 
     def __repr__(self):
         try:
-            name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + num_to_octave(self.octave)
+            name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + octave_to_string(self.octave)
         except KeyError:
             name = '?'
         return "<{} note={}, alter={}, octave={} ({})>".format(
@@ -293,6 +293,25 @@ class PitchProcessor:
         if write:
             self.write_node(node, p)
 
+    def follow_language(self, nodes):
+        r"""Iterate over the DOM nodes and follow language changes.
+
+        .. currentmodule:: quickly.dom
+
+        Yield every node, except for :class:`lily.Language` or
+        :class:`lily.Include` if a language name is included. Sets the language
+        attribute according to the ``\language`` or ``\include`` command.
+
+        """
+        from .dom import lily
+        for n in nodes:
+            if isinstance(n, (lily.Language, lily.Include)):
+                lang = n.language
+                if lang:
+                    self.language = lang
+                    continue
+            yield n
+
     def distill_preferences(self, names):
         """Iterate over the ``names`` and try to distill the preferred style.
 
@@ -439,7 +458,7 @@ class PitchProcessor:
                 return name
 
 
-def num_to_octave(n):
+def octave_to_string(n):
     """Convert a numeric value to an octave notation.
 
     The octave notation consists of zero or more ``'`` or ``,``. The octave
@@ -450,7 +469,7 @@ def num_to_octave(n):
     return "," * -n if n < 0 else "'" * n
 
 
-def octave_to_num(octave):
+def octave_from_string(octave):
     """Convert an octave string to a numeric value.
 
     ``''`` is converted to 2, ``,`` to -1. The empty string gives 0.

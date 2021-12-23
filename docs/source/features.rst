@@ -26,6 +26,8 @@ with other parts of the source text.
 Transpose
 ^^^^^^^^^
 
+.. currentmodule:: quickly.transpose
+
 Transposing music is done using the :mod:`~quickly.transpose` module. A
 Transposer is created that can actually transpose pitches according to the
 user's wish, and optionally a PitchProcessor that reads and writes LilyPond
@@ -58,18 +60,22 @@ Using the cursor, we can also operate on a fragment of the document::
     >>> doc.text()
     "music = { f c' d' bes c' }"
 
-Only the second and third note are transposed.
+Only the second and third note are transposed. The function :func:`transpose`
+operates on a parce Document, while :func:`transpose_node` operates directly on
+a DOM node.
 
 
-Convert pitches to and from relative
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Convert pitches to and from relative notation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: quickly.relative
 
 The :mod:`~quickly.relative` module contains functions to convert music to and
 from relative notation. These functions also use the PitchProcessor to read and
 write pitch names in all languages, and automatically adapt to the pitch
 language used in a document.
 
-To convert all music from relative to absolute notaton::
+To convert all music from relative to absolute notation::
 
     >>> import parce
     >>> from quickly.registry import find
@@ -88,3 +94,6 @@ And convert back to relative::
     >>> doc.text()
     "music = \\relative c' { c d e f g }"
 
+The function :func:`abs2rel` and :func:`rel2abs` operate on a parce Document,
+while :func:`abs2rel_node` and :func:`rel2abs_node` operate directly on a DOM
+node.

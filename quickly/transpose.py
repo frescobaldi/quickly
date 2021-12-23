@@ -116,14 +116,10 @@ def transpose_node(node, transposer, processor = None, writable = None,
         If relative_mode is True, also Chord and OctaveCheck nodes are yielded.
 
         """
-        for n in nodes:
+        for n in processor.follow_language(nodes):
             if isinstance(n, lily.Pitchable):
                 yield n
                 transpose_absolute(n)   # e.g. notes in markup scores
-            elif isinstance(n, (lily.Language, lily.Include)):
-                lang = n.language
-                if lang:
-                    processor.language = lang
             elif isinstance(n, (lily.ChordMode, lily.Key)):
                 transpose_no_octave(n)
             elif isinstance(n, lily.Absolute):
