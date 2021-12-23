@@ -88,8 +88,8 @@ def transpose_node(node, transposer, processor = None, writable = None,
     used if none is specified.
 
     The ``writable`` function is a callable that is called with a node, and
-    should return True if the node may be modified. By default, all nodes may
-    be modified.
+    should return True if the node may be modified. If None, all nodes may be
+    modified.
 
     If ``relative_first_pitch_absolute`` is True, the first pitch in a
     ``\relative`` expression is considered to be absolute, when a startpitch is
@@ -251,14 +251,7 @@ def transpose(cursor, transposer, processor = None,
     For the other arguments see :func:`transpose_node`.
 
     """
-    if cursor.has_selection():
-        pos, end = cursor.selection()
-        def writable(node):
-            return node.pos >= pos and node.end <= end
-    else:
-        writable = None
+    with util.edit(cursor) as (node, writable):
+        transpose_node(node, transposer, processor, writable, relative_first_pitch_absolute)
 
-    node = cursor.document().get_transform(True)
-    transpose_node(node, transposer, processor, writable, relative_first_pitch_absolute)
-    node.edit(cursor.document())
 

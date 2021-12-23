@@ -19,7 +19,7 @@
 
 
 """
-Template for test files that test quickly.
+Test pitch related functions (pitch, transpose, relative, ...)
 """
 
 import pytest
@@ -34,6 +34,7 @@ import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, num_to_octave, octave_to_num, determine_language)
 from quickly.transpose import Transposer, transpose_node, transpose
+from quickly.relative import rel2abs, rel2abs_node, abs2rel, abs2rel_node
 from quickly.dom import read, lily
 from quickly.registry import find
 
@@ -197,11 +198,40 @@ def check_transpose():
     assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 
 
+def check_relative():
+    """Test functions in the relative module."""
+    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    cur = parce.Cursor(doc)
+    abs2rel(cur)
+    assert doc.text() == r"\relative c' { c d e f g }"
+
+    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    cur = parce.Cursor(doc)
+    abs2rel(cur, start_pitch=False)
+    assert doc.text() == r"\relative { c d e f g }"
+
+    doc = parce.Document(find('lilypond'), "{ c' d' e' f' g' }", transformer=True)
+    cur = parce.Cursor(doc)
+    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    assert doc.text() == r"\relative { c' d e f g }"
+
+    doc = parce.Document(find('lilypond'), "{ { c' d' e' f' g' } { d' e' fis' g' a' } }", transformer=True)
+    cur = parce.Cursor(doc)
+    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    assert doc.text() == r"{ \relative { c' d e f g } \relative { d' e fis g a } }"
+
+    doc = parce.Document(find('lilypond'), "{ c { c' d' e' f' g' } { d' e' fis' g' a' } }", transformer=True)
+    cur = parce.Cursor(doc)
+    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    assert doc.text() == r"\relative { c { c' d e f g } { d e fis g a } }"
+
+
 
 def test_main():
     """Main test function."""
     check_pitch()
     check_transpose()
+    check_relative()
 
 
 if __name__ == "__main__" and 'test_main' in globals():

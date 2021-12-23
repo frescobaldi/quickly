@@ -890,15 +890,9 @@ def build_tree(nodes, ignore_type=None):
     stack = []
 
     if ignore_type:
-        def child_nodes(node):
-            """Iterate over child nodes, skipping ``ignore_type``."""
-            for child in node:
-                if not isinstance(child, ignore_type):
-                    yield child
+        child_nodes = lambda n: n ^ ignore_type
     else:
-        def child_nodes(node):
-            """Iterate over child nodes."""
-            return node
+        child_nodes = lambda n: n
 
     def add(node):
         """Add a node and yield finished nodes."""

@@ -60,3 +60,31 @@ Using the cursor, we can also operate on a fragment of the document::
 
 Only the second and third note are transposed.
 
+
+Convert pitches to and from relative
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :mod:`~quickly.relative` module contains functions to convert music to and
+from relative notation. These functions also use the PitchProcessor to read and
+write pitch names in all languages, and automatically adapt to the pitch
+language used in a document.
+
+To convert all music from relative to absolute notaton::
+
+    >>> import parce
+    >>> from quickly.registry import find
+    >>> doc = parce.Document(find("lilypond"), r"music = \relative c' { c d e f g }", transformer=True)
+    >>> cursor = parce.Cursor(doc)
+    >>>
+    >>> from quickly.relative import rel2abs
+    >>> rel2abs(cursor)
+    >>> doc.text()
+    "music = { c' d' e' f' g' }"
+
+And convert back to relative::
+
+    >>> from quickly.relative import abs2rel
+    >>> abs2rel(cursor)
+    >>> doc.text()
+    "music = \\relative c' { c d e f g }"
+

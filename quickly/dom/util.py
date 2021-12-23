@@ -23,6 +23,10 @@ Some utility functions.
 """
 
 
+import contextlib
+
+
+
 def whitespace_key(text):
     r"""Return a key to determine the importance of the whitespace.
 
@@ -166,4 +170,35 @@ def lilypond_version(node):
         return v.version
     return ()
 
+
+@contextlib.contextmanager
+def edit(cursor):
+    """Return a context manager that yields the DOM document and a "writable".
+
+    The DOM document is the transformed result of the cursor's parse Document.
+    When the cursor has a selected range, the "writable" is a callable that,
+    when called with a DOM node, returns True if that node is in the
+    selection's range. When the cursor has no selection, writable is simply
+    None.
+
+    When the context exists, the node's modifications are written back to the
+    document.
+
+    Usage example::
+
+        >>> from quickly.dom.util import edit
+        >>> with edit(cursor) as (node, writable):
+        ...     perform_operations(node, writable, other, parameters)
+
+    """
+    if cursor.has_selection():
+        pos, end = cursor.selection()
+        def writable(node):
+            return node.pos >= pos and node.end <= end
+    else:
+        writable = None
+
+    node = cursor.document().get_transform(True)
+    yield node, writable
+    node.edit(cursor.document())
 

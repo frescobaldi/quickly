@@ -12,5 +12,6 @@ Overview of all modules
    pitch.rst
    pkginfo.rst
    registry.rst
+   relative.rst
    transpose.rst
 
