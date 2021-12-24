@@ -199,11 +199,11 @@ def edit(cursor, select_youngest_node=False):
     start = end = None
 
     if cursor.has_selection():
-        pos, end = cursor.selection()
+        cpos, cend = cursor.selection()
         def writable(node):
-            return node.pos >= pos and node.end <= end
+            return node.pos >= cpos and node.end <= cend
         if select_youngest_node:
-            for node in node.find_descendants(pos, end):
+            for node in node.find_descendants(cpos, cend):
                 start, end = node.pos, node.end
     else:
         writable = None
