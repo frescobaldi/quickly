@@ -297,7 +297,7 @@ class PitchProcessor:
         r"""Search backwards from node to find the last set language.
 
         If an ``\include`` command is found that names a language file, or a
-        ``\languge`` command with a valid language, that language is set.
+        ``\language`` command with a valid language, that language is set.
 
         """
         from .dom import lily

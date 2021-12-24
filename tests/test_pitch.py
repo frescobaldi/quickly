@@ -33,8 +33,8 @@ import parce
 import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, octave_to_string, octave_from_string, determine_language)
-from quickly.transpose import Transposer, transpose_node, transpose
-from quickly.relative import rel2abs, rel2abs_node, abs2rel, abs2rel_node
+from quickly.transpose import Transposer, transpose, transpose_doc
+from quickly.relative import rel2abs, rel2abs_doc, abs2rel, abs2rel_doc
 from quickly.dom import read, lily
 from quickly.registry import find
 
@@ -164,42 +164,42 @@ def check_transpose():
 
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
     music = read.lily_document("{ c d e f g }")
-    transpose_node(music, t)
+    transpose(music, t)
     assert music.write() == "{ e fis gis a b }"
-    transpose_node(music, t)
+    transpose(music, t)
     assert music.write() == "{ gis ais bis cis' dis' }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(0, 0, 1))
     music = read.lily_document(r"\relative { c' d e f g }")
-    transpose_node(music, t)
+    transpose(music, t)
     assert music.write() == r"\relative { c'' d e f g }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(4, 0, 0))
     music = read.lily_document(r"\relative c' { c d e f g }")
-    transpose_node(music, t)
+    transpose(music, t)
     assert music.write() == r"\relative g' { g a b c d }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(6, -.5, -1))
     music = read.lily_document(r"\relative { g a b c d }")
-    transpose_node(music, t, relative_first_pitch_absolute=False)
+    transpose(music, t, relative_first_pitch_absolute=False)
     assert music.write() == r"\relative { f, g a bes c }"
 
     music = read.lily_document(r"\relative { g a b c d }")
-    transpose_node(music, t, relative_first_pitch_absolute=True)
+    transpose(music, t, relative_first_pitch_absolute=True)
     assert music.write() == r"\relative { f g a bes c }"
 
     music = read.lily_document("""\\version "2.12.0"\n\\relative { g a b c d }\n""")
-    transpose_node(music, t)
+    transpose(music, t)
     assert music[1].write() == r"\relative { f, g a bes c }"
 
     music = read.lily_document("""\\version "2.22.0"\n\\relative { g a b c d }\n""")
-    transpose_node(music, t)
+    transpose(music, t)
     assert music[1].write() == r"\relative { f g a bes c }"
 
     doc = lydoc("{ c d e f g }")
     cur = parce.Cursor(doc).select(4, 7)
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
-    transpose(cur, t)
+    transpose_doc(cur, t)
     assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 
 
@@ -207,27 +207,27 @@ def check_relative():
     """Test functions in the relative module."""
     doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
-    abs2rel(cur)
+    abs2rel_doc(cur)
     assert doc.text() == r"\relative c' { c d e f g }"
 
     doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
-    abs2rel(cur, start_pitch=False)
+    abs2rel_doc(cur, start_pitch=False)
     assert doc.text() == r"\relative { c d e f g }"
 
     doc = lydoc("{ c' d' e' f' g' }")
     cur = parce.Cursor(doc)
-    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"\relative { c' d e f g }"
 
     doc = lydoc("{ { c' d' e' f' g' } { d' e' fis' g' a' } }")
     cur = parce.Cursor(doc)
-    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"{ \relative { c' d e f g } \relative { d' e fis g a } }"
 
     doc = lydoc("{ c { c' d' e' f' g' } { d' e' fis' g' a' } }")
     cur = parce.Cursor(doc)
-    abs2rel(cur, start_pitch=False, first_pitch_absolute=True)
+    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
     assert doc.text() == r"\relative { c { c' d e f g } { d e fis g a } }"
 
 
