@@ -186,7 +186,8 @@ def edit(cursor, select_youngest_node=False):
 
     If ``select_youngest_node`` is set to True and the cursor has a selection,
     the younghest (smallest) node that encompasses the selection is chosen to
-    run the operation on; otherwise the full DOM document is used.
+    run the operation on (be sure that the operation does not modify the node's
+    parent); otherwise the full DOM document is used.
 
     Usage example::
 

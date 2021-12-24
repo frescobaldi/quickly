@@ -126,7 +126,7 @@ def rel2abs_doc(cursor, processor=None, first_pitch_absolute=None):
     For the other arguments see :func:`rel2abs_node`.
 
     """
-    with util.edit(cursor, False) as (node, writable):
+    with util.edit(cursor) as (node, writable):
         rel2abs(node, processor, writable, first_pitch_absolute)
 
 
@@ -237,7 +237,7 @@ def abs2rel_doc(cursor, processor=None, start_pitch=True, first_pitch_absolute=N
     For the other arguments see :func:`abs2rel_node`.
 
     """
-    with util.edit(cursor, False) as (node, writable):
+    with util.edit(cursor) as (node, writable):
         abs2rel(node, processor, writable, start_pitch, first_pitch_absolute)
 
 
