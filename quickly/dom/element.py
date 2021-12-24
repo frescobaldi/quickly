@@ -180,17 +180,23 @@ class Element(Node, metaclass=ElementType):
         """Copy the node (and copy all the children), with origin, if available."""
         children = (n.copy_with_origin() for n in self)
         copy = type(self)(*children, **getattr(self, '_spacing', {}))
-        copy._copy_origin(self)
+        copy.copy_origin_from(self)
         return copy
 
-    def _copy_origin(self, other, modified=None):
-        """Copy the origin from another element node.
+    def copy_origin_from(self, other, modified=None):
+        """Copy the origin from another element node to ourself.
 
-        If ``modified`` is True, sets the other node as "modified", i.e. it
-        will write back changes when requested via :meth:`edits`. If
-        ``modified`` is False, the copied node will have reset the "modified"
-        flag to unmodified state. If ``modified`` is None (the default); the
-        modified flag will be copied from self.
+        If ``modified`` is True, sets ourself as "modified", i.e. we will write
+        back changes when requested via :meth:`edits`. If ``modified`` is
+        False, our "modified" flag will be set to to unmodified state. If
+        ``modified`` is None (the default); the modified flag will be copied
+        from the other.
+
+        .. note::
+
+           The modified flag makes only sense for :class:`TextElement` types,
+           that have a writable head value. Using this method on other node
+           types can lead to changes going unnoticed.
 
         """
         modified_flag = 0
@@ -600,34 +606,6 @@ class Element(Node, metaclass=ElementType):
                 n += 1
         return n
 
-    def replace(self, node):
-        """Replace this node (in its parent) with another ``node``.
-
-        The origin of the old node is copied to the new, so that when
-        writing out the node, its output exactly comes on the same spot in the
-        document.
-
-        For nodes without origin, this method does nothing more than
-        ``self.parent[self.parent.index(self)] = node``.
-
-        """
-        index = self.parent.index(self)
-        self.parent.replace_at(index, node)
-
-    def replace_at(self, index, node):
-        """Replace in this node the child at ``index`` with another ``node``.
-
-        The origin of the old node is copied to the new, so that when
-        writing out the node, its output exactly comes on the same spot in the
-        document.
-
-        For nodes without origin, this method does nothing more than
-        ``self[index] = node``.
-
-        """
-        node._copy_origin(self[index], True)
-        self[index] = node
-
     def signatures(self):
         """Return an iterable of signature tuples.
 
@@ -820,7 +798,7 @@ class TextElement(HeadElement):
         """Copy the node (and copy all the children), with origin, if available."""
         children = (n.copy_with_origin() for n in self)
         copy = self._factory(self.head, *children, **getattr(self, '_spacing', {}))
-        copy._copy_origin(self)
+        copy.copy_origin_from(self)
         return copy
 
 

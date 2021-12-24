@@ -150,7 +150,9 @@ def replace_unknown(tree, text):
     """
     from . import base
     for n in tree // base.Unknown:
-        n.replace(base.Text(text[n.pos:n.end]))
+        t = base.Text(text[n.pos:n.end])
+        t.copy_origin_from(n, True)
+        n.replace_with(t)
 
 
 def skip_comments(node):

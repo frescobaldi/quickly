@@ -135,7 +135,7 @@ class HandleAssignments(element.Element):
         node = create_element_from_value(value)
         assignment = self.find_assignment(name)
         if assignment:
-            assignment.replace(-1, node)
+            assignment[-1] = node
         else:
             self.append(Assignment.with_name(name, node))
 

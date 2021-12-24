@@ -81,7 +81,7 @@ class Node(list):
 
         for n in node / MyClass:
             # do_something with n, which is a child of node and
-            # an an instance of MyClass
+            # an instance of MyClass
 
     * The ``//`` operator iterates over all descendants in document order::
 
@@ -216,6 +216,16 @@ class Node(list):
         """Insert node in this node; the parent is set to this node."""
         node._parent = weakref.ref(self)
         list.insert(self, index, node)
+
+    def replace_with(self, node):
+        """Replace this node in its parent with another node.
+
+        Fails if called on the root node.
+
+        """
+        node._parent = weakref.ref(self)
+        index = self.parent.index(self)
+        self.parent[index] = node
 
     def take(self, start=0, end=None):
         """Like :meth:`list.pop`, but takes out and returns a slice(start, end)."""
