@@ -363,30 +363,34 @@ class Element(Node, metaclass=ElementType):
                 prev = n if end == position else None
         return prev
 
-    def find_descendant(self, position):
+    def find_descendant(self, position, end=None):
         """Return the youngest descendant node that contains position.
 
         If two descendant nodes touch the position, the one to the right is
         chosen. Only returns a node that has a ``pos`` attribute, i.e. at least
-        one of its descendants has an origin. Returns None if there is no such
-        node that contains this position.
+        one of its descendants has an origin. If ``end`` is specified, stops
+        with the last node that contains the range ``position`` ... ``end``.
+        Returns None if there is no such node that contains this position.
 
         """
         n = None
-        for n in self.find_descendants(position):
+        for n in self.find_descendants(position, end):
             pass
         return n
 
-    def find_descendants(self, position):
+    def find_descendants(self, position, end=None):
         """Yield the child at position, then the grandchild, etc.
 
         Stops with the last node that really contains the position. Only yields
         nodes that have a ``pos`` attribute, i.e. at least one of its
-        descendants has an origin.
+        descendants has an origin. If ``end`` is specified, stops with the last
+        node that contains the range ``position`` ... ``end``.
 
         """
+        if end is None or end < position:
+            end = position
         n = self.find_child(position)
-        while n and n.pos <= position <= n.end:
+        while n and n.pos <= position and end <= n.end:
             yield n
             n = n.find_child(position)
 

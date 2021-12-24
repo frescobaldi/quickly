@@ -328,6 +328,10 @@ class Node(list):
         """Return True if this is the first node. Fails if no parent."""
         return self.parent[0] is self
 
+    def is_root(self):
+        """Return True if this node has no parent."""
+        return self.parent is None
+
     def common_ancestor(self, other):
         """Return the common ancestor, if any.
 
