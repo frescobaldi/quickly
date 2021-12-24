@@ -172,7 +172,7 @@ def lilypond_version(node):
 
 
 @contextlib.contextmanager
-def edit(cursor):
+def edit(cursor, select_youngest_node=False):
     """Return a context manager that yields the DOM document and a "writable".
 
     The DOM document is the transformed result of the cursor's parse Document.
@@ -184,6 +184,10 @@ def edit(cursor):
     When the context exists, the node's modifications are written back to the
     document.
 
+    If ``select_youngest_node`` is set to True and the cursor has a selection,
+    the younghest (smallest) node that encompasses the selection is chosen to
+    run the operation on; otherwise the full DOM document is used.
+
     Usage example::
 
         >>> from quickly.dom.util import edit
@@ -191,14 +195,19 @@ def edit(cursor):
         ...     perform_operations(node, writable, other, parameters)
 
     """
+    node = cursor.document().get_transform(True)
+    start = end = None
+
     if cursor.has_selection():
         pos, end = cursor.selection()
         def writable(node):
             return node.pos >= pos and node.end <= end
+        if select_youngest_node:
+            for node in node.find_descendants(pos, end):
+                start, end = node.pos, node.end
     else:
         writable = None
 
-    node = cursor.document().get_transform(True)
     yield node, writable
-    node.edit(cursor.document())
+    node.edit(cursor.document(), start=start, end=end)
 

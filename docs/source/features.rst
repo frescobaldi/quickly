@@ -61,8 +61,8 @@ Using the cursor, we can also operate on a fragment of the document::
     "music = { f c' d' bes c' }"
 
 Only the second and third note are transposed. The function :func:`transpose`
-operates on a parce Document, while :func:`transpose_node` operates directly on
-a DOM node.
+operates directly on a DOM node, while :func:`transpose_doc` operates on a
+:class:`parce.Document`.
 
 
 Convert pitches to and from relative notation
@@ -81,7 +81,6 @@ To convert all music from relative to absolute notation::
     >>> from quickly.registry import find
     >>> doc = parce.Document(find("lilypond"), r"music = \relative c' { c d e f g }", transformer=True)
     >>> cursor = parce.Cursor(doc)
-    >>>
     >>> from quickly.relative import rel2abs
     >>> rel2abs(cursor)
     >>> doc.text()
@@ -94,6 +93,6 @@ And convert back to relative::
     >>> doc.text()
     "music = \\relative c' { c d e f g }"
 
-The function :func:`abs2rel` and :func:`rel2abs` operate on a parce Document,
-while :func:`abs2rel_node` and :func:`rel2abs_node` operate directly on a DOM
-node.
+The function :func:`abs2rel` and :func:`rel2abs` operate directly on a DOM
+node, while :func:`abs2rel_doc` and :func:`rel2abs_doc` operate on a *parce*
+Document.

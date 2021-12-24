@@ -293,6 +293,20 @@ class PitchProcessor:
         if write:
             self.write_node(node, p)
 
+    def find_language(self, node):
+        r"""Search backwards from node to find the last set language.
+
+        If an ``\include`` command is found that names a language file, or a
+        ``\languge`` command with a valid language, that language is set.
+
+        """
+        from .dom import lily
+        for n in node < (lily.Language, lily.Include):
+            lang = n.language
+            if lang:
+                self.language = lang
+                break
+
     def follow_language(self, nodes):
         r"""Iterate over the DOM nodes and follow language changes.
 

@@ -424,7 +424,7 @@ When an element is modified by writing to the ``head`` attribute (for
 TextElement), a "modified" flag is set when the new value actually is
 different.
 
-There are two element methods dealing with this:
+There are two Element methods dealing with this:
 
 * :meth:`~element.Element.edits`, which yields a list of three-tuples (pos, end, text)
   denoting the changes that are made when comparing to the original tree. Although

@@ -26,7 +26,7 @@ from .dom import lily, util
 from .pitch import Pitch, PitchProcessor
 
 
-def rel2abs_node(node, processor=None, writable=None, first_pitch_absolute=None):
+def rel2abs(node, processor=None, writable=None, first_pitch_absolute=None):
     r"""Convert ``\relative`` music in node to absolute.
 
     Removes the ``\relative`` command and makes all pitches absolute.
@@ -52,6 +52,9 @@ def rel2abs_node(node, processor=None, writable=None, first_pitch_absolute=None)
 
     if first_pitch_absolute is None:
         first_pitch_absolute = util.lilypond_version(node) >= (2, 18)
+
+    if not node.is_root():
+        processor.find_language(node)
 
     def notes(nodes):
         """Yield note/rest, chord and octavecheck; follow pitch language."""
@@ -114,7 +117,7 @@ def rel2abs_node(node, processor=None, writable=None, first_pitch_absolute=None)
             make_absolute(n)
 
 
-def rel2abs(cursor, processor=None, first_pitch_absolute=None):
+def rel2abs_doc(cursor, processor=None, first_pitch_absolute=None):
     """Convert relative music to absolute in the selected range of the
     :class:`~parce.Cursor`'s document.
 
@@ -123,16 +126,16 @@ def rel2abs(cursor, processor=None, first_pitch_absolute=None):
     For the other arguments see :func:`rel2abs_node`.
 
     """
-    with util.edit(cursor) as (node, writable):
-        rel2abs_node(node, processor, writable, first_pitch_absolute)
+    with util.edit(cursor, False) as (node, writable):
+        rel2abs(node, processor, writable, first_pitch_absolute)
 
 
-def abs2rel_node(node, processor=None, writable=None, start_pitch=True,
-                 first_pitch_absolute=None):
+def abs2rel(node, processor=None, writable=None, start_pitch=True,
+            first_pitch_absolute=None):
     r"""Convert music in absolute notation to ``\relative`` notation.
 
-    The topmost MusicList (``{``...``}`` or ``<<``...``>>``) that has child notes
-    gets a Relative parent node.
+    The topmost MusicList (``{`` ... ``}`` or ``<<`` ... ``>>``) that has child
+    notes gets a Relative parent node.
 
     The ``processor`` is a :class:`~.pitch.PitchProcessor`; a default one is
     used if none is specified.
@@ -160,6 +163,9 @@ def abs2rel_node(node, processor=None, writable=None, start_pitch=True,
 
     if not start_pitch and first_pitch_absolute is None:
         first_pitch_absolute = util.lilypond_version(node) >= (2, 18)
+
+    if not node.is_root():
+        processor.find_language(node)
 
     def abs2rel(node):
         """Find MusicList nodes, and if they contain notes, make relative."""
@@ -221,7 +227,7 @@ def abs2rel_node(node, processor=None, writable=None, start_pitch=True,
     abs2rel(node)
 
 
-def abs2rel(cursor, processor=None, start_pitch=True, first_pitch_absolute=None):
+def abs2rel_doc(cursor, processor=None, start_pitch=True, first_pitch_absolute=None):
     r"""Convert music in absolute notation in the selected range of the
     :class:`~parce.Cursor`'s document to ``\relative``.
 
@@ -231,7 +237,7 @@ def abs2rel(cursor, processor=None, start_pitch=True, first_pitch_absolute=None)
     For the other arguments see :func:`abs2rel_node`.
 
     """
-    with util.edit(cursor) as (node, writable):
-        abs2rel_node(node, processor, writable, start_pitch, first_pitch_absolute)
+    with util.edit(cursor, False) as (node, writable):
+        abs2rel(node, processor, writable, start_pitch, first_pitch_absolute)
 
 

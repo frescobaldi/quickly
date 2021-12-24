@@ -2,7 +2,7 @@ Overview
 ========
 
 The *quickly* module provides ready-to-use functions to create, manipulate and
-convert LilyPond music text documents, and the building blocks to create new
+convert `LilyPond`_ music text documents, and the building blocks to create new
 functionality.
 
 Besides Python and its standard library, *quickly* only depends on `parce`_.
@@ -12,6 +12,7 @@ transformed into a "Document Object Model", a more semantical tree structure of
 :mod:`~quickly.dom` nodes.
 
 .. _parce: https://parce.info/
+.. _LilyPond: http://lilypond.org/
 
 When a document is modified (e.g. by the user, typing in a text editor), the
 tokens and the DOM document are automatically updated.

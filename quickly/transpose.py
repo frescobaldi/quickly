@@ -80,8 +80,8 @@ class Transposer(AbstractTransposer):
             pitch.note = note
 
 
-def transpose_node(node, transposer, processor = None, writable = None,
-                   relative_first_pitch_absolute = None):
+def transpose(node, transposer, processor = None, writable = None,
+              relative_first_pitch_absolute = None):
     r"""Transpose pitches using the specified transposer.
 
     The ``processor`` is a :class:`~.pitch.PitchProcessor`; a default one is
@@ -109,6 +109,9 @@ def transpose_node(node, transposer, processor = None, writable = None,
 
     if relative_first_pitch_absolute is None:
         relative_first_pitch_absolute = util.lilypond_version(node) >= (2, 18)
+
+    if not node.is_root():
+        processor.find_language(node)
 
     def notes(nodes, relative_mode=False):
         """Yield notes (lily.Pitchable) to be transposed.
@@ -237,8 +240,8 @@ def transpose_node(node, transposer, processor = None, writable = None,
     transpose_absolute((node,))
 
 
-def transpose(cursor, transposer, processor = None,
-              relative_first_pitch_absolute = None):
+def transpose_doc(cursor, transposer, processor = None,
+                  relative_first_pitch_absolute = None):
     """Transpose pitches in the selected range of the :class:`~parce.Cursor`'s
     document.
 
@@ -247,7 +250,7 @@ def transpose(cursor, transposer, processor = None,
     For the other arguments see :func:`transpose_node`.
 
     """
-    with util.edit(cursor) as (node, writable):
-        transpose_node(node, transposer, processor, writable, relative_first_pitch_absolute)
+    with util.edit(cursor, False) as (node, writable):
+        transpose(node, transposer, processor, writable, relative_first_pitch_absolute)
 
 
