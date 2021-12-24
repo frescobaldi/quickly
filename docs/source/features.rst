@@ -42,21 +42,21 @@ An example; create a document::
 Create a transposer::
 
     >>> from quickly.pitch import Pitch
-    >>> from quickly.transpose import transpose, Transposer
+    >>> from quickly.transpose import transpose_doc, Transposer
     >>> p1 = Pitch(0)     # -> c
     >>> p2 = Pitch(3)     # -> f
     >>> t = Transposer(p1, p2)
 
 Now transpose the music from ``c`` to ``f`` and view the result::
 
-    >>> transpose(parce.Cursor(doc), t)
+    >>> transpose_doc(parce.Cursor(doc), t)
     >>> doc.text()
     "music = { f g a bes c' }"
 
 Using the cursor, we can also operate on a fragment of the document::
 
     >>> cur = parce.Cursor(doc, 12, 15)     # only the second and third note
-    >>> transpose(cur, t)
+    >>> transpose_doc(cur, t)
     >>> doc.text()
     "music = { f c' d' bes c' }"
 
@@ -81,15 +81,15 @@ To convert all music from relative to absolute notation::
     >>> from quickly.registry import find
     >>> doc = parce.Document(find("lilypond"), r"music = \relative c' { c d e f g }", transformer=True)
     >>> cursor = parce.Cursor(doc)
-    >>> from quickly.relative import rel2abs
-    >>> rel2abs(cursor)
+    >>> from quickly.relative import rel2abs_doc
+    >>> rel2abs_doc(cursor)
     >>> doc.text()
     "music = { c' d' e' f' g' }"
 
 And convert back to relative::
 
-    >>> from quickly.relative import abs2rel
-    >>> abs2rel(cursor)
+    >>> from quickly.relative import abs2rel_doc
+    >>> abs2rel_doc(cursor)
     >>> doc.text()
     "music = \\relative c' { c d e f g }"
 
