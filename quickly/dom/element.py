@@ -171,14 +171,24 @@ class Element(Node, metaclass=ElementType):
         for attribute, value in attrs.items():
             setattr(self, attribute, value)
 
-    def copy(self):
-        """Copy the node (and copy all the children), without the origin."""
-        children = (n.copy() for n in self)
+    def copy(self, with_children=True):
+        """Copy the node, without the origin.
+
+        If ``with_children`` is True (the default), child nodes are also
+        copied.
+
+        """
+        children = (n.copy() for n in self) if with_children else ()
         return type(self)(*children, **getattr(self, '_spacing', {}))
 
-    def copy_with_origin(self):
-        """Copy the node (and copy all the children), with origin, if available."""
-        children = (n.copy_with_origin() for n in self)
+    def copy_with_origin(self, with_children=True):
+        """Copy the node, with origin, if available.
+
+        If ``with_children`` is True (the default), child nodes are also
+        copied.
+
+        """
+        children = (n.copy_with_origin() for n in self) if with_children else ()
         copy = type(self)(*children, **getattr(self, '_spacing', {}))
         copy.copy_origin_from(self)
         return copy
@@ -789,14 +799,24 @@ class TextElement(HeadElement):
         head = cls.read_head(head_origin)
         return cls._factory(head, *children, **attrs)
 
-    def copy(self):
-        """Copy the node, without the origin."""
-        children = (n.copy() for n in self)
+    def copy(self, with_children=True):
+        """Copy the node, without the origin.
+
+        If ``with_children`` is True (the default), child nodes are also
+        copied.
+
+        """
+        children = (n.copy() for n in self) if with_children else ()
         return self._factory(self.head, *children, **getattr(self, '_spacing', {}))
 
-    def copy_with_origin(self):
-        """Copy the node (and copy all the children), with origin, if available."""
-        children = (n.copy_with_origin() for n in self)
+    def copy_with_origin(self, with_children=True):
+        """Copy the node, with origin, if available.
+
+        If ``with_children`` is True (the default), child nodes are also
+        copied.
+
+        """
+        children = (n.copy_with_origin() for n in self) if with_children else ()
         copy = self._factory(self.head, *children, **getattr(self, '_spacing', {}))
         copy.copy_origin_from(self)
         return copy

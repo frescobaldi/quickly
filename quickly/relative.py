@@ -112,8 +112,8 @@ def rel2abs(node, processor=None, writable=None, first_pitch_absolute=None):
                     last_pitch = processor.read_node(note)
                 n.parent.remove(n)
     # Do it!
-    for n in node.instances_of(lily.Relative):
-        if not writable or writable(n):
+    for n in processor.follow_language(node.instances_of((lily.Language, lily.Include, lily.Relative))):
+        if isinstance(n, lily.Relative) and (not writable or writable(n)):
             make_absolute(n)
 
 
@@ -220,7 +220,7 @@ def abs2rel(node, processor=None, writable=None, start_pitch=True,
             return last_pitch
 
         relative_notes(node)
-        node.parent[node.parent.index(node)] = rel
+        node.replace_with(rel)
         rel.append(node)
 
     # Do it!

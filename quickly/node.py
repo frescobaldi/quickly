@@ -19,8 +19,12 @@
 
 
 """
-This module defines a Node class, to build simple tree structures based on
-Python lists.
+This module defines a :class:`Node` class, to build simple tree structures
+based on Python lists.
+
+There is also a :class:`Range` class, that defines a fragment of a node tree
+from one Node upto and including another (or from/to the beginning or end), and
+allows iterating over the tree fragment.
 
 """
 
@@ -167,7 +171,7 @@ class Node(list):
             print(''.join((d[1] * max(0, n-1), d[3] if n else '', repr(node))))
 
     def __bool__(self):
-        """Always return True."""
+        """Always True."""
         return True
 
     def __init__(self, *children):
@@ -183,9 +187,15 @@ class Node(list):
             for node in self:
                 node._parent = weakref.ref(self)
 
-    def copy(self):
-        """Return a copy of this Node, with copied children."""
-        return type(self)(*(n.copy() for n in self))
+    def copy(self, with_children=True):
+        """Return a copy of this Node.
+
+        If ``with_children`` is True (the default), child nodes are also
+        copied.
+
+        """
+        children = (n.copy() for n in self) if with_children else ()
+        return type(self)(*children)
 
     @property
     def parent(self):
@@ -361,11 +371,11 @@ class Node(list):
                 return n
 
     def common_ancestor_with_trail(self, other):
-        """Return a three-tuple(ancestor_node, trail_self, trail_other).
+        """Return a three-tuple(``ancestor``, ``trail_self``, ``trail_other``) or None.
 
-        The ancestor node is the common ancestor such as returned by
-        :meth:`common_ancestor`. The trail_self is a list of indices from
-        the common ancestor upto self, and trail_other is a list of indices
+        The ``ancestor`` node is the common ancestor such as returned by
+        :meth:`common_ancestor`. The ``trail_self`` is a list of indices from
+        the common ancestor upto self, and ``trail_other`` is a list of indices
         from the same ancestor upto the other Node.
 
         If one of the trails is empty, the corresponding node is then an
@@ -392,7 +402,7 @@ class Node(list):
             trail_other.append(i)
             try:
                 i = ancestors.index(n)
-                return n, trail_self[i::-1], trail_other[::-1]
+                return n, trail_self[i::-1][1:], trail_other[::-1]
             except ValueError:
                 pass
         return None, None, None
@@ -566,6 +576,433 @@ class Node(list):
 
         """
         return self.filter(lambda node: isinstance(node, cls))
+
+    def range(self, other, from_root=False):
+        """Return a :class:`Range` from self to the other node."""
+        return Range.from_nodes(self, other, from_root)
+
+
+class Range:
+    """Defines a range within a node tree.
+
+    The range boundaries can be set using trails, which are lists of indices
+    defining the path to the first and/or last node of the range, or nodes
+    (using :meth:`from_nodes`, which is used by the :meth:`Node.range` method).
+    The range includes both the start node and the end node (if specified).
+
+    Use the ``node in range`` syntax to see whether a Node is inside a Range.
+
+    You can iterate over the nodes within the Range. Iterating starts at the
+    bottom node of the range, and walks over the children of that node that are
+    within the range. The Range object keeps track of the current node, which
+    is accessible via the :attr:`node` attribute. All iteration methods exactly
+    resume where they were left, unless :meth:`reset` is called.
+
+    Of course you can modify the tree directly, but if you change the number of
+    children of the iterator's node, use the item methods (like ``range[index]
+    = value``) of the iterator, so that it adjust its iteraton to the changes.
+
+    There is a subtle difference between how the start trail is handled and how
+    the end trail is handled. The children of the start node are considered to
+    be in the range, but the children of the end node not. If you want those to
+    be in the range, be sure you specify the last child node you want to be in
+    the range.
+
+    If you replace a node (using the item methods of Range) that's on a range
+    boundary, the boundary trail can be modified. For example, if you replace a
+    node that lies on the start trail, the start trail is truncated to that
+    node, so that all its children are within the range (because the old end of
+    the start trail can be invalid for the new node contents). Also the end
+    trail is truncated when a node on the end boundary is replaced, causing the
+    children of the new node to fall outside of the range. Inserting nodes in
+    another node that crosses the end boundary causes the end trail to be
+    adjusted, so that the range boundary is still valid.
+
+    """
+    @property
+    def ancestor(self):
+        """The bottom node of this range."""
+        return self._stack[0].node
+
+    def __init__(self, ancestor, start_trail=None, end_trail=None):
+        #: The start trail (path to first node), can be None.
+        #: (Do not modify from the outside.)
+        self.start_trail = start_trail
+        #: The end trail (path to the last node), can be None.
+        #: (Do not modify from the outside.)
+        self.end_trail = end_trail
+        self._stack = [self._Level(ancestor, start_trail, end_trail)]
+
+    def __repr__(self):
+        def fields():
+            yield type(self).__name__
+            yield "@{}".format(self.node)
+            if self.start_trail is not None:
+                yield "start_node={}".format(self.start_node)
+            if self.end_trail is not None:
+                yield "end_node={}".format(self.end_node)
+        return "<{}>".format(" ".join(fields()))
+
+    @classmethod
+    def from_nodes(cls, start_node=None, end_node=None, from_root=False):
+        """Create a Range object from a start node to an end note.
+
+        One of them (but not both) may be None. If the ``start_node`` is None,
+        the range starts at the very beginning; if the ``end_node`` is None,
+        the range starts at the start node and walks to the very end.
+
+        If ``from_root`` is True, the ancestor of the range will always be the
+        root node; even if the trails to start and end node are partially the
+        same. If False, the ancestor will be the youngest common ancestor.
+
+        Raises a ValueError if both nodes are None, or when the nodes do not
+        belong to the same tree.
+
+        """
+        if not from_root and start_node and end_node:
+            ancestor, start_trail, end_trail = start_node.common_ancestor_with_trail(end_node)
+            ok = ancestor is not None
+        elif start_node:
+            ancestor = start_node.root()
+            start_trail = start_node.trail()
+            end_trail = end_node.trail() if end_node else None
+            ok = (end_node.root() is ancestor) if end_node else True
+        elif end_node:
+            ancestor = end_node.root()
+            start_trail = None
+            end_trail = end_node.trail()
+        else:
+            raise ValueError("must specify at least one node")
+        if not ok:
+            raise ValueError("start_node and end_node should have the same root")
+        return cls(ancestor, start_trail, end_trail)
+
+    @property
+    def start_node(self):
+        """The start node, if specified."""
+        if self.start_trail is not None:
+            n = self.ancestor
+            for i in self.start_trail:
+                n = n[i]
+            return n
+
+    @property
+    def end_node(self):
+        """The end node, if specified."""
+        if self.end_trail is not None:
+            n = self.ancestor
+            for i in self.end_trail:
+                n = n[i]
+            return n
+
+    def copy(self):
+        """Return a clean copy of this Range, initialized at the same ancestor."""
+        return type(self)(self.ancestor, self.start_trail, self.end_trail)
+
+    def from_here(self):
+        """Return a new Range, starting at the current :attr:`node`.
+
+        This is easier to use if you prefer a recursive approach.
+
+        """
+        level = self._stack[-1]
+        if level.index > -1:
+            level = level.child()
+        start_trail = (level.start_trail[level.depth:] or None) if level.start_trail else None
+        end_trail = level.end_trail[level.depth:] if level.end_trail is not None else None
+        return type(self)(level.node, start_trail, end_trail)
+
+    def __bool__(self):
+        """False if the range is empty."""
+        level = self._stack[0]
+        return level.start <= level.end
+
+    def __contains__(self, node):
+        """Return True if the node is within this range."""
+        return bool(self._get_trail(node))
+
+    def _get_trail(self, node):
+        """(Internal) Return the trail of the node within our range.
+
+        Returns None if the node is not in our range.
+
+        """
+        ancestor = self.ancestor
+        trail = []
+        for p, i in node.ancestors_with_index():
+            trail.append(i)
+            if p is ancestor:
+                trail.reverse()
+                if self.start_trail and trail < self.start_trail:
+                    return
+                elif self.end_trail is not None and trail > self.end_trail:
+                    return
+                return trail
+
+    def __iter__(self):
+        return self._stack[-1]
+
+    def __next__(self):
+        return self._stack[-1].__next__()
+
+    def reversed(self):
+        """Iterate the current node in reverse order."""
+        return self._stack[-1].reversed()
+
+    def __getitem__(self, i):
+        """Get Node(s) at index or slice."""
+        return self._stack[-1].node[i]
+
+    def __setitem__(self, i, value):
+        """Set Node(s) at index or slice. Slice step must be None or 1."""
+        level = self._stack[-1]
+        if isinstance(i, slice):
+            if i.step not in (1, None):
+                raise ValueError("can't use step other than 1 in slice")
+            value = tuple(value)
+            index, end, _ = i.indices(len(level.node))
+            removed = end - index
+            added = len(value)
+            if index <= level.index:
+                level.index = min(index, level.index - removed) + added
+        else:
+            index, removed, added = i, 1, 1
+        if not level.start <= index <= level.end:
+            raise ValueError("node modified outside range""")
+        if level.start_trail and index == level.start:
+            del self.start_trail[level.depth+1:]
+        if level.end_trail:
+            if index + removed >= level.end_trail[level.depth]:
+                # last node was deleted or replaced, keep new stuff
+                # out of the range
+                del self.end_trail[level.depth+1:]
+            self.end_trail[level.depth] += added - removed
+        level.end += added - removed
+        level.node[i] = value
+
+    def __delitem__(self, i):
+        """Delete Node(s) at index or slice. Slice step must be None or 1."""
+        if not isinstance(i, slice):
+            i = slice(i, i+1)
+        self[i] = ()
+
+    @property
+    def node(self):
+        """The current node.
+
+        This is the last yielded Node when iterating. *Setting* the property
+        replaces the node in its parent with the specified node, and is only
+        possible during iteration.
+
+        """
+        level = self._stack[-1]
+        return level.node if level.index == -1 else level.node[level.index]
+
+    @node.setter
+    def node(self, node):
+        level = self._stack[-1]
+        if level.index == -1:
+            raise ValueError("empty range or not iterating")
+        self[level.index] = node
+
+    @property
+    def index(self):
+        """The index of the current node. Only accessible during iteration."""
+        index = self._stack[-1].index
+        if index == -1:
+            raise ValueError("empty range or not iterating")
+        return index
+
+    @property
+    def trail(self):
+        """Trail to the current (last yielded) node."""
+        trail = [level.index for level in self._stack]
+        if trail[-1] == -1:
+            trail.pop()
+        return trail
+
+    @property
+    def depth(self):
+        """The current iteration depth (0 or higher)."""
+        return len(self._stack) - 1
+
+    @property
+    def complete(self):
+        """True if the current :attr:`node` and its descendants completely fall within the range."""
+        level = self._stack[-1]
+        if level.index > -1:
+            level = level.child()
+        return level.complete()
+
+    def goto(self, node):
+        """Go to another node.
+
+        Raises ValueError if the node is not in our range.
+
+        """
+        trail = self._get_trail(node)
+        if not trail:
+            raise ValueError("node not in range")
+        del self._stack[1:]
+        for i in trail:
+            self._stack[-1].index = i
+            self._stack.append(self._stack[-1].child())
+
+    def reset(self):
+        """Reset iteration to the ancestor node, as if we are just instantiated."""
+        del self._stack[1:]
+        self._stack[-1].index = -1
+
+    def enter(self):
+        """Start iterating the current child node.
+
+        Only possible during iteration. Returns the depth *after entering*
+        (which is always 1 or higher). If you store this value, and compare
+        with the value returned by :meth:`leave`, you are back where you
+        started when both values are the same.
+
+        """
+        level = self._stack[-1]
+        if level.index == -1:
+            raise ValueError("empty range or not iterating")
+        self._stack.append(level.child())
+        return len(self._stack) - 1
+
+    def leave(self):
+        """Stop iterating the current child node and pop back to the parent.
+
+        Returns the depth *before leaving*, i.e. the same depth as the
+        corresponding call to :meth:`enter`. Returns 0 if you try to leave the
+        outermost node.
+
+        """
+        if len(self._stack) == 1:
+            return 0
+        self._stack.pop()
+        return len(self._stack)
+
+    def extract_tree(self):
+        """Return a copy of the node tree, starting at the current
+        :attr:`node`, including only the range.
+
+        """
+        r = self.from_here()
+        tree = node = r.ancestor.copy(False)
+        while True:
+            for n in r:
+                c = n.copy(False)
+                node.append(c)
+                if len(n):
+                    node = c
+                    r.enter()
+                    break
+            else:
+                if r.leave():
+                    node = node.parent
+                else:
+                    break
+        return tree
+
+    def descendants(self, reverse=False):
+        """Iterate over all descendants in the range.
+
+        Starts with the children of the current node and goes to the end of the
+        full range. If ``reverse`` is set to True, yields all descendants in
+        backward direction, starting just before the current node and going to
+        the start of the range.
+
+        """
+        iterate = (lambda n: n.reversed()) if reverse else iter
+        while True:
+            for n in iterate(self):
+                yield n
+                if len(n):
+                    self.enter()
+                    break
+            else:
+                if not self.leave():
+                    break
+
+    def filter(self, predicate):
+        """Iterate over all descendants in the range, yielding matching nodes.
+
+        Starts with the children of the current node and goes to the end of the
+        full range. If the predicate returns True for a node, it is yielded and
+        its descendants are skipped.
+
+        """
+        while True:
+            for n in self:
+                if predicate(n):
+                    yield n
+                elif len(n):
+                    self.enter()
+                    break
+            else:
+                if not self.leave():
+                    break
+
+    def instances_of(self, cls):
+        """Yield all descendants in the range that are an instance of ``cls``.
+
+        When a node is yielded, its children are not searched anymore.
+
+        The ``cls`` parameter may also be a tuple of more classes, just like the
+        standard Python :func:`isinstance`.
+
+        """
+        return self.filter(lambda node: isinstance(node, cls))
+
+    class _Level:
+        """Manages iteration within the range over a Node."""
+        def __init__(self, node, start_trail, end_trail, depth=0):
+            self.node = node
+            self.depth = depth
+            self.start_trail = start_trail
+            self.end_trail = end_trail
+            # for convenience, store start and end indices for the range
+            self.start = start_trail[depth] if start_trail else 0
+            self.end = len(node) - 1 if end_trail is None else end_trail[depth] if len(end_trail) > depth else -1
+            self.index = -1 # so that iteration will start correctly
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            index = self.start if self.index == -1 else self.index + 1
+            if index > self.end:
+                raise StopIteration
+            self.index = index
+            return self.node[index]
+
+        def reversed(self):
+            """Iterate in backward direction."""
+            index = self.end if self.index == -1 else self.index - 1
+            while index >= self.start:
+                self.index = index
+                yield self.node[index]
+
+        def child(self):
+            """Return a "child" _Level for the current node."""
+            # link to the boundary trails if we are on a boundary
+            depth = self.depth + 1
+            start_trail = self.start_trail if self.start_trail and self.index == self.start \
+                and len(self.start_trail) > depth else None
+            end_trail = self.end_trail if self.end_trail is not None and self.index == self.end else None
+            return type(self)(self.node[self.index], start_trail, end_trail, depth)
+
+        def complete(self):
+            """Return True if this node and its descendants completely fall within the range."""
+            if self.start_trail and any(self.start_trail[self.depth:]):
+                return False
+            elif self.end_trail is None:
+                return True
+            n = self.node
+            for i in self.end_trail[self.depth:]:
+                if i < len(n) - 1:
+                    return False    # this descendant is sliced from the end
+                n = n[i]
+            return len(n) == 0      # not complete if the end node has children
 
 
 class _NodeLister:
