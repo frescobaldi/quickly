@@ -768,7 +768,7 @@ class Range:
         else:
             index, removed, added = i, 1, 1
         if not level.start <= index <= level.end:
-            raise ValueError("node modified outside range""")
+            raise ValueError("node modified outside range""") # TODO: allow this
         if level.start_trail and index == level.start:
             del self.start_trail[level.depth+1:]
         if level.end_trail:
@@ -805,7 +805,6 @@ class Range:
             raise ValueError("empty range or not iterating")
         self[level.index] = node
 
-    @property
     def index(self):
         """The index of the current node. Only accessible during iteration."""
         index = self._stack[-1].index
@@ -813,7 +812,6 @@ class Range:
             raise ValueError("empty range or not iterating")
         return index
 
-    @property
     def trail(self):
         """Trail to the current (last yielded) node."""
         trail = [level.index for level in self._stack]
@@ -821,12 +819,10 @@ class Range:
             trail.pop()
         return trail
 
-    @property
     def depth(self):
         """The current iteration depth (0 or higher)."""
         return len(self._stack) - 1
 
-    @property
     def complete(self):
         """True if the current :attr:`node` and its descendants completely fall within the range."""
         level = self._stack[-1]
