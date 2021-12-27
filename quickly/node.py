@@ -596,11 +596,16 @@ class Range(_NodeOperators):
 
     Use the ``node in range`` syntax to see whether a Node is inside a Range.
 
-    You can iterate over the nodes within the Range. Iterating starts at the
-    bottom node of the range, and walks over the children of that node that are
-    within the range. The Range object keeps track of the current node, which
-    is accessible via the :attr:`node` attribute. All iteration methods exactly
-    resume where they were left, unless :meth:`reset` is called.
+    You can iterate over the Range to get the nodes at the current iteration
+    level. Iterating starts at the bottom node of the range, and walks over the
+    children of the node that are within the range. If you want to iterate over
+    the children of a node that are in the range (and possibly further down),
+    you can use :meth:`enter`, and, after iterating the children,
+    :meth:`leave`. Or use :meth:`children`, which fits more in a recursive
+    approach.
+
+    The Range object keeps track of the position in the tree range. The current
+    node is accessible via the :attr:`node` attribute.
 
     Range support the same search operators as :class:`Node`: ``/``, ``//``,
     ``<<``, ``>``, ``<`` and ``^``. Note that they set the current node, so it
@@ -609,8 +614,8 @@ class Range(_NodeOperators):
 
     Of course you can modify the tree directly, but if you change the number of
     children of the parent of the current node, use the item methods (like
-    ``range[index] = value``) of the iterator, so that it adjust its iteraton
-    to the changes.
+    ``range[index] = value``) of the iterator, so that it adjust the range
+    boundaries and its iteraton to the changes.
 
     There is a subtle difference between how the start trail is handled and how
     the end trail is handled. The children of the start node are considered to
@@ -725,25 +730,39 @@ class Range(_NodeOperators):
         return level.start <= level.end
 
     def __contains__(self, node):
-        """Return True if the node is within this range."""
-        return bool(self._get_trail(node))
+        """Return True if the node is completely within this range.
+
+        Returns False if a node (or any of its descendants) is partially
+        outside of the range. (The ancestor itself is completely in the range
+        if there is no start_trail and no end_trail.)
+
+        """
+        trail = self._get_trail(node)
+        if trail is not None:
+            if not trail:   # ancestor itself? ok if complete()
+                return self._stack[0].complete_start() and self._stack[0].complete_end()
+            elif self.start_trail and trail < self.start_trail:
+                return False
+            elif self.end_trail is not None and trail > self.end_trail:
+                return False
+            return True
+        return False
 
     def _get_trail(self, node):
-        """(Internal) Return the trail of the node within our range.
+        """(Internal) Return the trail of the node from our ancestor.
 
-        Returns None if the node is not in our range.
+        Returns None if the node does not belong to our tree.
+        Returns an empty list if the node *is* the ancestor.
 
         """
         ancestor = self.ancestor()
         trail = []
+        if node is ancestor:
+            return trail
         for p, i in node.ancestors_with_index():
             trail.append(i)
             if p is ancestor:
                 trail.reverse()
-                if self.start_trail and trail < self.start_trail:
-                    return
-                elif self.end_trail is not None and trail > self.end_trail:
-                    return
                 return trail
 
     def __iter__(self):
@@ -881,19 +900,29 @@ class Range(_NodeOperators):
         return level.complete_start() and level.complete_end()
 
     def goto(self, node):
-        """Go to another node.
+        """Navigate to another node, returns True if that succeeded.
 
-        Raises ValueError if the node is not in our range.
+        Raises ValueError if the node is not in our tree. Returns False if the
+        node is in our tree, but completely outside our range. The specified node
+        may be partially outside the tree, which is the case when it crosses
+        a range boundary.
 
         """
         trail = self._get_trail(node)
-        if not trail:
-            raise ValueError("node not in range")
+        if trail is None:
+            raise ValueError("node not in our tree")
+        if (self.start_trail and trail < self.start_trail[:len(trail)]) \
+                or (self.end_trail and trail > self.end_trail[:len(trail)]):
+            return False
         del self._stack[1:]
-        for i in trail[:-1]:
-            self._stack[-1].index = i
-            self._stack.append(self._stack[-1].child())
-        self._stack[-1].index = trail[-1]
+        if trail:
+            for i in trail[:-1]:
+                self._stack[-1].index = i
+                self._stack.append(self._stack[-1].child())
+            self._stack[-1].index = trail[-1]
+        else:
+            self._stack[-1].index = -1
+        return True
 
     def reset(self):
         """Reset iteration to the ancestor node, as if we are just instantiated."""
