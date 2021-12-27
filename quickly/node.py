@@ -923,6 +923,7 @@ class Range(_NodeOperators):
 
         """
         if len(self._stack) == 1:
+            self._stack[-1].index = -1
             return 0
         self._stack.pop()
         return len(self._stack)
@@ -1014,8 +1015,7 @@ class Range(_NodeOperators):
         """
         self.enter()
         yield from self
-        if not self.leave():
-            self._stack[-1].index = -1  # so we can iterate again
+        self.leave()
 
     def descendants(self, reverse=False):
         """Iterate over all descendants of the current :attr:`node` that are in
@@ -1036,8 +1036,6 @@ class Range(_NodeOperators):
             else:
                 if self.leave() == depth:
                     break
-        if depth == 0:
-            self._stack[-1].index = -1  # so we can iterate again
 
     def filter(self, predicate):
         """Iterate over the descendants of the current :attr:`node` that are in
@@ -1058,8 +1056,6 @@ class Range(_NodeOperators):
             else:
                 if self.leave() == depth:
                     break
-        if depth == 0:
-            self._stack[-1].index = -1  # so we can iterate again
 
     def instances_of(self, cls):
         """Iterate over the descendants of the current :attr:`node` and yield
