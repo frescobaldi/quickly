@@ -772,7 +772,7 @@ class Range(_NodeOperators):
         return self._stack[-1].__next__()
 
     def reversed(self):
-        """Iterate the current node in reverse order."""
+        """Iterate the current iteration level in reverse order."""
         return self._stack[-1].reversed()
 
     def __getitem__(self, i):
@@ -902,16 +902,14 @@ class Range(_NodeOperators):
     def goto(self, node):
         """Navigate to another node, returns True if that succeeded.
 
-        Raises ValueError if the node is not in our tree. Returns False if the
-        node is in our tree, but completely outside our range. The specified node
-        may be partially outside the tree, which is the case when it crosses
-        a range boundary.
+        Returns False if the node is not in our tree, or completely outside our
+        range. The specified node may be partially outside the tree, which is
+        the case when it crosses a range boundary.
 
         """
         trail = self._get_trail(node)
-        if trail is None:
-            raise ValueError("node not in our tree")
-        if (self.start_trail and trail < self.start_trail[:len(trail)]) \
+        if trail is None \
+                or (self.start_trail and trail < self.start_trail[:len(trail)]) \
                 or (self.end_trail and trail > self.end_trail[:len(trail)]):
             return False
         del self._stack[1:]
