@@ -1008,13 +1008,16 @@ class Range(_NodeOperators):
             self._stack[-1].index = -1
             yield self.node
 
-    def children(self):
+    def children(self, reverse=False):
         """Iterate over the children of the current :attr:`node` that are in
         the range.
 
+        If ``reverse`` is set to True, yields the children in backward
+        direction.
+
         """
         self.enter()
-        yield from self
+        yield from (self.reversed() if reverse else self)
         self.leave()
 
     def descendants(self, reverse=False):
@@ -1135,6 +1138,7 @@ class Range(_NodeOperators):
             while index >= self.start:
                 self.index = index
                 yield self.node[index]
+                index -= 1
 
         def child(self):
             """Return a "child" _Level for the current node."""
