@@ -379,8 +379,8 @@ class Node(_NodeOperators, list):
         the common ancestor upto self, and ``trail_other`` is a list of indices
         from the same ancestor upto the other Node.
 
-        If one of the trails is empty, the corresponding node is then an
-        ancestor or the other.
+        If one of the trails is empty, the corresponding node is an ancestor of
+        the other.
 
         If there is no common ancestor, (None, None, None) is returned. But
         normally, all nodes share the root node, so that will normally be the
@@ -389,23 +389,26 @@ class Node(_NodeOperators, list):
         """
         if other is self:
             return self, [], []
-        ancestors = [self]
+
+        ancestors = []
         trail_self = []
-        n = self
-        for p, i in self.ancestors_with_index():
+        for n, i in self.ancestors_with_index():
             trail_self.append(i)
-            if p is other:
-                return p, trail_self[::-1], []
-            ancestors.append(p)
-            n = p
+            if n is other:
+                return n, trail_self[::-1], []
+            ancestors.append(n)
+
         trail_other = []
         for n, i in other.ancestors_with_index():
             trail_other.append(i)
+            if n is self:
+                return n, [], trail_other[::-1]
             try:
                 i = ancestors.index(n)
-                return n, trail_self[i::-1][1:], trail_other[::-1]
             except ValueError:
                 pass
+            else:
+                return n, trail_self[i::-1], trail_other[::-1]
         return None, None, None
 
     def ancestors(self):
@@ -626,7 +629,6 @@ class Range(_NodeOperators):
     adjusted, so that the range boundary is still valid.
 
     """
-    @property
     def ancestor(self):
         """The bottom node of this range."""
         return self._stack[0].node
@@ -645,9 +647,9 @@ class Range(_NodeOperators):
             yield type(self).__name__
             yield "@{}".format(self.node)
             if self.start_trail is not None:
-                yield "start_node={}".format(self.start_node)
+                yield "start_node={}".format(self.start_node())
             if self.end_trail is not None:
-                yield "end_node={}".format(self.end_node)
+                yield "end_node={}".format(self.end_node())
         return "<{}>".format(" ".join(fields()))
 
     @classmethod
@@ -684,27 +686,25 @@ class Range(_NodeOperators):
             raise ValueError("start_node and end_node should have the same root")
         return cls(ancestor, start_trail, end_trail)
 
-    @property
     def start_node(self):
         """The start node, if specified."""
         if self.start_trail is not None:
-            n = self.ancestor
+            n = self.ancestor()
             for i in self.start_trail:
                 n = n[i]
             return n
 
-    @property
     def end_node(self):
         """The end node, if specified."""
         if self.end_trail is not None:
-            n = self.ancestor
+            n = self.ancestor()
             for i in self.end_trail:
                 n = n[i]
             return n
 
     def copy(self):
         """Return a clean copy of this Range, initialized at the same ancestor."""
-        return type(self)(self.ancestor, self.start_trail, self.end_trail)
+        return type(self)(self.ancestor(), self.start_trail, self.end_trail)
 
     def from_here(self):
         """Return a new Range, starting at the current :attr:`node`.
@@ -734,7 +734,7 @@ class Range(_NodeOperators):
         Returns None if the node is not in our range.
 
         """
-        ancestor = self.ancestor
+        ancestor = self.ancestor()
         trail = []
         for p, i in node.ancestors_with_index():
             trail.append(i)
@@ -798,30 +798,68 @@ class Range(_NodeOperators):
         """The current node.
 
         This is the last yielded Node when iterating. *Setting* the property
-        replaces the node in its parent with the specified node, and is only
-        possible during iteration.
+        modifies the tree: it replaces the node in its parent with the
+        specified node, or raises a ValueError when you try to replace the
+        ancestor (i.e. not yet iterated over the range, or the range is empty).
 
         """
         # If iterating, the current node a child of the younghest iteration
         # level's node, pointed to by the index attribute.
-        # If not iterating, the current node is the level's node itself.
-        # Some methods have special handling for both cases.
+        # If not iterating, the index is -1, and the current node is the level's
+        # node itself. Most methods have special handling for both cases.
         level = self._stack[-1]
         return level.node if level.index == -1 else level.node[level.index]
 
     @node.setter
     def node(self, node):
-        level = self._stack[-1]
-        if level.index == -1:
-            raise ValueError("empty range or not iterating")
-        self[level.index] = node
-
-    def index(self):
-        """The index of the current node. Only accessible during iteration."""
         index = self._stack[-1].index
         if index == -1:
-            raise ValueError("empty range or not iterating")
+            if len(self._stack) == 1:
+                raise ValueError("can't replace ancestor")
+            self._stack.pop()
+            index = self._stack[-1].index
+        self[index] = node
+
+    @property
+    def index(self):
+        """The index of the current (last yielded) node in its parent.
+
+        Returns -1 if the ancestor is the current node or the range is empty.
+
+        *Setting* the property selects the child node of the node at the
+        current iteration level. Raises a ValueError when the index you specify
+        is outside the range.
+
+        .. note::
+
+           The allowed range for the current iteration level is the range from
+           :meth:`start` upto and including :meth:`end`. Note that, when you
+           already :meth:`enter`-ed a node but not yet iterated over it, the
+           displayed :attr:`index` value still relates to the current node,
+           while the values returned by the :meth:`start` and :meth:`end`
+           methods, and setting the property, already relate to the current
+           (newly entered) iteration level.
+
+        """
+        index = self._stack[-1].index
+        if index == -1 and len(self._stack) > 1:
+            index = self._stack[-2].index
         return index
+
+    @index.setter
+    def index(self, index):
+        level = self._stack[-1]
+        if index < level.start or index > level.end:
+            raise ValueError("index not in range")
+        level.index = index
+
+    def start(self):
+        """The start index of the range in the current interation level's node."""
+        return self._stack[-1].start
+
+    def end(self):
+        """The end index of the range in the current interation level's node."""
+        return self._stack[-1].end
 
     def trail(self):
         """Trail to the current (last yielded) node."""
@@ -865,16 +903,15 @@ class Range(_NodeOperators):
     def enter(self):
         """Start iterating the current child node.
 
-        Only possible during iteration. Returns the depth *after entering*
-        (which is always 1 or higher). If you store this value, and compare
-        with the value returned by :meth:`leave`, you are back where you
-        started when both values are the same.
+        Returns the depth *after entering* (which is always 1 or higher). If
+        you store this value, and compare with the value returned by
+        :meth:`leave`, you are back where you started when both values are the
+        same.
 
         """
         level = self._stack[-1]
-        if level.index == -1:
-            raise ValueError("empty range or not iterating")
-        self._stack.append(level.child())
+        if level.index != -1:
+            self._stack.append(level.child())
         return len(self._stack) - 1
 
     def leave(self):
@@ -896,7 +933,7 @@ class Range(_NodeOperators):
 
         """
         r = self.from_here()
-        tree = node = r.ancestor.copy(False)
+        tree = node = r.ancestor().copy(False)
         while True:
             for n in r:
                 c = n.copy(False)
@@ -959,7 +996,7 @@ class Range(_NodeOperators):
         """Iterate over the ancestors of the current :attr:`node` that are in
         the range.
 
-        Ends with the :attr:`ancestor`.
+        Ends with the :meth:`ancestor`.
 
         """
         while self.depth():
@@ -975,8 +1012,7 @@ class Range(_NodeOperators):
         the range.
 
         """
-        if self._stack[-1].index != -1:
-            self.enter()
+        self.enter()
         yield from self
         if not self.leave():
             self._stack[-1].index = -1  # so we can iterate again
@@ -990,7 +1026,7 @@ class Range(_NodeOperators):
 
         """
         iterate = (lambda n: n.reversed()) if reverse else iter
-        depth = self.enter() if self._stack[-1].index != -1 else self.depth()
+        depth = self.enter()
         while True:
             for n in iterate(self):
                 yield n
@@ -1011,7 +1047,7 @@ class Range(_NodeOperators):
         descendants are skipped.
 
         """
-        depth = self.enter() if self._stack[-1].index != -1 else self.depth()
+        depth = self.enter()
         while True:
             for n in self:
                 if predicate(n):
@@ -1070,7 +1106,7 @@ class Range(_NodeOperators):
         nodes = [self.node]
         for n in self.node.ancestors():
             nodes.append(n)
-            if n is self.ancestor:
+            if n is self.ancestor():
                 break
         nodes.reverse()
         _pwd(nodes)
