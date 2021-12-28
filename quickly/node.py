@@ -768,7 +768,7 @@ class Range(_NodeOperators):
             return self._stack[0].start_in_range() and self._stack[0].end_in_range()
         elif self.start_trail and trail < self.start_trail:
             return False
-        elif self.end_trail and trail > self.end_trail:
+        elif self.end_trail is not None and trail > self.end_trail:
             return False
         return True
 
