@@ -60,7 +60,7 @@ from .util import collapse_whitespace, combine_text
 
 
 Point = collections.namedtuple("Point", "pos end text modified space_before space_after")
-"""Point describes a piece of text at a certain position; ``text`` is a
+"""A Point describes a piece of text at a certain position; ``text`` is a
 callable returning the text (it is the :meth:`~Element.write_head` or
 :meth:`~Element.write_tail` method of the respective element); ``pos`` and
 ``end`` are integers denoting the original position of the text; and
@@ -186,7 +186,7 @@ class Element(Node, metaclass=ElementType):
         return type(self)(*children, **getattr(self, '_spacing', {}))
 
     def copy_with_origin(self, with_children=True):
-        """Copy the node, with origin, if available.
+        """Copy the node, with origin if available.
 
         If ``with_children`` is True (the default), child nodes are also
         copied.
@@ -503,7 +503,7 @@ class Element(Node, metaclass=ElementType):
         """
 
     def points(self):
-        """Yield Points.
+        """Yield Points for this element and all its descendants.
 
         Each point is a :class:`Point` describing a text piece and the desired
         whitespace before and after it.
@@ -536,16 +536,16 @@ class Element(Node, metaclass=ElementType):
         """Return the minimum whitespace to apply between these child nodes.
 
         This method is called in the :meth:`points` method, when calculating
-        whitespace between child nodes. By default, the value of the
-        ``space_between`` attribute is returned. Reimplement this method to
-        differentiate whitespacing based on the (type of the) nodes.
+        whitespace between two adjacent child nodes. By default, the value of
+        the ``space_between`` attribute is returned. Reimplement this method to
+        differentiate whitespacing based on the (type or contents of the)
+        nodes.
 
         """
         return self.space_between
 
     def write(self):
-        """Return the combined (not yet indented) output of this node and its
-        children.
+        """Return the combined output of this node and its children.
 
         To get indented output, use :meth:`write_indented` and/or the
         :mod:`~quickly.dom.indent` module.
@@ -704,15 +704,23 @@ class HeadElement(Element):
 
     @classmethod
     def from_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        """Instantiate an Element from the origin tokens, but don't keep the tokens."""
         return cls(*children, **attrs)
 
     @classmethod
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
+        """Instantiate an Element from the origin tokens, and keep the tokens.
+
+        This way, this element knows its position in the text source, even if
+        the parce tree changes, or this element changes.
+
+        """
         node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
-        node.head_origin = head_origin
+        node.head_origin = head_origin  #: tuple of parce Tokens the head value is read from
         return node
 
     def head_point(self):
+        """Return the :class:`Point` describing the head text."""
         try:
             origin = self.head_origin
         except AttributeError:
@@ -733,7 +741,7 @@ class BlockElement(HeadElement):
     def with_origin(cls, head_origin=(), tail_origin=(), *children, **attrs):
         node = cls.from_origin(head_origin, tail_origin, *children, **attrs)
         node.head_origin = head_origin
-        node.tail_origin = tail_origin
+        node.tail_origin = tail_origin  #: tuple of parce Tokens the tail value is read from
         return node
 
     def indent_children(self):
@@ -741,6 +749,7 @@ class BlockElement(HeadElement):
         return True
 
     def tail_point(self):
+        """Return the :class:`Point` describing the tail text."""
         try:
             origin = self.tail_origin
         except AttributeError:
@@ -819,12 +828,6 @@ class TextElement(HeadElement):
         return self._factory(self.head, *children, **getattr(self, '_spacing', {}))
 
     def copy_with_origin(self, with_children=True):
-        """Copy the node, with origin, if available.
-
-        If ``with_children`` is True (the default), child nodes are also
-        copied.
-
-        """
         children = (n.copy_with_origin() for n in self) if with_children else ()
         copy = self._factory(self.head, *children, **getattr(self, '_spacing', {}))
         copy.copy_origin_from(self)
@@ -832,13 +835,11 @@ class TextElement(HeadElement):
 
 
 class MappingElement(TextElement):
-    r"""A TextElement with a fixed set of possible head values.
+    r"""A TextElement with a fixed set of possible head values."""
 
-    The ``mapping`` class attribute is a dictionay mapping unique head values
-    to unique output values.  Other head values can't be used, they result in a
-    TypeError.
-
-    """
+    #: The ``mapping`` class attribute is a dictionay mapping unique head
+    #: values to unique output values.  Other head values can't be used, they
+    #: result in a TypeError.
     mapping = {}
 
     def __init_subclass__(cls, **kwargs):
