@@ -1194,18 +1194,31 @@ class Range(_NodeOperators):
 
         """
         level = self._stack[-1]
+        print(repr(level.node))
         if not level.start_in_range():
             print("  : -- start boundary --")
-        for i in range(level.start, level.end+1):
-            text = "{:>3} {}".format(i, repr(level.node[i]))
-            child = level.child(i)  # make a level child but do not store it
-            if not child.start_in_range() or not child.end_in_range():
-                text += " (partly)"
-            if i == level.index:
-                text += "  <----"
-            print(text)
+        if level.end >= level.start:
+            for i in range(level.start, level.end+1):
+                text = "{:>3} {}".format(i, repr(level.node[i]))
+                child = level.child(i)  # make a level child but do not store it
+                if not child.start_in_range() or not child.end_in_range():
+                    text += " (partly)"
+                if i == level.index:
+                    text += "  <----"
+                print(text)
+        elif len(level.node) == 0:
+            print("  (empty node)")
+        else:
+            if level.start_in_range():
+                boundaries = "no boundary" if level.end_in_range() else "end boundary"
+            else:
+                boundaries = "start boundary" if level.end_in_range() else "both boundaries"
+            print("  (empty range; {} at {})".format(boundaries, level.start))
         if not level.end_in_range():
-            print("  : -- end boundary --")
+            if level.end < len(level.node) - 1:
+                print("  : -- end boundary, {} more nodes --".format(len(level.node) - level.end - 1))
+            else:
+                print("  : -- end boundary --")
 
     @property
     def pwd(self):
@@ -1251,13 +1264,13 @@ class Range(_NodeOperators):
                 yield self.node[index]
                 index -= 1
 
-        def child(self, index=-1):
+        def child(self, index=None):
             """Return a "child" _Level for the current node.
 
-            If ``index`` == -1, use our own index.
+            If ``index`` is None, use our own index.
 
             """
-            if index == -1:
+            if index is None:
                 index = self.index
             # link to the boundary trails if we are on a boundary
             depth = self.depth + 1
