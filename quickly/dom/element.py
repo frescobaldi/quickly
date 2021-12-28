@@ -423,14 +423,13 @@ class Element(Node, metaclass=ElementType):
         while True:
             for n in gen:
                 end = n.end
-                if end is not None:
-                    if end > position:
-                        if n.pos >= position:
-                            return n
-                        # enter this node
-                        stack.append(gen)
-                        gen = iter(n)
-                        break
+                if end is not None and end > position:
+                    if n.pos >= position:
+                        return n
+                    # enter this node
+                    stack.append(gen)
+                    gen = iter(n)
+                    break
             else:
                 if stack:
                     gen = stack.pop()
@@ -446,14 +445,13 @@ class Element(Node, metaclass=ElementType):
         while True:
             for n in gen:
                 pos = n.pos
-                if pos is not None:
-                    if pos < position:
-                        if n.end <= position:
-                            return n
-                        # enter this node
-                        stack.append(gen)
-                        gen = reversed(n)
-                        break
+                if pos is not None and pos < position:
+                    if n.end <= position:
+                        return n
+                    # enter this node
+                    stack.append(gen)
+                    gen = reversed(n)
+                    break
             else:
                 if stack:
                     gen = stack.pop()
