@@ -782,6 +782,9 @@ class Range(_NodeOperators):
     def __setitem__(self, i, value):
         """Set Node(s) at index or slice. Slice step must be None or 1."""
         level = self._stack[-1]
+        adjust_start = level.start_trail and len(level.start_trail) > level.depth
+        adjust_end = level.end_trail and len(level.end_trail) > level.depth
+
         if isinstance(i, slice):
             if i.step not in (1, None):
                 raise ValueError("can't use step other than 1 in slice")
@@ -789,22 +792,65 @@ class Range(_NodeOperators):
             index, end, _ = i.indices(len(level.node))
             removed = end - index
             added = len(value)
-            if index <= level.index:
-                level.index = min(index, level.index - removed) + added
+            length = len(level.node) + added - removed
+
+            if length == 0:
+                # node has become empty
+                level.start = 0
+                level.index = -1
+                level.end = -1
+                if level.start_trail:
+                    level.start_trail[level.depth:] = [0]
+                if level.end_trail:
+                    del level.end_trail[level.depth:]
+            else:
+                # adjust start boundary if needed
+                if index <= level.start:
+                    if index + removed > level.start:
+                        level.start = index + added
+                        if adjust_start:
+                            # deleted node was on the start trail, truncate
+                            del level.start_trail[level.depth:]
+                            if 0 < level.start < length:
+                                level.start_trail.append(level.start)
+                    else:
+                        level.start += added - removed
+                        if adjust_start:
+                            level.start_trail[level.depth] = level.start
+
+                # adjust end boundary
+                if index <= level.end:
+                    if index + removed > level.end:
+                        level.end = index + added
+                        if adjust_end:
+                            # deleted node was on the end trail, truncate
+                            del level.end_trail[level.depth:]
+                            if level.end < length:
+                                level.end_trail.append(level.end)
+                    else:
+                        level.end += added - removed
+                        if adjust_end:
+                            level.end_trail[level.depth] = level.end
+                elif length and level.end == -1 and level.end_trail is None:
+                    # end can be -1 if node was empty or because of empty end trail,
+                    # in this case it was because the node was empty, just move the end
+                    level.end = length - 1
+
+                # adjust level index
+                if index <= level.index:
+                    if index + removed > level.index:
+                        level.index = index + added
+                    else:
+                        level.index += added - removed
         else:
-            index, removed, added = i, 1, 1
-        if not level.start <= index <= level.end:
-            raise ValueError("node modified outside range""") # TODO: allow this
-        if level.start_trail and index == level.start:
-            del self.start_trail[level.depth+1:]
-        if level.end_trail:
-            if index + removed >= level.end_trail[level.depth]:
-                # last node was deleted or replaced, keep new stuff
-                # out of the range
-                del self.end_trail[level.depth+1:]
-            self.end_trail[level.depth] += added - removed
-        level.end += added - removed
+            # just replace node at i
+            if adjust_start and i == level.start:
+                del level.start_trail[level.depth+1:]
+            if adjust_end and i == level.end:
+                del level.end_trail[level.depth+1:]
+
         level.node[i] = value
+
 
     def __delitem__(self, i):
         """Delete Node(s) at index or slice. Slice step must be None or 1."""
