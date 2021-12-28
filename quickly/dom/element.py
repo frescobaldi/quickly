@@ -415,7 +415,13 @@ class Element(Node, metaclass=ElementType):
             n = n.find_child(position)
 
     def find_descendant_right(self, position):
-        """Returns the first descendant that starts at or to the right of position."""
+        """Return the first descendant that starts at or to the right of position.
+
+        Only returns a node that has a ``pos`` attribute, i.e. at least one of
+        its descendants has an origin. Returns None if no node with a ``pos``
+        value is found at or to the right of the position.
+
+        """
         # we do not bisect because we need to loop anyway to skip position-less
         # nodes
         stack = []
@@ -437,7 +443,13 @@ class Element(Node, metaclass=ElementType):
                     break
 
     def find_descendant_left(self, position):
-        """Returns the last descendant that ends at or to the left of position."""
+        """Return the last descendant that ends at or to the left of position.
+
+        Only returns a node that has a ``pos`` attribute, i.e. at least one of
+        its descendants has an origin. Returns None if no node with a ``pos``
+        value is found at or to the left of the position.
+
+        """
         # we do not bisect because we need to loop anyway to skip position-less
         # nodes
         stack = []
