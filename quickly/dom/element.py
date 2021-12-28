@@ -414,6 +414,52 @@ class Element(Node, metaclass=ElementType):
             yield n
             n = n.find_child(position)
 
+    def find_descendant_right(self, position):
+        """Returns the first descendant that starts at or to the right of position."""
+        # we do not bisect because we need to loop anyway to skip position-less
+        # nodes
+        stack = []
+        gen = iter(self)
+        while True:
+            for n in gen:
+                end = n.end
+                if end is not None:
+                    if end > position:
+                        if n.pos >= position:
+                            return n
+                        # enter this node
+                        stack.append(gen)
+                        gen = iter(n)
+                        break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
+
+    def find_descendant_left(self, position):
+        """Returns the last descendant that ends at or to the left of position."""
+        # we do not bisect because we need to loop anyway to skip position-less
+        # nodes
+        stack = []
+        gen = reversed(self)
+        while True:
+            for n in gen:
+                pos = n.pos
+                if pos is not None:
+                    if pos < position:
+                        if n.end <= position:
+                            return n
+                        # enter this node
+                        stack.append(gen)
+                        gen = reversed(n)
+                        break
+            else:
+                if stack:
+                    gen = stack.pop()
+                else:
+                    break
+
     @property
     def head(self):
         """The head contents."""
