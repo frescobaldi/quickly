@@ -59,12 +59,16 @@ from ..node import Node
 from .util import collapse_whitespace, combine_text
 
 
-Point = collections.namedtuple("Point", "pos end text modified")
+Point = collections.namedtuple("Point", "pos end text modified space_before space_after")
 """Point describes a piece of text at a certain position; ``text`` is a
 callable returning the text (it is the :meth:`~Element.write_head` or
 :meth:`~Element.write_tail` method of the respective element); ``pos`` and
 ``end`` are integers denoting the original position of the text; and
 ``modified`` is a boolean value indicating whether the text has been modified.
+
+The attributes ``space_before`` and ``space_after`` are the desired whitespace
+before and after the text piece.
+
 For newly added nodes, ``pos`` and ``end`` both are None.
 
 .. seealso:: :meth:`Element.points`.
@@ -498,32 +502,35 @@ class Element(Node, metaclass=ElementType):
 
         """
 
-    def points(self, _last=''):
-        """Yield three-tuples (before, point, after).
+    def points(self):
+        """Yield Points.
 
-        Each ``point`` is a :class:`Point` describing a text piece, ``before``
-        and ``after`` are the desired whitespace before and after the piece.
-        For adjacent pieces, you may collapse whitespace. You don't have to
-        supply a value for the ``_last`` argument, it is used by recursive
-        calls to this method.
+        Each point is a :class:`Point` describing a text piece and the desired
+        whitespace before and after it.
 
         """
         head_point = self.head_point()
         tail_point = self.tail_point()
-        after = collapse_whitespace((self.space_after, _last))
-        last_space = self.space_before_tail if tail_point else after
-        if len(self):
-            if head_point:
-                yield self.space_before, head_point, self.space_after_head
-            n = self[0]
-            for m in self[1:]:
-                yield from n.points(self.concat(n, m))
+
+        if head_point:
+            yield head_point
+        children = iter(self)
+        for n in children:
+            # collapse the whitespace after each child (except the last) with
+            # the return value of self.concat() (by default space_between)
+            for m in children:
+                points = n.points()
+                for p in points:
+                    for q in points:
+                        yield p
+                        p = q
+                    # last point
+                    space_after = collapse_whitespace((p.space_after, self.concat(n, m)))
+                    yield p._replace(space_after=space_after)
                 n = m
-            yield from n.points(last_space)
-        elif head_point:
-            yield self.space_before, head_point, last_space
+            yield from n.points()
         if tail_point:
-            yield self.space_before_tail, tail_point, after
+            yield tail_point
 
     def concat(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
@@ -544,7 +551,8 @@ class Element(Node, metaclass=ElementType):
         :mod:`~quickly.dom.indent` module.
 
         """
-        return combine_text((b, p.text(), a) for b, p, a in self.points())[1]
+        return combine_text(
+            (p.space_before, p.text(), p.space_after) for p in self.points())[1]
 
     def edits(self, context, start=None, end=None):
         """Yield three-tuples (pos, end, text) denoting text changes.
@@ -558,15 +566,15 @@ class Element(Node, metaclass=ElementType):
         pos = context.pos if start is None else start
         end = context.end if end is None else end
         tokens = context.tokens()
-        insert_after = None
-        for before, point, after in self.points():
-            b = '' if insert_after is None else collapse_whitespace((insert_after, before))
+        insert_after = ''
+        for point in self.points():
+            space = collapse_whitespace((insert_after, point.space_before))
             if point.pos is None:
                 # new element
                 text = point.text()
                 if text:
-                    yield pos, pos, b + text
-                    insert_after = after
+                    yield pos, pos, space + text
+                    insert_after = point.space_after
             else:
                 # existing element
                 if point.pos > pos:
@@ -580,14 +588,14 @@ class Element(Node, metaclass=ElementType):
                     if del_end > del_pos:
                         if b and del_end < pos:
                             del_end = pos   # unparsed space can be ditched
-                        yield del_pos, del_end, b
-                elif b:
-                    yield point.pos, point.pos, b
+                        yield del_pos, del_end, space
+                elif space:
+                    yield point.pos, point.pos, space
                 # modified?
                 if point.modified:
                     yield point.pos, point.end, point.text()
                 pos = point.end
-                insert_after = after
+                insert_after = point.space_after
         if pos < end:
             yield pos, end, ''
 
@@ -713,7 +721,8 @@ class HeadElement(Element):
             pos = origin[0].pos
             end = origin[-1].end
         modified = bool(self._modified & HEAD_MODIFIED)
-        return Point(pos, end, self.write_head, modified)
+        space_after = self.space_after_head if len(self) else self.space_after
+        return Point(pos, end, self.write_head, modified, self.space_before, space_after)
 
 
 class BlockElement(HeadElement):
@@ -743,7 +752,7 @@ class BlockElement(HeadElement):
             except IndexError:      # can happen when tail was missing
                 pos = end = None
         modified = bool(self._modified & TAIL_MODIFIED)
-        return Point(pos, end, self.write_tail, modified)
+        return Point(pos, end, self.write_tail, modified, self.space_before_tail, self.space_after)
 
 
 class TextElement(HeadElement):
