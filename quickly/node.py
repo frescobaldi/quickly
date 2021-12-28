@@ -738,21 +738,13 @@ class Range(_NodeOperators):
 
         """
         trail = self._get_trail(node)
-        if trail is not None:
-            if not trail:   # ancestor itself? ok if complete()
-                return self._stack[0].complete_start() and self._stack[0].complete_end()
-            elif self.start_trail and trail < self.start_trail:
-                return False
-            elif self.end_trail is not None and trail > self.end_trail:
-                return False
-            return True
-        return False
+        return trail is not None and self._trail_in_range(trail)
 
     def _get_trail(self, node):
         """(Internal) Return the trail of the node from our ancestor.
 
-        Returns None if the node does not belong to our tree.
-        Returns an empty list if the node *is* the ancestor.
+        Returns None if the node does not belong to our tree. Returns an empty
+        list if the node *is* the ancestor.
 
         """
         ancestor = self.ancestor()
@@ -764,6 +756,48 @@ class Range(_NodeOperators):
             if p is ancestor:
                 trail.reverse()
                 return trail
+
+    def _trail_in_range(self, trail):
+        """Return True if the trail is completely in our range.
+
+        The trail is assumed to start at our ancestor (like the return value
+        of :meth:`_get_trail`).
+
+        """
+        if not trail:   # empty list. Ancestor itself? ok if in_range()
+            return self._stack[0].start_in_range() and self._stack[0].end_in_range()
+        elif self.start_trail and trail < self.start_trail:
+            return False
+        elif self.end_trail and trail > self.end_trail:
+            return False
+        return True
+
+    def _trail_intersects(self, trail):
+        """Return True if the trail intersects with our range.
+
+        The trail is assumed to start at our ancestor (like the return value
+        of :meth:`_get_trail`).
+
+        """
+        return (not self.start_trail or trail >= self.start_trail[:len(trail)]) \
+           and (not self.end_trail or trail <= self.end_trail[:len(trail)])
+
+    def intersects(self, node):
+        """Return True if the node is partially or completely in our range.
+
+        A node is partially in the range if it has descendant nodes in the
+        range and other descendants outside.
+
+        A shorthand for this method is ``range & node``.
+
+        Use ``node in range`` to know whether a node is completely in the
+        range.
+
+        """
+        trail = self._get_trail(node)
+        return trail is not None and self._trail_intersects(trail)
+
+    __and__ = intersects
 
     def __iter__(self):
         return self._stack[-1]
@@ -937,13 +971,15 @@ class Range(_NodeOperators):
         """The current iteration depth (0 or higher)."""
         return len(self._stack) - 1
 
-    def complete(self):
+    def in_range(self):
         """True if the current :attr:`node` and its descendants completely fall
         within the range."""
         level = self._stack[-1]
-        if level.index > -1:
+        if level.start < level.index < level.end:
+            return True
+        elif level.index > -1:
             level = level.child()
-        return level.complete_start() and level.complete_end()
+        return level.start_in_range() and level.end_in_range()
 
     def goto(self, node):
         """Navigate to another node, returns True if that succeeded.
@@ -954,10 +990,9 @@ class Range(_NodeOperators):
 
         """
         trail = self._get_trail(node)
-        if trail is None \
-                or (self.start_trail and trail < self.start_trail[:len(trail)]) \
-                or (self.end_trail and trail > self.end_trail[:len(trail)]):
+        if trail is None or not self._trail_intersects(trail):
             return False
+
         del self._stack[1:]
         if trail:
             for i in trail[:-1]:
@@ -1155,19 +1190,22 @@ class Range(_NodeOperators):
 
         Colons are displayed if start and/or end boundaries of the range cross
         any descendants of this node, i.e. the node is not fully
-        :meth:`complete`.
+        :meth:`in_range`.
 
         """
         level = self._stack[-1]
-        if not level.complete_start():
-            print("  :")
+        if not level.start_in_range():
+            print("  : -- start boundary --")
         for i in range(level.start, level.end+1):
             text = "{:>3} {}".format(i, repr(level.node[i]))
+            child = level.child(i)  # make a level child but do not store it
+            if not child.start_in_range() or not child.end_in_range():
+                text += " (partly)"
             if i == level.index:
                 text += "  <----"
             print(text)
-        if not level.complete_end():
-            print("  :")
+        if not level.end_in_range():
+            print("  : -- end boundary --")
 
     @property
     def pwd(self):
@@ -1213,20 +1251,26 @@ class Range(_NodeOperators):
                 yield self.node[index]
                 index -= 1
 
-        def child(self):
-            """Return a "child" _Level for the current node."""
+        def child(self, index=-1):
+            """Return a "child" _Level for the current node.
+
+            If ``index`` == -1, use our own index.
+
+            """
+            if index == -1:
+                index = self.index
             # link to the boundary trails if we are on a boundary
             depth = self.depth + 1
-            start_trail = self.start_trail if self.start_trail and self.index == self.start \
+            start_trail = self.start_trail if self.start_trail and index == self.start \
                 and len(self.start_trail) > depth else None
-            end_trail = self.end_trail if self.end_trail is not None and self.index == self.end else None
-            return type(self)(self.node[self.index], start_trail, end_trail, depth)
+            end_trail = self.end_trail if self.end_trail is not None and index == self.end else None
+            return type(self)(self.node[index], start_trail, end_trail, depth)
 
-        def complete_start(self):
+        def start_in_range(self):
             """Return True if this node and its descendants completely fall within the range start boundary."""
             return not (self.start_trail and any(self.start_trail[self.depth:]))
 
-        def complete_end(self):
+        def end_in_range(self):
             """Return True if this node and its descendants completely fall within the range end boundary."""
             if self.end_trail is None:
                 return True
