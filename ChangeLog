@@ -2,6 +2,18 @@ ChangeLog
 =========
 
 
+current: quickly-0.4.0
+
+- added relative module, with abs2rel and rel2abs functions
+- added node.Range class, to denote a range within a Node tree
+- added end parameter to Element.find_descendant(s)
+- added Element.find_descendant_right() and -left()
+- added util.edit() to edit a parce document via the DOM node tree
+- added pitch.PitchProcessor.find_language and follow_language()
+- some methods/functions renamed and API cleanups
+- documentation improvements
+
+
 2021-12-21: quickly-0.3.0
 
 - requires parce-0.28.0
