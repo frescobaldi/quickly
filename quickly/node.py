@@ -47,9 +47,9 @@ DUMP_STYLE_DEFAULT = "round"
 _NO_PARENT = lambda: None
 
 
-class _NodeOperators:
-    """Mixin class implementing the special iteration operators."""
-    def get_predicate_iterator(self, other, source_iterator, invert=False):
+class Common:
+    """Mixin class implementing the methods shared by :class:`Node` and :class:`Range`."""
+    def _get_predicate_iterator(self, other, source_iterator, invert=False):
         """Return an iterator or NotImplemented.
 
         This is used by the ``/``, ``//``, ``<<``, ``^``, ``>``, and ``<``
@@ -76,30 +76,59 @@ class _NodeOperators:
 
     def __lshift__(self, cls):
         """Iterate over the ancestors that inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self.ancestors())
+        return self._get_predicate_iterator(cls, self.ancestors())
 
     def __gt__(self, cls):
         """Iterate over the following nodes (see :meth:`forward`) that inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self.forward())
+        return self._get_predicate_iterator(cls, self.forward())
 
     def __lt__(self, cls):
         """Iterate over the preceding nodes (see :meth:`backward`) that inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self.backward())
+        return self._get_predicate_iterator(cls, self.backward())
 
     def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self)
+        return self._get_predicate_iterator(cls, self)
 
     def __floordiv__(self, cls):
         """Iterate over descendants inheriting the specified class(es), in document order."""
-        return self.get_predicate_iterator(cls, self.descendants())
+        return self._get_predicate_iterator(cls, self.descendants())
 
     def __xor__(self, cls):
         """Iterate over children that do not inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self, True)
+        return self._get_predicate_iterator(cls, self, True)
+
+    def filter(self, predicate):
+        """Call predicate on all descendants.
+
+        If the predicate returns True for a node, that node is yielded and its
+        descendants are skipped.
+
+        """
+        gen = self.descendants()
+        try:
+            while True:
+                node = next(gen)
+                while predicate(node):
+                    yield node
+                    node = gen.send(False)
+        except StopIteration:
+            pass
+
+    def instances_of(self, cls):
+        """Iterate over the descendants of the current node and yield
+        all nodes that are an instance of ``cls``.
+
+        When a node is yielded, its descendants are not searched anymore.
+
+        The ``cls`` parameter may also be a tuple of more classes, just like the
+        standard Python :func:`isinstance`.
+
+        """
+        return self.filter(lambda node: isinstance(node, cls))
 
 
-class Node(_NodeOperators, list):
+class Node(Common, list):
     """Node implements a simple tree type, based on Python :class:`list`.
 
     You can inherit of Node and add your own attributes and methods.
@@ -182,48 +211,6 @@ class Node(_NodeOperators, list):
         c = "child" if len(self) == 1 else "children"
         return '<{} ({} {})>'.format(type(self).__name__, len(self), c)
 
-    def dump(self, file=None, style=None, depth=0):
-        """Display a graphical representation of the node and its contents.
-
-        The file object defaults to stdout, and the style to "round". You can
-        choose any style that's in the ``DUMP_STYLES`` dictionary.
-
-        """
-        i = 2
-        d = DUMP_STYLES[style or DUMP_STYLE_DEFAULT]
-        prefix = []
-        node = self
-        for _ in range(depth):
-            prefix.append(d[i + int(node.is_last())])
-            node = node.parent
-            i = 0
-        print(''.join(reversed(prefix)) + repr(self), file=file)
-        for n in self:
-            n.dump(file, style, depth + 1)
-
-    @property
-    def ls(self):
-        """List the children, for debugging purposes.
-
-        You can also narrow down the list of children to certain types,
-        using the ``/`` or ``^`` operator::
-
-            >>> node.ls / Class
-
-        Only the children of node that are an (or are not) instance of Class
-        are shown.
-
-        """
-        return _NodeLister(self)
-
-    @property
-    def pwd(self):
-        """Show the ancestry, for debugging purposes."""
-        nodes = [self]
-        nodes.extend(self.ancestors())
-        nodes.reverse()
-        _pwd(nodes)
-
     def __bool__(self):
         """Always True."""
         return True
@@ -240,6 +227,57 @@ class Node(_NodeOperators, list):
             list.extend(self, children)
             for node in self:
                 node._parent = weakref.ref(self)
+
+    @property
+    def parent(self):
+        """The parent Node or None; uses a weak reference."""
+        return self._parent()
+
+    @parent.setter
+    def parent(self, node):
+        self._parent = _NO_PARENT if node is None else weakref.ref(node)
+
+    @parent.deleter
+    def parent(self):
+        self._parent = _NO_PARENT
+
+    def root(self):
+        """Return the root node."""
+        root = self
+        for root in self.ancestors():
+            pass
+        return root
+
+    def trail(self):
+        """Return the list of indices of the node and its ancestors in their
+        parents.
+
+        The node's own index is at the end. Using trails you can determine
+        arbitrary ranges in a DOM document, and you can compare trails to see
+        which node comes first in the document order.
+
+        Given the following hypothetical tree structure (all classes are
+        subclasses of Node)::
+
+            A(
+                B(
+                    C(),
+                    D()),
+                E(
+                    F(),
+                    G(
+                        H())))
+
+        the trail of the F instance would be ``[1, 0]``, because its parent E
+        has index 1 in A, while F has index 0 in E.
+
+        If you have two nodes, e.g. the D and H instance, in resp. ``d`` and
+        ``h``, you can quickly see which one is earlier in the tree:
+        ``d.trail() < h.trail()``, which would evaluate to True in this case.
+
+        """
+        trail = [i for p, i in self.ancestors_with_index()]
+        return trail[::-1]
 
     def __eq__(self, other):
         """Identity compare to make Node.index robust and "faster"."""
@@ -258,19 +296,6 @@ class Node(_NodeOperators, list):
         """
         children = (n.copy() for n in self) if with_children else ()
         return type(self)(*children)
-
-    @property
-    def parent(self):
-        """The parent Node or None; uses a weak reference."""
-        return self._parent()
-
-    @parent.setter
-    def parent(self, node):
-        self._parent = _NO_PARENT if node is None else weakref.ref(node)
-
-    @parent.deleter
-    def parent(self):
-        self._parent = _NO_PARENT
 
     def append(self, node):
         """Append node to this node; the parent is set to this node."""
@@ -428,6 +453,9 @@ class Node(_NodeOperators, list):
     def descendants(self, reverse=False):
         """Iterate over all the descendants of this node.
 
+        When you :meth:`~generator.send` False to the this generator, child
+        nodes of the just yielded node will not be yielded.
+
         If ``reverse`` is set to True, yields all descendants in backward
         direction.
 
@@ -437,8 +465,7 @@ class Node(_NodeOperators, list):
         gen = iterate(self)
         while True:
             for node in gen:
-                yield node
-                if len(node):
+                if (yield node) is not False and len(node):
                     stack.append(gen)
                     gen = iterate(node)
                     break
@@ -447,24 +474,6 @@ class Node(_NodeOperators, list):
                     gen = stack.pop()
                 else:
                     break
-
-    def root(self):
-        """Return the root node."""
-        root = self
-        for root in self.ancestors():
-            pass
-        return root
-
-    def trail(self):
-        """Return the list of indices of all ancestors in their parents.
-
-        The node's own index is at the end. Using trails you can determine
-        arbitrary ranges in a DOM document, and you can compare trails to see
-        which node comes first in the document order.
-
-        """
-        trail = [i for p, i in self.ancestors_with_index()]
-        return trail[::-1]
 
     def right_siblings(self):
         """Iterate over the right siblings of this node."""
@@ -546,66 +555,93 @@ class Node(_NodeOperators, list):
                 else:
                     return height
 
-    def filter(self, predicate):
-        """Call predicate on all descendants.
-
-        If the predicate returns True for a node, that node is yielded and its
-        descendants are skipped.
-
-        """
-        stack = []
-        gen = iter(self)
-        while True:
-            for node in gen:
-                if predicate(node):
-                    yield node
-                elif len(node):
-                    stack.append(gen)
-                    gen = iter(node)
-                    break
-            else:
-                if stack:
-                    gen = stack.pop()
-                else:
-                    break
-
-    def instances_of(self, cls):
-        """Yield all descendants that are an instance of ``cls``.
-
-        The difference with the ``//`` operator is that when a node is yielded,
-        its children are not searched anymore.
-
-        The ``cls`` parameter may also be a tuple of more classes, just like the
-        standard Python :func:`isinstance`.
-
-        """
-        return self.filter(lambda node: isinstance(node, cls))
-
     def range(self, other, from_root=False):
         """Return a :class:`Range` from self to the other node."""
         return Range.from_nodes(self, other, from_root)
 
+    def dump(self, file=None, style=None, depth=0):
+        """Display a graphical representation of the node and its contents.
 
-class Range(_NodeOperators):
+        The file object defaults to stdout, and the style to "round". You can
+        choose any style that's in the ``DUMP_STYLES`` dictionary.
+
+        """
+        i = 2
+        d = DUMP_STYLES[style or DUMP_STYLE_DEFAULT]
+        prefix = []
+        node = self
+        for _ in range(depth):
+            prefix.append(d[i + int(node.is_last())])
+            node = node.parent
+            i = 0
+        print(''.join(reversed(prefix)) + repr(self), file=file)
+        for n in self:
+            n.dump(file, style, depth + 1)
+
+    @property
+    def ls(self):
+        """List the children, for debugging purposes.
+
+        You can also narrow down the list of children to certain types,
+        using the ``/`` or ``^`` operator::
+
+            >>> node.ls / Class
+
+        Only the children of node that are an (or are not) instance of Class
+        are shown.
+
+        """
+        return _NodeLister(self)
+
+    @property
+    def pwd(self):
+        """Show the ancestry, for debugging purposes."""
+        nodes = [self]
+        nodes.extend(self.ancestors())
+        nodes.reverse()
+        _pwd(nodes)
+
+
+class Range(Common):
     """Defines a range within a node tree.
 
-    The range boundaries can be set using trails, which are lists of indices
-    defining the path to the first and/or last node of the range, or nodes
-    (using :meth:`from_nodes`, which is used by the :meth:`Node.range` method).
-    The range includes both the start node and the end node (if specified).
+    A range is defined by a starting node (the ancestor), and optional start
+    and end trails. A :attr:`~Node.trail` is a list of indices defining the
+    path to the first and/or last node of the range. If both trails are None,
+    the range encompasses the full node.
 
-    Use the ``node in range`` syntax to see whether a Node is inside a Range.
+    A Range can be constructed directly, specifying the ancestor node and the
+    trails, or using the :meth:`from_nodes` method, specifying the start and/or
+    end node. This method is also used when you call the :meth:`Node.range`
+    method. The range includes both the start node and the end node (if
+    specified).
 
-    You can iterate over the Range to get the nodes at the current iteration
-    level. Iterating starts at the bottom node of the range, and walks over the
-    children of the node that are within the range. If you want to iterate over
-    the children of a node that are in the range (and possibly further down),
-    you can use :meth:`enter`, and, after iterating the children,
-    :meth:`leave`. Or use :meth:`children`, which fits more in a recursive
-    approach.
+    A Range is empty when the end node is before the start node, or when the
+    ancestor node itself is empty. An empty Range evaluates to False.
 
-    The Range object keeps track of the position in the tree range. The current
-    node is accessible via the :attr:`node` attribute.
+    Having created a Range object, you can do a lot:
+
+     * Use the ``node in range`` syntax to see whether a Node is inside a Range.
+       A node is in a range when all its children are also in the range.
+       (Only the end node can have children outside the range.)
+
+     * Use the ``range & node`` syntax to see whether a Node intersects with
+       a Range. A node intersects with a Range when it has child nodes in the
+       Range, but it can also have childnodes outside the range.
+
+     * Use :meth:`extract_tree` to get a copy of the node tree from the
+       ancestor, including only the range.
+
+     * Iterate over the Range to get the nodes at the current iteration
+       level. Iterating starts at the bottom node of the range, and walks over
+       the children of the node that are within the range. If you want to
+       iterate over the children of a node that are in the range (and possibly
+       further down), you can use :meth:`enter`, and, after iterating the
+       children, :meth:`leave`. Or use :meth:`children`, which fits more in a
+       recursive approach.
+
+    When iterating, the Range object keeps track of the position in the tree
+    range. The current node is accessible via the :attr:`node` attribute.
 
     Range support the same search operators as :class:`Node`: ``/``, ``//``,
     ``<<``, ``>``, ``<`` and ``^``. Note that they set the current node, so it
@@ -1059,11 +1095,11 @@ class Range(_NodeOperators):
 
     def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self.children())
+        return self._get_predicate_iterator(cls, self.children())
 
     def __xor__(self, cls):
         """Iterate over children that do not inherit the specified class(es)."""
-        return self.get_predicate_iterator(cls, self.children(), True)
+        return self._get_predicate_iterator(cls, self.children(), True)
 
     def forward(self, upto=None):
         """Iterate forward from the current :attr:`node`, starting with the
@@ -1132,6 +1168,9 @@ class Range(_NodeOperators):
         """Iterate over all descendants of the current :attr:`node` that are in
         the range.
 
+        When you :meth:`~generator.send` False to the this generator, child
+        nodes of the just yielded node will not be yielded.
+
         If ``reverse`` is set to True, yields all descendants in backward
         direction.
 
@@ -1140,45 +1179,12 @@ class Range(_NodeOperators):
         depth = self.enter()
         while True:
             for n in iterate(self):
-                yield n
-                if len(n):
+                if (yield n) is not False and len(n):
                     self.enter()
                     break
             else:
                 if self.leave() == depth:
                     break
-
-    def filter(self, predicate):
-        """Iterate over the descendants of the current :attr:`node` that are in
-        the range, yielding matching nodes.
-
-        If the predicate returns True for a node, it is yielded and its
-        descendants are skipped.
-
-        """
-        depth = self.enter()
-        while True:
-            for n in self:
-                if predicate(n):
-                    yield n
-                elif len(n):
-                    self.enter()
-                    break
-            else:
-                if self.leave() == depth:
-                    break
-
-    def instances_of(self, cls):
-        """Iterate over the descendants of the current :attr:`node` and yield
-        all nodes that are an instance of ``cls``.
-
-        When a node is yielded, its descendants are not searched anymore.
-
-        The ``cls`` parameter may also be a tuple of more classes, just like the
-        standard Python :func:`isinstance`.
-
-        """
-        return self.filter(lambda node: isinstance(node, cls))
 
     @property
     def ls(self):
