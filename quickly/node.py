@@ -698,7 +698,7 @@ class Range(Common):
 
     @classmethod
     def from_nodes(cls, start_node=None, end_node=None, from_root=False):
-        """Create a Range object from a start node to an end note.
+        """Create a Range object from a start node to an end node.
 
         One of them (but not both) may be None. If the ``start_node`` is None,
         the range starts at the very beginning; if the ``end_node`` is None,

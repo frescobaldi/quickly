@@ -38,7 +38,7 @@ from . import base, element
 
 class Document(base.Document):
     """A full LaTeX source document."""
-    _space_between = ''
+    space_between = ''
 
 
 class Option(element.BlockElement):
@@ -103,7 +103,7 @@ class Environment(element.Element):
     :meth:`EnvironmentName`.
 
     """
-    _space_before = _space_after = '\n'
+    space_before = space_after = '\n'
 
     @classmethod
     def with_name(cls, name, *children, **kwargs):
@@ -137,7 +137,7 @@ class EnvironmentName(element.TextElement):
 
 class Comment(base.SinglelineComment):
     r"""A singleline comment after ``%``."""
-    _space_after = '\n'
+    space_after = '\n'
 
     @classmethod
     def read_head(cls, origin):

@@ -200,7 +200,7 @@ class Document(base.Document, Element):
     but could contain more elements or text.
 
     """
-    _space_between = ''
+    space_between = ''
 
 
 class Text(element.TextElement):
@@ -297,7 +297,7 @@ class ProcessingInstruction(element.BlockElement):
 
 class Tag(element.BlockElement):
     """Base class for tags."""
-    _space_between = ' '
+    space_between = ' '
     def indent_children(self):
         return False
 

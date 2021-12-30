@@ -75,7 +75,7 @@ class Document(base.Document):
 
 class SinglelineComment(base.SinglelineComment):
     """A singleline comment in Scheme after ``;``."""
-    _space_after = '\n'
+    space_after = '\n'
 
     @classmethod
     def read_head(cls, origin):
@@ -116,7 +116,7 @@ class Identifier(element.TextElement):
 
 class List(element.BlockElement):
     """A Scheme pair or list ( ... )."""
-    _space_between = " "
+    space_between = " "
     head = "("
     tail = ")"
 
@@ -133,7 +133,7 @@ class List(element.BlockElement):
 
 class Vector(element.BlockElement):
     """A Scheme vector #( ... )."""
-    _space_between = " "
+    space_between = " "
     head = "#("
     tail = ")"
 

@@ -39,7 +39,7 @@ from . import element
 class Document(element.Element):
     """Base class for a full source document."""
 
-    _space_between = '\n\n'
+    space_between = '\n\n'
 
     def concat(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
@@ -113,7 +113,7 @@ class Newline(element.Element):
 
     """
     head = ''
-    _space_after = '\n'
+    space_after = '\n'
 
 
 class BlankLine(element.Element):
@@ -124,7 +124,7 @@ class BlankLine(element.Element):
 
     """
     head = ''
-    _space_after = '\n\n'
+    space_after = '\n\n'
 
 
 class Line(element.Element):
@@ -136,8 +136,8 @@ class Line(element.Element):
     a line of its own.
 
     """
-    _space_before = _space_after = '\n'
-    _space_between = ' '
+    space_before = space_after = '\n'
+    space_between = ' '
 
 
 class Column(element.Element):
@@ -147,7 +147,7 @@ class Column(element.Element):
     Document when you want some nodes to be stacked vertically.
 
     """
-    _space_before = _space_after =  _space_between = '\n'
+    space_before = space_after = space_between = '\n'
 
 
 class Text(element.TextElement):

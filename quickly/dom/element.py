@@ -55,6 +55,8 @@ the document if modified, using the :meth:`~Element.edit` method.
 import collections
 import reprlib
 
+from parce.util import caching_dict
+
 from ..node import Node
 from .util import collapse_whitespace, combine_text
 
@@ -74,7 +76,7 @@ HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
 
 
-class SpacingProperty:
+class _SpaceProperty:
     """A property that denotes spacing.
 
     If it does not deviate from the default (set in the Element class
@@ -83,26 +85,27 @@ class SpacingProperty:
     values.
 
     """
-    __slots__ = ('name',)
+    __slots__ = ('name', 'default')
 
-    def __set_name__(self, owner, name):
+    def __init__(self, name, default):
         self.name = name
+        self.default = default
 
     def __get__(self, obj, cls):
         try:
-            return obj._spacing[self.name]
+            return obj._space[self.name]
         except (AttributeError, KeyError):
             pass
-        return getattr(cls, '_' + self.name)
+        return self.default
 
     def __set__(self, obj, value):
-        is_default = value == getattr(obj, '_' + self.name)
+        is_default = value == self.default
         try:
-            d = obj._spacing
+            d = obj._space
         except AttributeError:
             if is_default:
                 return
-            d = obj._spacing = {}
+            d = obj._space = {}
         else:
             if is_default:
                 try:
@@ -111,27 +114,34 @@ class SpacingProperty:
                     pass
                 else:
                     if not d:
-                        del obj._spacing
+                        del obj._space
                 return
         d[self.name] = value
 
     def __delete__(self, obj):
         try:
-            del obj._spacing[self.name]
+            del obj._space[self.name]
         except (AttributeError, KeyError):
             return
-        if not obj._spacing:
-            del obj._spacing
+        if not obj._space:
+            del obj._space
 
 
 class ElementType(type):
     """Metaclass for Element.
 
     This meta class automatically adds an empty ``__slots__`` attribute if it
-    is not defined in the class body.
+    is not defined in the class body, and replaces space defaults with dynamic
+    properties that are settable on a per-instance basis.
 
     """
+    _props = caching_dict(_SpaceProperty, True)
+
     def __new__(cls, name, bases, namespace):
+        for n in ('before', 'after_head', 'between', 'before_tail', 'after'):
+            attr = 'space_' + n
+            if attr in namespace:
+                namespace[attr] = cls._props[n, namespace[attr]]
         if '__slots__' not in namespace:
             namespace['__slots__'] = ()
         return type.__new__(cls, name, bases, namespace)
@@ -148,23 +158,17 @@ class Element(Node, metaclass=ElementType):
     ``space_after_head`` and ``space_before_tail``.
 
     """
-    __slots__ = ("_spacing",)
+    __slots__ = ("_space",)
 
     _head = None
     _tail = None
     _modified = 0
 
-    _space_before = ""         #: minimum default whitespace to draw before this element
-    _space_after_head = ""     #: minimum default whitespace to draw after the head
-    _space_between = ""        #: minimum default whitespace to draw between child elements
-    _space_before_tail = ""    #: minimum default whitespace to draw before the tail
-    _space_after = ""          #: minimum default whitespace to draw after this element
-
-    space_before = SpacingProperty()       #: whitespace before this element
-    space_after_head = SpacingProperty()   #: whitespace before first child
-    space_between = SpacingProperty()      #: whitespace between children
-    space_before_tail = SpacingProperty()  #: whitespace before tail
-    space_after = SpacingProperty()        #: whitespace after this element
+    space_before = ""       #: whitespace before this element
+    space_after_head = ""   #: whitespace before first child
+    space_between = ""      #: whitespace between children
+    space_before_tail = ""  #: whitespace before tail
+    space_after = ""        #: whitespace after this element
 
     def __init__(self, *children, **attrs):
         super().__init__(*children)
@@ -564,6 +568,16 @@ class Element(Node, metaclass=ElementType):
         head_point = self.head_point()
         tail_point = self.tail_point()
 
+        def collapse_last(points, last):
+            """Yield all points, but with the last one, add last spacing wish"""
+            for p in points:
+                for q in points:
+                    yield p
+                    p = q
+                # last point, add last space to space wishes
+                space_after = collapse_whitespace((p.space_after, last))
+                yield p._replace(space_after=space_after)
+
         if head_point:
             yield head_point
         children = iter(self)
@@ -571,16 +585,10 @@ class Element(Node, metaclass=ElementType):
             # collapse the whitespace after each child (except the last) with
             # the return value of self.concat() (by default space_between)
             for m in children:
-                points = n.points()
-                for p in points:
-                    for q in points:
-                        yield p
-                        p = q
-                    # last point
-                    space_after = collapse_whitespace((p.space_after, self.concat(n, m)))
-                    yield p._replace(space_after=space_after)
+                yield from collapse_last(n.points(), self.concat(n, m))
                 n = m
-            yield from n.points()
+            # collapse own space_after with last child point?
+            yield from collapse_last(n.points(), self.space_after) if not tail_point else n.points()
         if tail_point:
             yield tail_point
 
