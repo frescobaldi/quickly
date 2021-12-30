@@ -49,6 +49,9 @@ _NO_PARENT = lambda: None
 
 class Common:
     """Mixin class implementing the methods shared by :class:`Node` and :class:`Range`."""
+
+    __slots__ = ()
+
     def _get_predicate_iterator(self, other, source_iterator, invert=False):
         """Return an iterator or NotImplemented.
 

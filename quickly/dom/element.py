@@ -59,20 +59,16 @@ from ..node import Node
 from .util import collapse_whitespace, combine_text
 
 
+#: A Point describes a piece of text at a certain position.
+#: See :meth:`Element.points`.
 Point = collections.namedtuple("Point", "pos end text modified space_before space_after")
-"""A Point describes a piece of text at a certain position; ``text`` is a
-callable returning the text (it is the :meth:`~Element.write_head` or
-:meth:`~Element.write_tail` method of the respective element); ``pos`` and
-``end`` are integers denoting the original position of the text; and
-``modified`` is a boolean value indicating whether the text has been modified.
-
-The attributes ``space_before`` and ``space_after`` are the desired whitespace
-before and after the text piece.
-
-For newly added nodes, ``pos`` and ``end`` both are None.
-
-.. seealso:: :meth:`Element.points`.
-"""
+Point.pos.__doc__ = "The position in the original text. None for newly added nodes."
+Point.end.__doc__ = "The end position in the original text. None for newly added nodes."
+Point.text.__doc__ = ("A callable returning the text (the :attr:`~Element.write_head` or "
+                      ":attr:`~Element.write_tail` method of the respective element).")
+Point.modified.__doc__ = "True if the text has been modified."
+Point.space_before.__doc__ = "The desired whitespace before this text fragment."
+Point.space_after.__doc__ = "The desired whitespace after this text fragment."
 
 HEAD_MODIFIED = 1
 TAIL_MODIFIED = 2
