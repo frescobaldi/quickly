@@ -34,7 +34,7 @@ import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, octave_to_string, octave_from_string, determine_language)
 from quickly.transpose import Transposer, Transpose
-from quickly.relative import rel2abs, rel2abs_doc, abs2rel, abs2rel_doc
+from quickly.relative import Abs2rel, Rel2abs, abs2rel, rel2abs
 from quickly.dom import read, lily
 from quickly.registry import find
 
@@ -206,28 +206,24 @@ def check_transpose():
 def check_relative():
     """Test functions in the relative module."""
     doc = lydoc("{ c' d' e' f' g' }")
-    cur = parce.Cursor(doc)
-    abs2rel_doc(cur)
+    abs2rel(doc)
     assert doc.text() == r"\relative c' { c d e f g }"
 
     doc = lydoc("{ c' d' e' f' g' }")
-    cur = parce.Cursor(doc)
-    abs2rel_doc(cur, start_pitch=False)
+    Abs2rel(start_pitch=False).edit(doc)
     assert doc.text() == r"\relative { c d e f g }"
 
     doc = lydoc("{ c' d' e' f' g' }")
-    cur = parce.Cursor(doc)
-    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
+    Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(doc)
     assert doc.text() == r"\relative { c' d e f g }"
 
     doc = lydoc("{ { c' d' e' f' g' } { d' e' fis' g' a' } }")
-    cur = parce.Cursor(doc)
-    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
+    Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(doc)
     assert doc.text() == r"{ \relative { c' d e f g } \relative { d' e fis g a } }"
 
     doc = lydoc("{ c { c' d' e' f' g' } { d' e' fis' g' a' } }")
     cur = parce.Cursor(doc)
-    abs2rel_doc(cur, start_pitch=False, first_pitch_absolute=True)
+    Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(cur)
     assert doc.text() == r"\relative { c { c' d e f g } { d e fis g a } }"
 
 

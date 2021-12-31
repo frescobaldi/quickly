@@ -81,15 +81,14 @@ class Transposer(AbstractTransposer):
 
 
 class Transpose(edit.Edit):
-    r"""Transpose pitches using the specified transposer.
+    r"""Transpose pitches using the specified transposer. Arguments:
 
-    The :attr:`transposer` is a :class:`Transposer` instance that does the
-    actual work.
+    :attr:`transposer`: a :class:`Transposer` instance that does the actual work.
 
-    The :attr:`processor` is a :class:`~.pitch.PitchProcessor`; a default one
-    is used if none is specified.
+    :attr:`processor`: a :class:`~.pitch.PitchProcessor`; a default one is used
+    if none is specified.
 
-    If :attr:`relative_first_pitch_absolute` is True, the first pitch in a
+    :attr:`relative_first_pitch_absolute`: if True, the first pitch in a
     ``\relative`` expression is considered to be absolute, when a startpitch is
     not given. This is LilyPond >= 2.18 behaviour. If False, the first pitch in
     a ``\relative`` expression is considered to be relative to c', if no
@@ -101,16 +100,21 @@ class Transpose(edit.Edit):
 
     """
     def __init__(self, transposer, processor=None, relative_first_pitch_absolute=None):
+        #: The :class:`Transposer` that can transpose pitches.
         self.transposer = transposer
-        self.processor = processor or PitchProcessor()
+        #: The :class:`~.pitch.PitchProcessor`; a default one is used if None is specified.
+        self.processor = processor
+        #: Whether to consider the first pitch in a ``\relative`` expression absolute
+        #: (by default dependent on LilyPond version)
         self.relative_first_pitch_absolute = relative_first_pitch_absolute
 
     def edit_range(self, r):
         """Perform the transposing on the specified range."""
         node = r.ancestor()
+        processor = self.processor or PitchProcessor()
 
         if not node.is_root():
-            self.processor.find_language(node)
+            processor.find_language(node)
 
         relative_first_pitch_absolute = self.relative_first_pitch_absolute
         if relative_first_pitch_absolute is None:
@@ -124,7 +128,7 @@ class Transpose(edit.Edit):
             If relative_mode is True, also Chord and OctaveCheck nodes are yielded.
 
             """
-            for n in self.processor.follow_language(nodes):
+            for n in processor.follow_language(nodes):
                 if isinstance(n, lily.Pitchable):
                     yield n
                     transpose_absolute(n)   # e.g. notes in markup scores
@@ -151,7 +155,7 @@ class Transpose(edit.Edit):
         def transpose_pitches(nodes):
             """Transpose the notes, and yield their pitches for extra changes."""
             for n in notes(nodes):
-                with self.processor.pitch(n, writable(n)) as p:
+                with processor.pitch(n, writable(n)) as p:
                     self.transposer.transpose(p)
                     yield p
 
@@ -172,7 +176,7 @@ class Transpose(edit.Edit):
                 if isinstance(note, lily.Pitchable) and writable(note):
                     # we may change this note, modify the octave
                     offset = self.transposer.octave
-                    with self.processor.pitch(note) as p:
+                    with processor.pitch(note) as p:
                         self.transposer.transpose(p)
                 else:
                     offset = 0
@@ -184,7 +188,7 @@ class Transpose(edit.Edit):
 
             def transpose(note, last_pitch):
                 """Transpose one note, return its pitch in absolute form for the next."""
-                p = self.processor.read_node(note)
+                p = processor.read_node(note)
                 # absolute pitch determined from untransposed pitch of last_pitch
                 p.make_absolute(last_pitch)
                 if not writable(note):
@@ -204,16 +208,16 @@ class Transpose(edit.Edit):
                 if note.oct_check is not None:
                     note.oct_check = p.octave
                 p.make_relative(last)
-                self.processor.write_node(note, p)
+                processor.write_node(note, p)
                 return last_pitch
 
             # handle the start pitch
             nodes = list(util.skip_comments(node))
             if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
                 start_note, *nodes = nodes
-                last_pitch = self.processor.read_node(start_note)    # untransposed
+                last_pitch = processor.read_node(start_note)    # untransposed
                 if writable(start_note):
-                    with self.processor.pitch(start_note) as p:
+                    with processor.pitch(start_note) as p:
                         self.transposer.transpose(p)
                     last_pitch.transposed = p
                     last_pitch.octave -= self.transposer.octave
@@ -235,12 +239,12 @@ class Transpose(edit.Edit):
                 elif isinstance(n, lily.OctaveCheck):
                     # OctaveCheck, also transpose and keep as new last_pitch
                     for note in notes(n):
-                        p = self.processor.read_node(note)
+                        p = processor.read_node(note)
                         last_pitch = p.copy()
                         if writable(note):
                             self.transposer.transpose(p)
                             last_pitch.transposed = p
-                            self.processor.write_node(note, p)
+                            processor.write_node(note, p)
         # Do it!
         transpose_absolute((node,))
 
@@ -248,7 +252,7 @@ class Transpose(edit.Edit):
 def transpose(music, transposer):
     """Convenience function to transpose all notes in music using transposer.
 
-    The ``music`` may be a parce document, cursor, a node range or an element
+    The ``music`` may be a parce document or cursor, a node range or an element
     node.
 
     """

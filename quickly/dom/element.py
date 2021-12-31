@@ -646,7 +646,7 @@ class Element(Node, metaclass=ElementType):
                             break
                         del_end = t.end
                     if del_end > del_pos:
-                        if b and del_end < pos:
+                        if space and del_end < pos:
                             del_end = pos   # unparsed space can be ditched
                         yield del_pos, del_end, space
                 elif space:

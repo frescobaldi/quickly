@@ -23,6 +23,17 @@ Most of *quickly*'s features manipulate music on the DOM document level,
 writing back the modifications to the originating text, without interfering
 with other parts of the source text.
 
+There are four "levels" at which documents can be manipulated: a DOM node tree,
+a :class:`~quickly.node.Range` of a DOM tree, a *parce* :class:`~parce.Document`, or a
+selection of a parce document, specified by a *parce* :class:`~parce.Cursor`.
+
+All manipulation functions can handle all four levels of operation, because
+they inherit :class:`~quickly.dom.edit.Edit`. Typically only the
+:meth:`~quickly.dom.edit.Edit.edit_range` method needs to be implemented for
+the others to work equally well. Most modules have convenience functions that
+can be called with all four types.
+
+
 Transpose
 ^^^^^^^^^
 
@@ -42,27 +53,27 @@ An example; create a document::
 Create a transposer::
 
     >>> from quickly.pitch import Pitch
-    >>> from quickly.transpose import transpose_doc, Transposer
+    >>> from quickly.transpose import transpose, Transposer
     >>> p1 = Pitch(0)     # -> c
     >>> p2 = Pitch(3)     # -> f
     >>> t = Transposer(p1, p2)
 
 Now transpose the music from ``c`` to ``f`` and view the result::
 
-    >>> transpose_doc(parce.Cursor(doc), t)
+    >>> transpose(doc, t)
     >>> doc.text()
     "music = { f g a bes c' }"
 
 Using the cursor, we can also operate on a fragment of the document::
 
     >>> cur = parce.Cursor(doc, 12, 15)     # only the second and third note
-    >>> transpose_doc(cur, t)
+    >>> transpose(cur, t)
     >>> doc.text()
     "music = { f c' d' bes c' }"
 
 Only the second and third note are transposed. The function :func:`transpose`
-operates directly on a DOM node, while :func:`transpose_doc` operates on a
-:class:`parce.Document`.
+is a convenience function that creates a :class:`Transpose` object and calls
+its :meth:`~quickly.dom.edit.Edit.edit` method.
 
 
 Convert pitches to and from relative notation
@@ -80,19 +91,19 @@ To convert all music from relative to absolute notation::
     >>> import parce
     >>> from quickly.registry import find
     >>> doc = parce.Document(find("lilypond"), r"music = \relative c' { c d e f g }", transformer=True)
-    >>> cursor = parce.Cursor(doc)
-    >>> from quickly.relative import rel2abs_doc
-    >>> rel2abs_doc(cursor)
+    >>> from quickly.relative import rel2abs
+    >>> rel2abs(doc)
     >>> doc.text()
     "music = { c' d' e' f' g' }"
 
 And convert back to relative::
 
-    >>> from quickly.relative import abs2rel_doc
-    >>> abs2rel_doc(cursor)
+    >>> from quickly.relative import abs2rel
+    >>> abs2rel(doc)
     >>> doc.text()
     "music = \\relative c' { c d e f g }"
 
-The function :func:`abs2rel` and :func:`rel2abs` operate directly on a DOM
-node, while :func:`abs2rel_doc` and :func:`rel2abs_doc` operate on a *parce*
-Document.
+The function :func:`abs2rel` and :func:`rel2abs` are convenience functions that
+create respectively a :class:`Abs2rel` or :class:`Rel2abs` object and call
+their :meth:`~quickly.dom.edit.Edit.edit` method.
+

@@ -19,7 +19,8 @@
 
 
 """
-The Edit base class, to perform operations on a DOM document in different ways.
+The Edit base class, to perform operations on a DOM document and/or a related
+parce Document in different ways.
 """
 
 import parce.document
@@ -65,7 +66,17 @@ class Edit:
     def edit_cursor(self, cursor):
         """Edit the range pointed to by the :class:`parce.Cursor`.
 
-        If the cursor has no selection, by default the whole document is used.
+        The default implementation calls :meth:`edit_range` with a Range, that
+        by default encompasses the full DOM tree when there is no selection.
+        Set :attr:`range_from_cursor` to True if you want the edited range to
+        be from the cursor's position to the document end when there is no
+        selection.
+
+        If the cursor has a selection, the Range encompasses only the child
+        nodes that are within the cursor's selection. The ancestor of the range
+        is by default the younghest common ancestor of the start and end nodes
+        of the range. Set :attr:`range_from_root` to True if you want the
+        ancestor of the range to be the DOM tree root anyway.
 
         """
         d = cursor.document().get_transform(True)

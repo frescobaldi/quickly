@@ -22,11 +22,6 @@
 Some utility functions.
 """
 
-
-import contextlib
-
-
-
 def whitespace_key(text):
     r"""Return a key to determine the importance of the whitespace.
 
@@ -172,45 +167,4 @@ def lilypond_version(node):
         return v.version
     return ()
 
-
-@contextlib.contextmanager
-def edit(cursor, select_youngest_node=False):
-    """Return a context manager that yields the DOM document and a "writable".
-
-    The DOM document is the transformed result of the cursor's parse Document.
-    When the cursor has a selected range, the "writable" is a callable that,
-    when called with a DOM node, returns True if that node is in the
-    selection's range. When the cursor has no selection, writable is simply
-    None.
-
-    When the context exists, the node's modifications are written back to the
-    document.
-
-    If ``select_youngest_node`` is set to True and the cursor has a selection,
-    the younghest (smallest) node that encompasses the selection is chosen to
-    run the operation on (be sure that the operation does not modify the node's
-    parent); otherwise the full DOM document is used.
-
-    Usage example::
-
-        >>> from quickly.dom.util import edit
-        >>> with edit(cursor) as (node, writable):
-        ...     perform_operations(node, writable, other, parameters)
-
-    """
-    node = cursor.document().get_transform(True)
-    start = end = None
-
-    if cursor.has_selection():
-        cpos, cend = cursor.selection()
-        def writable(node):
-            return node.pos >= cpos and node.end <= cend
-        if select_youngest_node:
-            for node in node.find_descendants(cpos, cend):
-                start, end = node.pos, node.end
-    else:
-        writable = None
-
-    yield node, writable
-    node.edit(cursor.document(), start=start, end=end)
 
