@@ -101,6 +101,27 @@ class Common:
         """Iterate over children that do not inherit the specified class(es)."""
         return self._get_predicate_iterator(cls, self, True)
 
+    @staticmethod
+    def filter_descendants(predicate, generator):
+        """Call predicate on all nodes returned by generator.
+
+        Yield the node if the predicate returns True, and send False to the
+        generator, causing it to not yield descendant nodes for that node.
+
+        This can be used with :meth:`Node.descendants`, :meth:`Node.forward`,
+        :meth:`Node.backward`, :meth:`Range.descendants`,
+        :meth:`Range.forward`, :meth:`Range.backward` and :meth:`Range.nodes`.
+
+        """
+        try:
+            while True:
+                node = next(generator)
+                while predicate(node):
+                    yield node
+                    node = generator.send(False)
+        except StopIteration:
+            pass
+
     def filter(self, predicate):
         """Call predicate on all descendants.
 
@@ -108,15 +129,7 @@ class Common:
         descendants are skipped.
 
         """
-        gen = self.descendants()
-        try:
-            while True:
-                node = next(gen)
-                while predicate(node):
-                    yield node
-                    node = gen.send(False)
-        except StopIteration:
-            pass
+        return self.filter_descendants(predicate, self.descendants())
 
     def instances_of(self, cls):
         """Iterate over the descendants of the current node and yield
@@ -221,8 +234,8 @@ class Node(Common, list):
     def __init__(self, *children):
         """Constructor.
 
-        If children are given they are appended to the list, and their
-        parent is set to this node.
+        If children are given they are appended to the list, and their parent
+        is set to this node.
 
         """
         self._parent = _NO_PARENT
@@ -456,21 +469,21 @@ class Node(Common, list):
     def descendants(self, reverse=False):
         """Iterate over all the descendants of this node.
 
-        When you :meth:`~generator.send` False to the this generator, child
-        nodes of the just yielded node will not be yielded.
-
         If ``reverse`` is set to True, yields all descendants in backward
         direction.
+
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
 
         """
         iterate = reversed if reverse else iter
         stack = []
         gen = iterate(self)
         while True:
-            for node in gen:
-                if (yield node) is not False and len(node):
+            for n in gen:
+                if (yield n) is not False and len(n):
                     stack.append(gen)
-                    gen = iterate(node)
+                    gen = iterate(n)
                     break
             else:
                 if stack:
@@ -512,12 +525,14 @@ class Node(Common, list):
         If you specify an ancestor node ``upto``, will not go outside that
         node.
 
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
+
         """
         node = self
         while node.parent and node is not upto:
             for n in node.right_siblings():
-                yield n
-                if len(n):
+                if (yield n) is not False and len(n):
                     yield from n.descendants()
             node = node.parent
 
@@ -527,12 +542,14 @@ class Node(Common, list):
         If you specify an ancestor node ``upto``, will not go outside that
         node.
 
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
+
         """
         node = self
         while node.parent and node is not upto:
             for n in node.left_siblings():
-                yield n
-                if len(n):
+                if (yield n) is not False and len(n):
                     yield from n.descendants(reverse=True)
             node = node.parent
 
@@ -724,6 +741,7 @@ class Range(Common):
             ancestor = end_node.root()
             start_trail = None
             end_trail = end_node.trail()
+            ok = True
         else:
             raise ValueError("must specify at least one node")
         if not ok:
@@ -924,7 +942,6 @@ class Range(Common):
 
         level.node[i] = value
 
-
     def __delitem__(self, i):
         """Delete Node(s) at index or slice. Slice step must be None or 1."""
         if not isinstance(i, slice):
@@ -1096,6 +1113,26 @@ class Range(Common):
                     break
         return tree
 
+    def nodes(self):
+        """Yield all nodes from start node upto and including the end node.
+
+        If there is no start boundary, the result is the same as
+        :meth:`descendants`.
+
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
+
+        """
+        if self.start_trail:
+            self.goto(self.start_node())
+            node = self.node
+            if (yield node) is not False and len(node):
+                yield from self.descendants()
+        else:
+            self.reset()
+        yield from self.forward()
+
+
     def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
         return self._get_predicate_iterator(cls, self.children())
@@ -1111,11 +1148,13 @@ class Range(Common):
         If you specify an ancestor node ``upto``, will not go outside that
         node.
 
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
+
         """
         while True:
             for n in self:
-                yield n
-                if len(n):
+                if (yield n) is not False and len(n):
                     self.enter()
                     break
             else:
@@ -1129,11 +1168,13 @@ class Range(Common):
         If you specify an ancestor node ``upto``, will not go outside that
         node.
 
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
+
         """
         while True:
             for n in self.reversed():
-                yield n
-                if len(n):
+                if (yield n) is not False and len(n):
                     self.enter()
                     break
             else:
@@ -1171,11 +1212,11 @@ class Range(Common):
         """Iterate over all descendants of the current :attr:`node` that are in
         the range.
 
-        When you :meth:`~generator.send` False to the this generator, child
-        nodes of the just yielded node will not be yielded.
-
         If ``reverse`` is set to True, yields all descendants in backward
         direction.
+
+        When you :meth:`~generator.send` False to this generator, child nodes
+        of the just yielded node will not be yielded.
 
         """
         iterate = (lambda n: n.reversed()) if reverse else iter
