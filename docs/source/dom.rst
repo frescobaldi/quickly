@@ -11,6 +11,7 @@ Modules in the ``dom`` package:
 .. toctree::
    :maxdepth: 1
 
+   dom/edit.rst
    dom/element.rst
    dom/base.rst
    dom/htm.rst

@@ -856,6 +856,12 @@ class Range(Common):
 
     __and__ = intersects
 
+    def is_full(self):
+        """True if there is no start and end boundary, i.e. all descendants of the
+        ancestor are in the range."""
+        level = self._stack[0]
+        return level.start_in_range() and level.end_in_range()
+
     def __iter__(self):
         return self._stack[-1]
 

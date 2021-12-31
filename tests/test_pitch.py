@@ -33,7 +33,7 @@ import parce
 import quickly
 from quickly.pitch import (
     Pitch, PitchProcessor, octave_to_string, octave_from_string, determine_language)
-from quickly.transpose import Transposer, transpose, transpose_doc
+from quickly.transpose import Transposer, Transpose
 from quickly.relative import rel2abs, rel2abs_doc, abs2rel, abs2rel_doc
 from quickly.dom import read, lily
 from quickly.registry import find
@@ -164,42 +164,42 @@ def check_transpose():
 
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
     music = read.lily_document("{ c d e f g }")
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music.write() == "{ e fis gis a b }"
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music.write() == "{ gis ais bis cis' dis' }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(0, 0, 1))
     music = read.lily_document(r"\relative { c' d e f g }")
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music.write() == r"\relative { c'' d e f g }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(4, 0, 0))
     music = read.lily_document(r"\relative c' { c d e f g }")
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music.write() == r"\relative g' { g a b c d }"
 
     t = Transposer(Pitch(0, 0, 0), Pitch(6, -.5, -1))
     music = read.lily_document(r"\relative { g a b c d }")
-    transpose(music, t, relative_first_pitch_absolute=False)
+    Transpose(t, relative_first_pitch_absolute=False).edit_node(music)
     assert music.write() == r"\relative { f, g a bes c }"
 
     music = read.lily_document(r"\relative { g a b c d }")
-    transpose(music, t, relative_first_pitch_absolute=True)
+    Transpose(t, relative_first_pitch_absolute=True).edit_node(music)
     assert music.write() == r"\relative { f g a bes c }"
 
     music = read.lily_document("""\\version "2.12.0"\n\\relative { g a b c d }\n""")
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music[1].write() == r"\relative { f, g a bes c }"
 
     music = read.lily_document("""\\version "2.22.0"\n\\relative { g a b c d }\n""")
-    transpose(music, t)
+    Transpose(t).edit_node(music)
     assert music[1].write() == r"\relative { f g a bes c }"
 
     doc = lydoc("{ c d e f g }")
     cur = parce.Cursor(doc).select(4, 7)
     t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
-    transpose_doc(cur, t)
+    Transpose(t).edit_cursor(cur)
     assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 
 
