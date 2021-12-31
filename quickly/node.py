@@ -1037,6 +1037,19 @@ class Range(Common):
             level = level.child()
         return level.start_in_range() and level.end_in_range()
 
+    def _goto_trail(self, trail):
+        """(Internal) Go to the specified trail, which must be in our range.
+
+        Equivalent to :meth:`reset` if trail is None or empty.
+
+        """
+        self.reset()
+        if trail:
+            for i in trail[:-1]:
+                self._stack[-1].index = i
+                self._stack.append(self._stack[-1].child())
+            self._stack[-1].index = trail[-1]
+
     def goto(self, node):
         """Navigate to another node, returns True if that succeeded.
 
@@ -1048,15 +1061,7 @@ class Range(Common):
         trail = self._get_trail(node)
         if trail is None or not self._trail_intersects(trail):
             return False
-
-        del self._stack[1:]
-        if trail:
-            for i in trail[:-1]:
-                self._stack[-1].index = i
-                self._stack.append(self._stack[-1].child())
-            self._stack[-1].index = trail[-1]
-        else:
-            self._stack[-1].index = -1
+        self._goto_trail(trail)
         return True
 
     def reset(self):
@@ -1123,15 +1128,12 @@ class Range(Common):
         of the just yielded node will not be yielded.
 
         """
+        self._goto_trail(self.start_trail)
         if self.start_trail:
-            self.goto(self.start_node())
             node = self.node
             if (yield node) is not False and len(node):
                 yield from self.descendants()
-        else:
-            self.reset()
         yield from self.forward()
-
 
     def __truediv__(self, cls):
         """Iterate over children that inherit the specified class(es)."""
