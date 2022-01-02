@@ -266,7 +266,7 @@ class PitchProcessor:
 
         The ``node`` is a :class:`~.dom.lily.Note` (or positioned
         :class:`~.dom.lily.Rest`). You can manipulate the Pitch, and when done,
-        the node will be updated. An example::
+        the node will be updated if the pitch was changed. An example::
 
             >>> from quickly.pitch import PitchProcessor
             >>> from quickly.dom import lily
@@ -289,9 +289,13 @@ class PitchProcessor:
 
         """
         p = self.read_node(node)
+        c = p.copy()
         yield p
         if write:
-            self.write_node(node, p)
+            if p.note != c.note or p.alter != c.alter:
+                node.head = self.write(p.note, p.alter)
+            if p.octave != c.octave:
+                node.octave = p.octave
 
     def note(self, pitch):
         """Return a new Note element for the pitch."""
