@@ -170,75 +170,92 @@ class Abs2rel(edit.Edit):
         #: if a start pitch is not used (by default dependent on LilyPond version).
         self.first_pitch_absolute = first_pitch_absolute
 
-    def edit_range(self, r):
-        """Do the pitch conversion."""
+    def _get_settings(self, node):
+        """Get preferences for node."""
         first_pitch_absolute = self.first_pitch_absolute
         if not self.start_pitch and first_pitch_absolute is None:
-            first_pitch_absolute = util.lilypond_version(r.ancestor()) >= (2, 18)
+            first_pitch_absolute = util.lilypond_version(node) >= (2, 18)
 
         processor = self.processor or PitchProcessor()
 
-        if not r.ancestor().is_root():
-            processor.find_language(r.ancestor())
+        if not node.is_root():
+            processor.find_language(node)
+
+        return processor, first_pitch_absolute
+
+    def edit_range(self, r):
+        """Do the pitch conversion."""
+        processor, first_pitch_absolute = self._get_settings(r.ancestor())
 
         def abs2rel():
             """Find MusicList nodes, and if they contain notes, make relative."""
-            for n in r.instances_of((lily.MusicList, lily.Relative)):
+            for n in r.instances_of((lily.MusicList, lily.Relative, lily.ChordMode)):
                 if isinstance(n, lily.MusicList):
                     if any(n / lily.Pitchable) and r.in_range():
-                        make_relative()
+                        r.node = self._make_relative_internal(r.node, processor, first_pitch_absolute)
                     else:
                         abs2rel()
-
-        def make_relative():
-            """Replace the MusicList node with a Relative node."""
-            rel = lily.Relative()
-
-            def get_first_pitch(p):
-                if self.start_pitch:
-                    last_pitch = Pitch(0, 0, p.octave)
-                    if p.note > 3:
-                        last_pitch.octave += 1
-                    rel.append(lily.Note('c'))
-                    processor.write_node(rel[-1], last_pitch)
-                elif first_pitch_absolute:
-                    last_pitch = Pitch(3)
-                else:
-                    last_pitch = Pitch(0, 0, 1)
-                return last_pitch
-
-            def relative_note(node, last_pitch):
-                with processor.pitch(node) as p:
-                    if last_pitch is None:
-                        last_pitch = get_first_pitch(p)
-                    lp = p.copy()
-                    p.make_relative(last_pitch)
-                return lp
-
-            def relative_notes(node, last_pitch=None):
-                for n in processor.follow_language(node):
-                    if isinstance(n, lily.Pitchable):
-                        last_pitch = relative_note(n, last_pitch)
-                    elif isinstance(n, lily.Chord):
-                        stack = [last_pitch]
-                        for note in n / lily.Pitchable:
-                            stack.append(relative_note(note, last_pitch))
-                        last_pitch = stack[:2][-1]  # first of chord or old if empty
-                    elif isinstance(n, (
-                        lily.ChordMode, lily.Key, lily.Absolute, lily.Fixed,
-                        lily.Transpose, lily.Transposition, lily.StringTuning,
-                    )):
-                        pass
-                    else:
-                        last_pitch = relative_notes(n, last_pitch)
-                return last_pitch
-
-            relative_notes(r.node)
-            rel.append(r.node)
-            r.node = rel
-
         # Do it!
         abs2rel()
+
+    def make_relative(self, node):
+        """Make al notes and pitched rests in the specified MusicList or
+        SimultaneousMusicList node relative.
+
+        Returns a lily.Relative node with the modified MusicList (or
+        SimultaneousMusicList) appended.
+
+        Replace the node in its parent with the returned node if desired.
+
+        """
+        processor, first_pitch_absolute = self._get_settings(node)
+        return self._make_relative_internal(node, processor, first_pitch_absolute)
+
+    def _make_relative_internal(self, node, processor, first_pitch_absolute):
+        """Implementation of make_relative() with settings."""
+        rel = lily.Relative()
+
+        def get_first_pitch(p):
+            if self.start_pitch:
+                last_pitch = Pitch(0, 0, p.octave)
+                if p.note > 3:
+                    last_pitch.octave += 1
+                rel.append(processor.note(last_pitch))
+            elif first_pitch_absolute:
+                last_pitch = Pitch(3)
+            else:
+                last_pitch = Pitch(0, 0, 1)
+            return last_pitch
+
+        def relative_note(node, last_pitch):
+            with processor.pitch(node) as p:
+                if last_pitch is None:
+                    last_pitch = get_first_pitch(p)
+                lp = p.copy()
+                p.make_relative(last_pitch)
+            return lp
+
+        def relative_notes(node, last_pitch=None):
+            for n in processor.follow_language(node):
+                if isinstance(n, lily.Pitchable):
+                    last_pitch = relative_note(n, last_pitch)
+                elif isinstance(n, lily.Chord):
+                    stack = [last_pitch]
+                    for note in n / lily.Pitchable:
+                        stack.append(relative_note(note, last_pitch))
+                    last_pitch = stack[:2][-1]  # first of chord or old if empty
+                elif isinstance(n, (
+                    lily.ChordMode, lily.Key, lily.Absolute, lily.Fixed,
+                    lily.Transpose, lily.Transposition, lily.StringTuning,
+                )):
+                    pass
+                else:
+                    last_pitch = relative_notes(n, last_pitch)
+            return last_pitch
+
+        relative_notes(node)
+        rel.append(node)
+        return rel
 
 
 def abs2rel(music):

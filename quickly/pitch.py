@@ -293,6 +293,12 @@ class PitchProcessor:
         if write:
             self.write_node(node, p)
 
+    def note(self, pitch):
+        """Return a new Note element for the pitch."""
+        from .dom import lily
+        name = self.write(pitch.note, pitch.alter)
+        return lily.Note(name, octave=pitch.octave)
+
     def find_language(self, node):
         r"""Search backwards from node to find the last set language.
 
