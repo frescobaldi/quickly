@@ -139,8 +139,9 @@ def rel2abs(music):
 class Abs2rel(edit.Edit):
     r"""Convert music in absolute notation to ``\relative`` notation.
 
-    The topmost MusicList (``{`` ... ``}`` or ``<<`` ... ``>>``) that has child
-    notes gets a Relative parent node.
+    The topmost :class:`~quickly.dom.lily.MusicList` (``{`` ... ``}`` or ``<<``
+    ... ``>>``) that has child notes gets a :class:`~quickly.dom.lily.Relative`
+    parent node.
 
     :attr:`processor`: a :class:`~.pitch.PitchProcessor`; a default one is used
     if none is specified.
@@ -199,11 +200,11 @@ class Abs2rel(edit.Edit):
         abs2rel()
 
     def make_relative(self, node):
-        """Make al notes and pitched rests in the specified MusicList or
-        SimultaneousMusicList node relative.
+        """Make al notes and pitched rests in the specified :class:`~quickly.dom.lily.MusicList` or
+        :class:`~quickly.dom.lily.SimultaneousMusicList` node relative.
 
-        Returns a lily.Relative node with the modified MusicList (or
-        SimultaneousMusicList) appended.
+        Returns a :class:`~quickly.dom.lily.Relative` node with the modified
+        music list appended.
 
         Replace the node in its parent with the returned node if desired.
 
