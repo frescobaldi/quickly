@@ -58,7 +58,7 @@ For example::
     >>> music = lily.Document(lily.MusicList(
     ... lily.Note('c', lily.Duration(fractions.Fraction(1, 4))),
     ... lily.Note('d', lily.Articulations(lily.Direction(1, lily.Articulation(".")))),
-    ... lily.Rest('r', lily.Articulations(lily.Dynamic("pp")))))
+    ... lily.Rest(lily.Articulations(lily.Dynamic("pp")))))
     >>> music
     <lily.Document (1 child)>
     >>> music.dump()
@@ -70,7 +70,7 @@ For example::
         │  ╰╴<lily.Articulations (1 child)>
         │     ╰╴<lily.Direction 1 (1 child)>
         │        ╰╴<lily.Articulation '.'>
-        ╰╴<lily.Rest 'r' (1 child)>
+        ╰╴<lily.Rest (1 child)>
            ╰╴<lily.Articulations (1 child)>
               ╰╴<lily.Dynamic 'pp'>
 

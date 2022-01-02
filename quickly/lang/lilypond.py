@@ -843,9 +843,9 @@ class MusicBuilder:
             try:
                 origin = self._music.head_origin
             except AttributeError:
-                self._music = lily.Rest(self._music.head, *self._music)
+                self._music = lily.PitchedRest(self._music.head, *self._music)
             else:
-                self._music = self.factory(lily.Rest, origin, (), *self._music)
+                self._music = self.factory(lily.PitchedRest, origin, (), *self._music)
             self._articulations.append(self.factory(lily.RestModifier, (token,)))
 
     @_token(r'\tweak')
@@ -881,11 +881,13 @@ class MusicBuilder:
             cls = lily.Q if token == 'q' else lily.Note
             self._music = self.factory(cls, (token,))
 
+    _rest_mapping = element.head_mapping(lily.Space, lily.Rest, lily.MultiMeasureRest)
+
     @_action(a.Text.Music.Rest)
     def rest_action(self, token):
         r"""Called for ``Text.Music.Rest``."""
         yield from self.pending_music()
-        cls = lily.Space if token == 's' else lily.Rest
+        cls = self._rest_mapping[token.text]
         self._music = self.factory(cls, (token,))
 
     @_action(a.Text.Music.Pitch.Drum)

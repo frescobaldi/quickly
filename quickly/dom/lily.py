@@ -1101,15 +1101,26 @@ class Unpitched(Music):
     """An unpitched note, always has a Duration child."""
 
 
-class Rest(Pitchable):
-    r"""A rest (``r`` or ``R``).
+class RestType(Music):
+    """Base class for Rest, PitchedRest and MultiMeasureRest."""
 
-    The Rest element has normally a ``r`` or ``R`` value. In the latter case
-    it is a multi measure rest.
 
-    But the head value can also be a pitch name, and there can be an Octave or
-    OctCheck child in this case; this means that it is a positioned rest (e.g.
-    ``c\rest``).
+class Rest(element.HeadElement, RestType):
+    head = "r"
+    """A normal rest (``r``)."""
+
+
+class MultiMeasureRest(Rest):
+    head = "R"
+    """A multi-measure rest (``R``)."""
+
+
+class PitchedRest(Pitchable, RestType):
+    r"""A pitched rest.
+
+    This rest has a pitchname but also a RestModifier child, e.g. ``c\rest``.
+    It is a normal rest, but vertically positioned using a pitch name, which is
+    the head value. This element can also have an Octave or OctCheck.
 
     """
 
