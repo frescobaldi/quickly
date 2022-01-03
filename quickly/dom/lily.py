@@ -1609,6 +1609,20 @@ class Time(element.HeadElement, Music):
         yield Fraction,
 
 
+class Partial(_ConvertUnpitchedToDuration, element.HeadElement, Music):
+    r"""A ``\partial`` statement.
+
+    Has a Duration child.
+
+    """
+    space_after_head = " "
+    head = r"\partial"
+
+    def signatures(self):
+        yield Duration,
+        yield Unpitched,
+
+
 class Times(element.HeadElement, Music):
     r"""A ``\times`` statement.
 

@@ -1064,7 +1064,7 @@ class MusicBuilder:
         lily.RemoveWithTag, lily.TagGroup, lily.PushToTag, lily.AppendToTag,
         lily.Break, lily.PageBreak, lily.PageTurn, lily.GrobDirection,
         lily.GrobStyle, lily.Toggle, lily.Shape, lily.VShape,
-        lily.StringTuning, lily.VoiceN, lily.Unit,
+        lily.StringTuning, lily.VoiceN, lily.Unit, lily.Partial,
     )
 
     @_action(a.Name.Builtin)
