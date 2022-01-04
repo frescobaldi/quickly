@@ -539,10 +539,10 @@ class LilyPondTransform(base.Transform):
         """
         p = None
         for n in nodes:
-            if isinstance(p, (lily.String, lily.Symbol, lily.Scheme)) \
-                    and isinstance(n, lily.Unpitched):
-                yield lily.Music(p, *n)
-                n = None
+            if isinstance(p, (lily.String, lily.Symbol, lily.Scheme, lily.Markup)):
+                if isinstance(n, lily.Unpitched):
+                    yield lily.LyricItem(p, *n)
+                    n = None
             elif p:
                 yield p
             p = n
@@ -1034,13 +1034,13 @@ class MusicBuilder:
     def lyric_extender_action(self, token):
         r"""Called for ``Delimiter.Lyric.LyricExtender``."""
         yield from self.pending_music()
-        yield self.factory(lily.LyricExtender, (token,))
+        self._music = self.factory(lily.LyricExtender, (token,))
 
     @_action(a.Delimiter.Lyric.LyricHyphen)
     def lyric_hyphen_action(self, token):
         r"""Called for ``Delimiter.Lyric.LyricHyphen``."""
         yield from self.pending_music()
-        yield self.factory(lily.LyricHyphen, (token,))
+        self._music = self.factory(lily.LyricHyphen, (token,))
 
     @_action(a.Delimiter.Lyric.LyricSkip)
     def lyric_skip_action(self, token):
@@ -1175,7 +1175,7 @@ class MusicBuilder:
             else:
                 # toplevel markup item (in lyricmode possible)
                 yield from self.pending_music()
-                self._music = node
+                yield node
 
     @_context("identifier_ref")
     def identifier_ref(self, obj):

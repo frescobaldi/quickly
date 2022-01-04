@@ -176,8 +176,8 @@ finds :class:`~quickly.lang.lilypond.LilyPondTransform` in the
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (3 children) [0:25]>
-        ├╴<lily.Music (3 children)>
-        │  ├╴<lily.Chord (2 children) [2:9]>
+        ├╴<lily.Chord (3 children)>
+        │  ├╴<lily.ChordBody (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
         │  │  │  ╰╴<lily.Octave 1 [4:5]>
         │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
@@ -315,8 +315,8 @@ note::
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (6 children) [0:28]>
-        ├╴<lily.Music (2 children)>
-        │  ├╴<lily.Chord (2 children) [2:9]>
+        ├╴<lily.Chord (2 children)>
+        │  ├╴<lily.ChordBody (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
         │  │  │  ╰╴<lily.Octave 1 [4:5]>
         │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
@@ -333,7 +333,7 @@ note::
         ╰╴<lily.Unpitched (1 child)>
            ╰╴<lily.Duration Fraction(1, 8) [25:26]>
     >>> prev = None
-    >>> for node in music[0] / lily.Music:
+    >>> for node in music[0] / lily.Durable:
     ...     if not isinstance(node, lily.Skip):
     ...         for dur in node / lily.Duration:
     ...             if dur.duration() == prev:
@@ -445,8 +445,8 @@ DOM::
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (3 children) [0:25]>
-        ├╴<lily.Music (3 children)>
-        │  ├╴<lily.Chord (2 children) [2:9]>
+        ├╴<lily.Chord (3 children)>
+        │  ├╴<lily.ChordBody (2 children) [2:9]>
         │  │  ├╴<lily.Note 'c' (1 child) [3:4]>
         │  │  │  ╰╴<lily.Octave 1 [4:5]>
         │  │  ╰╴<lily.Note 'g' (1 child) [6:7]>
@@ -495,8 +495,8 @@ best to request the updated DOM tree again::
     >>> music.dump()
     <lily.Document (1 child)>
      ╰╴<lily.MusicList (3 children) [0:33]>
-        ├╴<lily.Music (3 children)>
-        │  ├╴<lily.Chord (2 children) [2:13]>
+        ├╴<lily.Chord (3 children)>
+        │  ├╴<lily.ChordBody (2 children) [2:13]>
         │  │  ├╴<lily.Note 'cis' (1 child) [3:6]>
         │  │  │  ╰╴<lily.Octave 1 [6:7]>
         │  │  ╰╴<lily.Note 'gis' (1 child) [8:11]>

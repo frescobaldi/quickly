@@ -32,6 +32,196 @@ from .. import duration, pitch
 from . import base, element, scm
 
 
+class Music(element.Element):
+    """Base class for all elements that contain music."""
+
+
+class Durable(Music):
+    """An element that can have a Duration child.
+
+    Used as base class for Note, Rest, Chord, LyricText etc. The
+    :attr:`duration` and :attr:`scaling` properties make it easy to manipulate
+    the respective child and grandchild nodes.
+
+    """
+    duration_required = False     #: Whether the Duration child is required (e.g. \skip)
+    duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
+
+    def length(self):
+        """Return the musical length of this music.
+
+        Scaling, if defined, is also calculated in. May return 0 for an empty
+        chord or when the scaling is 0. Returns -1 if there is no Duration
+        child.
+
+        """
+        for d in self / Duration:
+            dur = d.head
+            for s in d / DurationScaling:
+                dur *= s.head
+            return dur
+        return -1
+
+    @property
+    def duration(self):
+        """Read or set the duration.
+
+        The duration is the head value of the Duration child. The value is None
+        if there is no Duration child. Delete or set to None to remove the
+        child. (In that case the scaling also disappears.)
+
+        """
+        for n in self / Duration:
+            return n.head
+
+    @duration.setter
+    def duration(self, value):
+        for n in self / Duration:
+            if value is None:
+                self.remove(n)
+            else:
+                n.head = value
+            return
+        if value is not None:
+            self.insert_after((Octave, Accidental, OctCheck), Duration(value))
+
+    @duration.deleter
+    def duration(self):
+        for n in self / Duration:
+            self.remove(n)
+            break
+
+    @property
+    def scaling(self):
+        """Read or set the scaling.
+
+        The scaling is the value of the DurationScaling child of the Duration
+        child. The value is None if there is no Duration child and 1 if there
+        is no DurationScaling grand child. Delete or set to None to remove the
+        DurationScaling grand child.
+
+        Setting the property while there is no duration child raises a
+        ValueError. Setting it to None or 1 removes the DurationScaling grand
+        child.
+
+        """
+        for d in self / Duration:
+            scaling = 1.0
+            for s in d / DurationScaling:
+                scaling *= s.head
+            return scaling
+        return None
+
+    @scaling.setter
+    def scaling(self, value):
+        for d in self / Duration:
+            scaling = d / DurationScaling
+            for s in scaling:
+                if value in (1, None):
+                    d.remove(s)
+                else:
+                    s.head = value
+                for s in scaling:
+                    d.remove(s)
+                return
+            if value not in (1, None):
+                d.insert(0, DurationScaling(value))
+            return
+        if value not in (1, None):
+            raise ValueError("can't set scaling if no duration is set")
+
+    @scaling.deleter
+    def scaling(self):
+        self.scaling = None
+
+
+class Pitchable(element.TextElement, Music):
+    """Base class for a note or pitched rest.
+
+    This class provides convenient properties to manipulate the
+    :class:`Octave`, :class:`Accidental` and/or :class:`OctCheck` child nodes.
+
+    """
+    @property
+    def octave(self):
+        """Read or set the octave.
+
+        The octave is an integer value. Automatically creates an
+        :class:`Octave` child if needed. Delete this attribute or set it to 0
+        to remove the octave.
+
+        """
+        for n in self / Octave:
+            return n.head
+        return 0
+
+    @octave.setter
+    def octave(self, num):
+        for n in self / Octave:
+            n.head = num
+            return
+        if num != 0:
+            self.insert(0, Octave(num))
+
+    @octave.deleter
+    def octave(self):
+        self[:] = self ^ Octave
+
+    @property
+    def accidental(self):
+        """Read or set the accidental.
+
+        The accidental is ``None``, ``"cautionary"`` or ``"forced"``.
+        Automatically creates an :class:`Accidental` child if needed.
+        Delete this attribute to remove the accidental.
+
+        """
+        for n in self / Accidental:
+            return n.head
+
+    @accidental.setter
+    def accidental(self, value):
+        for n in self / Accidental:
+            if not value:
+                self.remove(n)
+            else:
+                n.head = value
+            return
+        if value:
+            self.insert_after(Octave, Accidental(value))
+
+    @accidental.deleter
+    def accidental(self):
+        self[:] = self ^ Accidental
+
+    @property
+    def oct_check(self):
+        """Read or set the octave check.
+
+        The octave check is an integer value, or None, when no octave check is
+        there. Automatically creates an :class:`OctCheck` child if set. Delete
+        this attribute or set it tot ``None`` to remove the octave check.
+
+        """
+        for n in self / OctCheck:
+            return n.head
+
+    @oct_check.setter
+    def oct_check(self, num):
+        for n in self / OctCheck:
+            if num is None:
+                self.remove(n)
+            else:
+                n.head = num
+            return
+        if num is not None:
+            self.insert_after((Octave, Accidental), OctCheck(num))
+
+    @oct_check.deleter
+    def oct_check(self):
+        self[:] = self ^ OctCheck
+
+
 class _Variable:
     """A property that makes setting an Assignment easier.
 
@@ -262,14 +452,6 @@ class Scheme(element.TextElement):
     @classmethod
     def check_head(cls, head):
         return head in ('$', '#', '$@', '#@')
-
-
-class Music(element.Element):
-    """A basic music element.
-
-    This is also the base class for other elements that contain music.
-
-    """
 
 
 class Spanner(element.MappingElement):
@@ -987,8 +1169,10 @@ class FigureMode(base.BackslashCommand, InputMode):
     r"""``\figuremode`` or ``\figures``."""
 
 
-class Chord(Music):
+class Chord(Durable):
     """A chord. Must have a ChordBody element."""
+    def length(self):
+        return super().length() if any(self[0] / Note) else 0
 
 
 class ChordBody(element.BlockElement):
@@ -1007,110 +1191,16 @@ class ChordBody(element.BlockElement):
         yield 0
 
 
-class Pitchable(element.TextElement, Music):
-    """Base class for a note or rest (that can be pitched).
-
-    This class provides convenient properties to manipulate the
-    :class:`Octave`, :class:`Accidental` and/or :class:`OctCheck` child nodes.
-
-    """
-    @property
-    def octave(self):
-        """Read or set the octave.
-
-        The octave is an integer value. Automatically creates an
-        :class:`Octave` child if needed. Delete this attribute or set it to 0
-        to remove the octave.
-
-        """
-        for n in self / Octave:
-            return n.head
-        return 0
-
-    @octave.setter
-    def octave(self, num):
-        for n in self / Octave:
-            n.head = num
-            return
-        if num != 0:
-            self.insert(0, Octave(num))
-
-    @octave.deleter
-    def octave(self):
-        self[:] = self ^ Octave
-
-    @property
-    def accidental(self):
-        """Read or set the accidental.
-
-        The accidental is ``None``, ``"cautionary"`` or ``"forced"``.
-        Automatically creates an :class:`Accidental` child if needed.
-        Delete this attribute to remove the accidental.
-
-        """
-        for n in self / Accidental:
-            return n.head
-
-    @accidental.setter
-    def accidental(self, value):
-        for n in self / Accidental:
-            if not value:
-                self.remove(n)
-            else:
-                n.head = value
-            return
-        if value:
-            self._insert_after(Octave, Accidental(value))
-
-    @accidental.deleter
-    def accidental(self):
-        self[:] = self ^ Accidental
-
-    @property
-    def oct_check(self):
-        """Read or set the octave check.
-
-        The octave check is an integer value, or None, when no octave check is
-        there. Automatically creates an :class:`OctCheck` child if set. Delete
-        this attribute or set it tot ``None`` to remove the octave check.
-
-        """
-        for n in self / OctCheck:
-            return n.head
-
-    @oct_check.setter
-    def oct_check(self, num):
-        for n in self / OctCheck:
-            if num is None:
-                self.remove(n)
-            else:
-                n.head = num
-            return
-        if num is not None:
-            self._insert_after((Octave, Accidental), OctCheck(num))
-
-    @oct_check.deleter
-    def oct_check(self):
-        self[:] = self ^ OctCheck
-
-    def _insert_after(self, skip, node):
-        """Insert a node after skipping specified classes."""
-        for n in self ^ skip:
-            i = self.index(n)
-            self.insert(i, node)
-            return
-        self.append(node)
-
-
-class Note(Pitchable):
+class Note(Pitchable, Durable):
     """A pitch note name."""
 
 
-class Unpitched(Music):
+class Unpitched(Durable):
     """An unpitched note, always has a Duration child."""
+    duration_required = True    #: always needs a duration
 
 
-class RestType(Music):
+class RestType(Durable):
     """Base class for Rest, PitchedRest and MultiMeasureRest."""
 
 
@@ -1134,14 +1224,16 @@ class PitchedRest(Pitchable, RestType):
     """
 
 
-class Space(element.HeadElement, Music):
+class Space(element.HeadElement, Durable):
     """A space (``s``)."""
     head = "s"
 
 
-class Skip(element.HeadElement, Music):
+class Skip(element.HeadElement, Durable):
     r"""A ``\skip``. Must have a Duration child."""
     head = r'\skip'
+    duration_required = True        #: always needs a duration
+    duration_sets_previous = False  #: the "previous" duration is not changed by \skip
 
 
 class After(element.HeadElement, Music):
@@ -1149,12 +1241,12 @@ class After(element.HeadElement, Music):
     head = r'\after'
 
 
-class Q(element.HeadElement, Music):
+class Q(element.HeadElement, Durable):
     """A ``q``, repeating the previous chord."""
     head = 'q'
 
 
-class Drum(element.TextElement, Music):
+class Drum(element.TextElement, Durable):
     """A drum note."""
 
 
@@ -1282,21 +1374,29 @@ class DurationScaling(element.TextElement):
         return ""
 
 
-class LyricText(element.TextElement, Music):
+class LyricItem(Durable):
+    r"""Wraps a Scheme, String, Symbol or Markup in lyric mode so it can have a duration."""
+
+
+class LyricText(element.TextElement, Durable):
     r"""A word in lyric mode."""
 
 
 class LyricExtender(element.HeadElement):
     r"""A lyric extender ``__``."""
     head = "__"
+    # note: LilyPond >=2.20 allows a duration after a -- and __,
+    # but it doesn't make much sense, so  we don't inherit Durable
 
 
 class LyricHyphen(element.HeadElement):
     r"""A lyric hyphen ``--``."""
     head = "--"
+    # note: LilyPond >=2.20 allows a duration after a -- and __
+    # but it doesn't make much sense, so  we don't inherit Durable
 
 
-class LyricSkip(element.HeadElement, Music):
+class LyricSkip(element.HeadElement, Durable):
     r"""A lyric skip ``_``."""
     head = "_"
 

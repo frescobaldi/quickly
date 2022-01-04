@@ -231,6 +231,14 @@ class Element(Node, metaclass=ElementType):
         except AttributeError:
             pass
 
+    def insert_after(self, skip, node):
+        """Insert a node after skipping specified classes."""
+        for n in self ^ skip:
+            i = self.index(n)
+            self.insert(i, node)
+            return
+        self.append(node)
+
     def __repr__(self):
         def result():
             # class name with last part module prepended
