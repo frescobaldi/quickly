@@ -139,7 +139,8 @@ class LilyPondTransform(base.Transform):
         """A Chord element (``<`` ... ``>``)."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '>' else ()
-        return self.factory(lily.Chord, head, tail, *self.create_music(items[1:]))
+        body = self.factory(lily.ChordBody, head, tail, *self.create_music(items[1:]))
+        return lily.Chord(body)
 
     def repeat(self, items):
         """A list of elements, contents of ``repeat`` context."""
@@ -248,7 +249,8 @@ class LilyPondTransform(base.Transform):
         """A Figure element."""
         head = items[:1]
         tail = (items.pop(),) if items[-1] == '>' else ()
-        return self.factory(lily.Figure, head, tail, *self.create_figure(items))
+        body = self.factory(lily.FigureBody, head, tail, *self.create_figure(items))
+        return lily.Figure(body)
 
     def figurebracket(self, items):
         """A FigureBracket element."""
@@ -695,23 +697,17 @@ class MusicBuilder:
             if self._scaling:
                 dur.append(self._scaling)
             if music:
-                if music.tail:
-                    music = lily.Music(music)
                 music.append(dur)
             else:
                 music = lily.Unpitched(dur)
         if music:
             if self._chord_modifiers:
-                if music.tail:
-                    music = lily.Music(music)
                 music.append(lily.ChordModifiers(*self._chord_modifiers))
                 self._chord_modifiers.clear()
                 # move comments at end of chord modifiers back to toplevel
                 while len(music[-1][-1]) and isinstance(music[-1][-1][-1], base.Comment):
                     self._comments.append(music[-1][-1].pop())
             if self._articulations:
-                if music.tail:
-                    music = lily.Music(music)
                 if self._comments:
                     music.extend(self._comments)
                     self._comments.clear()

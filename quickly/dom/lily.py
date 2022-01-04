@@ -948,47 +948,56 @@ class Simultaneous(element.HeadElement, Music):
         yield MUSIC,
 
 
-class LyricMode(base.BackslashCommand, Music):
+class InputMode(Music):
+    r"""Base class for any input mode, such as ``\figures`` or ``\lyricmode``.
+
+    The head value is the command without backslash prepended.
+
+    """
+    space_between = space_after_head = " "
+
+    def signatures(self):
+        yield MUSIC,
+
+
+class LyricMode(base.BackslashCommand, InputMode):
     r"""``\lyricmode``, ``\lyrics`` or ``\lyricsto``."""
 
     def signatures(self):
-        if self.head == r'\lyricsto':
+        if self.head == r'lyricsto':
             yield (String, Symbol), MUSIC
         else:
             yield MUSIC,
 
 
-class ChordMode(base.BackslashCommand, Music):
+class ChordMode(base.BackslashCommand, InputMode):
     r"""``\chordmode`` or ``\chords``."""
 
-    def signatures(self):
-        yield MUSIC,
 
-
-class DrumMode(base.BackslashCommand, Music):
+class DrumMode(base.BackslashCommand, InputMode):
     r"""``\drummode`` or ``\drums``."""
 
-    def signatures(self):
-        yield MUSIC,
 
-
-class NoteMode(element.HeadElement, Music):
+class NoteMode(element.HeadElement, InputMode):
     r"""``\notemode``."""
     head = r'\notemode'
 
-    def signatures(self):
-        yield MUSIC,
 
-
-class FigureMode(base.BackslashCommand, Music):
+class FigureMode(base.BackslashCommand, InputMode):
     r"""``\figuremode`` or ``\figures``."""
 
-    def signatures(self):
-        yield MUSIC,
+
+class Chord(Music):
+    """A chord. Must have a ChordBody element."""
 
 
-class Chord(element.BlockElement, Music):
-    """A chord ``<`` ... ``>``."""
+class ChordBody(element.BlockElement):
+    """The body of a chord ``<`` ... ``>``.
+
+    Always the child of a Chord, which can have a duration and articulations.
+    Contains Note elements.
+
+    """
     space_between = " "
     head = "<"
     tail = ">"
@@ -1814,8 +1823,21 @@ class MarkupScoreLines(MarkupScore):
     head = r"\score-lines {"
 
 
-class Figure(element.BlockElement):
-    r"""One ``<`` ... ``>`` figure "chord" in figuremode."""
+class Figure(Music):
+    """A bass figure in figure mode.
+
+    Always has one FigureBody child, which contains the numbers etc.
+    Can also have a duration child.
+
+    """
+
+
+class FigureBody(element.BlockElement):
+    r"""One ``<`` ... ``>`` figure "chord" in figuremode.
+
+    Always the child of a Figure element, which can have a duration.
+
+    """
     space_between = " "
     head = '<'
     tail = '>'

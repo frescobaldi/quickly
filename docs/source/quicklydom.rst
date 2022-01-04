@@ -363,8 +363,8 @@ value, and then the output of the child elements, and then the tail value if
 there is one. All output interpersed with whitespace according to well-defined
 rules.
 
-But that predictability can lead to unexpected results. For example, adding a
-duration to a note is straightforward::
+In some cases that predictability leads to some design decisions. Let's discuss
+chords for example. Adding a duration to a note is straightforward::
 
     >>> from quickly.dom import lily
     >>> note = lily.Note('c')
@@ -372,9 +372,11 @@ duration to a note is straightforward::
     >>> note.write()
     'c2'
 
-But when adding a duration to a chord, care must be taken to put the
-duration not before the chord's tail (``>``)::
+But in old versions of quickly, where a Chord had the angle brackets as head
+and tail value (``<`` and ``>``), care had to be taken to put the duration not
+before the chord's tail::
 
+    >>> # NOTE: older quickly versions <= 0.4
     >>> chord = lily.Chord(*map(lily.Note, 'cega'))
     >>> chord.write()
     '<c e g a>'
@@ -382,9 +384,17 @@ duration not before the chord's tail (``>``)::
     >>> chord.write()
     '<c e g a 4>'       # erroneous!!
 
-In ``python-ly`` this was tackled by making the duration an attribute instead
-of a child; but that made handling of the music tree more difficult and the
-class definitions unpredictable and complicated.
+That lead to the decision to make a Chord element a simple music element, and
+the ``<...>`` part has become the ChordBody element, which is a child of
+the Chord element. So, now a chord is built like::
+
+    >>> body = lily.ChordBody(lily.Note('c'), lily.Note('e'), lily.Note('g'), lily.Note('c', lily.Octave(1)))
+    >>> chord = lily.Chord(body)
+    >>> chord.append(lily.Duration(1/4))
+    >>> chord.write()
+    "<c e g c'>4"       # valid :-)
+
+The same holds true for Figure elements in a FigureMode context.
 
 What makes ``quickly.dom`` special is that it *both* tries to be a semantical
 structure that's easy to create, query and manipulate, *and* on the other hand
@@ -394,22 +404,7 @@ creating and adapting new element types with new output easy.
 Another reason to adopt the very same behaviour everywhere is that all element
 nodes can keep references to the parce tokens they were transformed from.
 Modifications to a transformed DOM document can be collected and written back
-to the original source text. More about that later.
-
-So, how do we correctly add a duration to a chord? By wrapping the chord in a
-generic :class:`lily.Music` element, much like LilyPond itself can endlessly
-wrap music in ``(make-music ...)`` calls::
-
-    >>> chord = lily.Chord(lily.Note('c'), lily.Note('e'), lily.Note('g'), lily.Note('c', lily.Octave(1)))
-    >>> chord.write()
-    "<c e g c'>"
-    >>> chord = lily.Music(chord)
-    >>> chord.append(lily.Duration(1/4))
-    >>> chord.write()
-    "<c e g c'>4"       # valid :-)
-
-The same holds true for adding articulations to a chord, be sure it is wrapped
-in a Music element first.
+to the original source text. More about that in the next paragraph.
 
 
 Using a DOM document to edit an original document
@@ -426,10 +421,10 @@ different.
 
 There are two Element methods dealing with this:
 
-* :meth:`~element.Element.edits`, which yields a list of three-tuples (pos, end, text)
-  denoting the changes that are made when comparing to the original tree. Although
-  the elements have the originating tokens, the tree is needed as well, to see if
-  contents was removed.
+* :meth:`~element.Element.edits`, which yields a list of three-tuples (pos,
+  end, text) denoting the changes that are made when comparing to the original
+  tree. Although the elements have the originating tokens, the tree is needed
+  as well, to see if contents was removed.
 
 * :meth:`~element.Element.edit`, which directly writes back the changes to a
   :class:`parce.Document`.

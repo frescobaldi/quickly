@@ -244,8 +244,8 @@ class PitchProcessor:
     def write_node(self, node, pitch):
         """Write the Pitch's note, alter and octave to the node.
 
-        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
-        :class:`~.dom.lily.Rest`). Example::
+        The ``node`` is a :class:`~.dom.lily.Note` or
+        :class:`~.dom.lily.PitchedRest`. Example::
 
             >>> from quickly.pitch import Pitch, PitchProcessor
             >>> from quickly.dom import lily
@@ -264,9 +264,9 @@ class PitchProcessor:
     def pitch(self, node, write=True):
         """Return a context manager that yields a :class:`Pitch` when entered.
 
-        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
-        :class:`~.dom.lily.Rest`). You can manipulate the Pitch, and when done,
-        the node will be updated if the pitch was changed. An example::
+        The ``node`` is a :class:`~.dom.lily.Note` or
+        :class:`~.dom.lily.PitchedRest`. You can manipulate the Pitch, and when
+        done, the node will be updated if the pitch was changed. An example::
 
             >>> from quickly.pitch import PitchProcessor
             >>> from quickly.dom import lily

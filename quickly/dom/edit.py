@@ -43,6 +43,7 @@ class Edit:
     methods.
 
     """
+    _document = None    # The parce document, if available
 
     #: If True, when there is a selection, a Range is created from the root
     #: node, otherwise from the younghest common ancestor.
@@ -51,6 +52,16 @@ class Edit:
     #: If True, a Range is created from the cursor's position to the end,
     #: instead of the full document in case there is no selection.
     range_from_cursor = False
+
+    def document(self):
+        """Return the parce Document, if available.
+
+        This is the document that was used when :meth:`edit_cursor` or
+        :meth:`edit_document` was called. The document is only available during
+        that edit call.
+
+        """
+        return self._document
 
     def edit(self, music):
         """Convenience method calling one of the other edit_xxx methods depending on the type."""
@@ -96,8 +107,10 @@ class Edit:
                 r = Range.from_nodes(start_node)
         if r is None:
             r = Range(d)
+        self._document = cursor.document()
         result = self.edit_range(r)
         r.ancestor().edit(cursor.document(), start=start, end=end)
+        self._document = None
         return result
 
     def edit_document(self, document):
