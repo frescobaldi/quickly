@@ -4,6 +4,8 @@ ChangeLog
 
 current: quickly-0.5.0
 
+- requires parce-0.30.0
+- added dom.scope module to find nodes from included files
 - introduced lily.ChordBody and FigureBody, to be able to add Duration at Chord
   and Figure directly
 - added lily.Durable as base type for any stuff that can have a Duration
