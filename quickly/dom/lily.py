@@ -62,6 +62,16 @@ class Durable(Music):
             return dur
         return -1
 
+    def previous_durable(self):
+        """Return the closest preceding Durable that has a duration that
+        LilyPond would use if this node had no duration.
+
+        """
+        for n in self < Durable:
+            if n.duration_sets_previous:
+                for d in n / Duration:
+                    return n
+
     @property
     def duration(self):
         """Read or set the duration.

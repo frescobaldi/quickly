@@ -68,15 +68,18 @@ def log_dotcount(value):
 
         >>> to_string(duration(*log_dotcount(1)))
         '1'
-        >>> to_string(duration(*log_dotcount(1.001)))
+        >>> to_string(duration(*log_dotcount(1.4)))
         '1'
+        >>> to_string(duration(*log_dotcount(1.5)))
+        '1.'
         >>> to_string(duration(*log_dotcount(0.9999)))
         '2............'
 
     """
     mantisse, exponent = math.frexp(value)
-    dotcount = int(-1 - math.log2(1 - mantisse))
     log = 1 - exponent
+    m, e = math.frexp(1 - mantisse)
+    dotcount = -e - (m > 0.5)
     return log, dotcount
 
 
@@ -123,11 +126,14 @@ def shift_duration(value, log, dotcount=0):
         >>> shift_duration(Fraction(7, 8), 0, -1)
         Fraction(3, 4)
 
-    When removing too much dots, a ValueError is raised.
+    The number of dots in a duration will never drop below zero::
+
+        >>> shift_duration(1/4, 0, -1)
+        Fraction(1, 4)
 
     """
     old_log, old_dotcount = log_dotcount(value)
-    return duration(old_log + log, old_dotcount + dotcount)
+    return duration(old_log + log, max(0, old_dotcount + dotcount))
 
 
 def to_string(value):
@@ -186,4 +192,15 @@ def from_string(text, dotcount=None):
         log = -1 - NAMED_DURATIONS.index(text.lstrip('\\'))
     return duration(log, dotcount)
 
+
+def is_valid(value):
+    """Return True if the value can be exactly expressed in a log and dotcount
+    value, without loss.
+
+    The value should be >= 1/1024 and < 16, because LilyPond can't display more
+    than 8 flags and ``\\maxima`` is the longest available duration name.
+
+    """
+    mantisse, exponent = math.frexp(value)
+    return -10 < exponent < 5 and math.frexp(1 - mantisse)[0] == 0.5
 
