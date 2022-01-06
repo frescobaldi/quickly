@@ -222,6 +222,207 @@ class Pitchable(element.TextElement, Music):
         self[:] = self ^ OctCheck
 
 
+class Reference(element.Element):
+    r"""Base class for an Element that (potentially) refers to another node,
+    possibly in another DOM tree.
+
+    This is used te get the value of a variable, e.g. for the IdentifierRef and
+    the MarkupCommand element types. The :meth:`get_value` method returns the
+    value. Here is an example of how it works::
+
+        >>> from quickly.dom import read
+        >>> m = read.lily_document(r'''
+        ... titled = "blurk"
+        ...
+        ... \header {
+        ...   title = "Wilbert"
+        ...   composer = \title
+        ... }
+        ... ''', True)
+        >>> m.dump()
+        <lily.Document (2 children)>
+         ├╴<lily.Assignment titled (3 children)>
+         │  ├╴<lily.Identifier (1 child)>
+         │  │  ╰╴<lily.Symbol 'titled' [1:7]>
+         │  ├╴<lily.EqualSign [8:9]>
+         │  ╰╴<lily.String 'blurk' [10:17]>
+         ╰╴<lily.Header (2 children) [19:70]>
+            ├╴<lily.Assignment title (3 children)>
+            │  ├╴<lily.Identifier (1 child)>
+            │  │  ╰╴<lily.Symbol 'title' [31:36]>
+            │  ├╴<lily.EqualSign [37:38]>
+            │  ╰╴<lily.String 'Wilbert' [39:48]>
+            ╰╴<lily.Assignment composer (3 children)>
+               ├╴<lily.Identifier (1 child)>
+               │  ╰╴<lily.Symbol 'composer' [51:59]>
+               ├╴<lily.EqualSign [60:61]>
+               ╰╴<lily.IdentifierRef 'title' [62:68]>
+        >>> n = m[1][1][2]  # the IdentifierRef node after "composer = "
+        >>> n
+        <lily.IdentifierRef 'title' [62:68]>
+        >>> n.get_value()
+        <lily.String 'Wilbert' [39:48]>
+        >>> n.head = "titled"
+        >>> n.get_value()
+        <lily.String 'blurk' [10:17]>
+
+    The ``composer`` field in the header is set to the value of the title
+    field. When requesting the value, the value of the title assignment is
+    returned. When we change the name of the variable reference to ``titled``,
+    it finds the "blurk" value in the toplevel document.
+
+    A reference can also point to another file. A :class:`~.scope.Scope` is used
+    to define the context of a file and the desired path to look for ``\include``
+    files. Here is an example. First we create two LilyPond files::
+
+        >>> with open('file_a.ly', 'w') as f:
+        ...     f.write("music = { c d e f g }\n")
+        ...
+        22
+        >>> with open('file_b.ly', 'w') as f:
+        ...     f.write('\\include "file_a.ly"\n\n{ \\music }\n')
+        ...
+        33
+
+    Then we load ``file_b.ly`` into a parce document, and we try to find the
+    value of the ``\music`` variable::
+
+        >>> import quickly
+        >>> d = quickly.load('file_b.ly')
+        >>> print(d.text())
+        \include "file_a.ly"
+
+        { \music }
+
+        >>> m = d.get_transform(True)
+        >>> m.dump()
+        <lily.Document (2 children)>
+         ├╴<lily.Include 'file_a.ly' (1 child) [0:8]>
+         │  ╰╴<lily.String 'file_a.ly' [9:20]>
+         ╰╴<lily.MusicList (1 child) [22:32]>
+            ╰╴<lily.IdentifierRef 'music' [24:30]>
+        >>> m[1][0]
+        <lily.IdentifierRef 'music' [24:30]>
+        >>> print(m[1][0].get_value())
+        None
+
+    We see that the returned value is None, meaning that the definition of
+    ``music`` was not found in ``file_b.ly``. Now, we create a
+    :class:`~.scope.Scope` to find included files, and try it again::
+
+        >>> from quickly.dom.scope import Scope
+        >>> s = Scope(d)
+        >>> m[1][0].get_value(s)
+        <lily.MusicList (5 children) [8:21]>
+        >>> m[1][0].get_value(s).dump()
+        <lily.MusicList (5 children) [8:21]>
+         ├╴<lily.Note 'c' [10:11]>
+         ├╴<lily.Note 'd' [12:13]>
+         ├╴<lily.Note 'e' [14:15]>
+         ├╴<lily.Note 'f' [16:17]>
+         ╰╴<lily.Note 'g' [18:19]>
+        >>> m[1][0].get_value_with_scope(s)
+        (<lily.MusicList (5 children) [8:21]>, <Scope 'file_a.ly'>)
+
+    The ``music`` in ``file_a.ly`` is found. The :meth:`get_value_with_scope`
+    method also returns the scope the definition was found in, which can be
+    used to recursively resolve Reference nodes in the returned node.
+
+    """
+    def search_ancestors(self):
+        """Yield the ancestors with index that should be searched for possible
+        definitions.
+
+        The default implementation yields ancestors that inherit HandleAssignments
+        and stops at the Document node.
+
+        """
+        for node, index in self.ancestors_with_index():
+            if isinstance(node, HandleAssignments):
+                yield node, index
+            if isinstance(node, Document):
+                break
+
+    def preceding_nodes_with_scope(self, scope=None, wait=True):
+        """Yield preceding nodes in ancestors and toplevel, in backward
+        direction, with scope.
+
+        Yields two-tuples (node, scope); the scope is the
+        :class:`~.scope.Scope` the node is in.
+
+        The ``scope``, if given, is used to resolve include files. If no scope
+        is given, only searches the current DOM document; the yielded scope is
+        then always None.
+
+        If a scope is given, include commands are followed and ``wait``
+        determines whether to wait for ongoing transformations of external DOM
+        documents. If wait is False, and a transformation is not yet finished
+        the included document's toplevel nodes will not be yielded.
+
+        """
+        if scope:
+            for p, i in self.search_ancestors():
+                stack = []
+                gen = reversed(p[:i])
+                while True:
+                    for n in gen:
+                        if isinstance(n, Include):
+                            new_scope = scope.include_scope(n.filename)
+                            if new_scope:
+                                dom = new_scope.document().get_transform(wait)
+                                if isinstance(dom, Document):
+                                    stack.append((scope, gen))
+                                    scope = new_scope
+                                    gen = reversed(dom)
+                                    break
+                        yield n, scope
+                    else:
+                        if stack:
+                            scope, gen = stack.pop()
+                        else:
+                            break
+        else:
+            for p, i in self.search_ancestors():
+                for n in reversed(p[:i]):
+                    yield n, None
+
+    def get_value(self, scope=None, wait=True):
+        """Find the value this variable refers to.
+
+        Returns the value if found, and None otherwise. For the arguments, see
+        :meth:`get_value_with_scope`.
+
+        """
+        result = self.get_value_with_scope(scope)
+        if result:
+            return result[0]
+
+    def get_value_with_scope(self, scope=None, wait=True):
+        """Find the value this variable refers to.
+
+        Searches for Assignments. If found, returns a two-tuple (value, scope).
+        Otherwise None. The scope is the scope the value was found in.
+
+        The ``scope``, if given, is used to resolve include files. If no scope
+        is given, only searches the current DOM document; the returned scope is
+        then always None.
+
+        If a scope is given, include commands are followed and ``wait``
+        determines whether to wait for ongoing transformations of external DOM
+        documents. If wait is False, and a transformation is not yet finished,
+        a value found in an included document will not be returned.
+
+        """
+        name = self.get_name()
+        for node, scope in self.preceding_nodes_with_scope(scope, wait):
+            if isinstance(node, Assignment) and node.get_name() == name:
+                return node.get_value(), scope
+
+    def get_name(self):
+        """Implement to return the name the ``get_value()`` methods search for."""
+        raise NotImplementedError
+
+
 class _Variable:
     """A property that makes setting an Assignment easier.
 
@@ -304,7 +505,7 @@ class HandleAssignments(element.Element):
         """
         assignment = self.find_assignment(name)
         if assignment:
-            node = assignment[-1]
+            node = assignment.get_value()
             value = create_value_from_element(node)
             if value is not None:
                 return value
@@ -772,9 +973,19 @@ class Assignment(element.Element):
         return cls(Identifier.with_name(name), EqualSign(), node)
 
     def repr_head(self):
-        """If available, show the name of our first identifier."""
+        """If available, show the name of our identifier."""
         for child in self / Identifier:
             return child.write()
+
+    def get_name(self):
+        """Return the name of our identifier as a string or tuple."""
+        for child in self / Identifier:
+            return child.get_name()
+
+    def get_value(self):
+        """Return the value after the equalsign."""
+        for child in self / EqualSign:
+            return child.right_sibling()
 
 
 class Identifier(List):
@@ -824,7 +1035,7 @@ class Identifier(List):
         self.set_list(name)
 
 
-class IdentifierRef(base.BackslashCommand):
+class IdentifierRef(base.BackslashCommand, Reference):
     r"""A ``\variable`` name.
 
     The first symbol part is in the head of this element. Additional nodes can
@@ -1904,13 +2115,20 @@ class MarkupList(element.BlockElement):
         yield 0
 
 
-class MarkupCommand(base.BackslashCommand):
+class MarkupCommand(base.BackslashCommand, Reference):
     r"""A markup command, like ``\bold <arg>``.
 
     When manually constructing a MarkupCommand, the backslash is not needed.
 
     """
     space_after_head = space_before_tail = space_between = " "
+
+    def get_name(self):
+        """The name of the markup command. This is used when looking up
+        the definition of a custom markup command.
+
+        """
+        return self.head
 
 
 class MarkupScore(Score):
@@ -2233,6 +2451,9 @@ class Language(element.HeadElement):
     def signatures(self):
         yield String,
 
+    def repr_head(self):
+        return repr(self.language)
+
     @property
     def language(self):
         """The language."""
@@ -2251,8 +2472,8 @@ class Include(element.HeadElement):
     r"""The ``\include`` command.
 
     You can use the :attr:``language`` attribute, assuming that the included
-    file is a language definition file. If the filename is not recognized as a
-    language definition file, the property will return None.
+    file is a language definition file. If the :attr:`filename` is not
+    recognized as a language definition file, the property will return None.
 
     """
     space_after_head = space_between = " "
@@ -2260,6 +2481,22 @@ class Include(element.HeadElement):
 
     def signatures(self):
         yield String,
+
+    def repr_head(self):
+        return repr(self.filename)
+
+    @property
+    def filename(self):
+        """The filename."""
+        for n in self / String:
+            return n.head
+
+    @filename.setter
+    def filename(self, value):
+        for n in self / String:
+            n.head = value
+            return
+        self.insert(0, String(value))
 
     @property
     def language(self):
@@ -2269,19 +2506,15 @@ class Include(element.HeadElement):
 
         """
         from .. import pitch
-        for n in self / String:
-            if n.head.endswith(".ly"):
-                language = n.head[:-3]
-                if language in pitch.pitch_names:
-                    return language
+        filename = self.filename
+        if filename.endswith(".ly"):
+            language = filename[:-3]
+            if language in pitch.pitch_names:
+                return language
 
     @language.setter
     def language(self, language):
-        filename = language + ".ly"
-        for n in self / String:
-            n.head = filename
-            return
-        self.insert(0, String(filename))
+        self.filename = language + ".ly"
 
 
 class VoiceN(element.MappingElement):

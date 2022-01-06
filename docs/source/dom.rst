@@ -20,5 +20,6 @@ Modules in the ``dom`` package:
    dom/tex.rst
    dom/markup.rst
    dom/read.rst
+   dom/scope.rst
    dom/indent.rst
    dom/util.rst

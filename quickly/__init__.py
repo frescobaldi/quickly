@@ -22,5 +22,24 @@
 The quickly module.
 """
 
+import parce
+
 from .pkginfo import version, version_string
+from .registry import find
+
+__all__ = ('find', 'load', 'version', 'version_string')
+
+
+def load(filename):
+    """Read text from filename and return a :class:`parce.Document`.
+
+    The root lexicon is guessed based on filename and contents.
+    Raises FileNotFoundError or other OSError if the file can't be read.
+
+    """
+    text = open(filename).read()
+    lexicon = find(filename=filename, contents=text)
+    doc = parce.Document(lexicon, text, transformer=True)
+    doc.url = filename
+    return doc
 
