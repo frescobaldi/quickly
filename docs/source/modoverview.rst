@@ -4,6 +4,7 @@ Overview of all modules
 .. toctree::
    :maxdepth: 2
 
+   quickly.rst
    dom.rst
    duration.rst
    lang.rst
