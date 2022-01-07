@@ -45,7 +45,6 @@ class Music(element.Element):
         until a non :class:`Music` ancestor is encountered.
 
         """
-        is_music = lambda n: isinstance(n, Music)
         ancestors = itertools.takewhile(is_music, self.ancestors())
         return sum((n.transform() for n in ancestors), duration.Transform())
 
@@ -940,7 +939,7 @@ class List(element.Element):
 
         """
         self.clear()
-        nodes = make_list_nodes(iterable)
+        nodes = filter_map(make_list_node, iterable)
         for n in nodes:
             self.append(n)
             for n in nodes:
@@ -1098,7 +1097,7 @@ class IdentifierRef(base.BackslashCommand, Reference):
         """
         if type(name) is str:
             name = name,
-        nodes = make_list_nodes(name)
+        nodes = filter_map(make_list_node, name)
         self.clear()
         for n in nodes:
             if isinstance(n, Symbol):
@@ -2966,6 +2965,11 @@ class Lookup:
                 return node.get_value(), scope
 
 
+def is_music(node):
+    """Return True if the node is an instance of Music."""
+    return isinstance(node, Music)
+
+
 def is_symbol(text):
     """Return True is text is a valid LilyPond symbol."""
     from parce.lang import lilypond, lilypond_words
@@ -2986,14 +2990,6 @@ def make_list_node(value):
         return Symbol(value) if is_symbol(value) else String(value)
     elif isinstance(value, int):
         return Int(value)
-
-
-def make_list_nodes(iterable):
-    """Return a generator yielding nodes created by :func:`make_list_node`."""
-    for value in iterable:
-        node = make_list_node(value)
-        if node:
-            yield node
 
 
 def convert_duration_to_int(node):
