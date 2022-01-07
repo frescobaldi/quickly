@@ -308,7 +308,7 @@ class Reference(element.Element):
                │  ╰╴<lily.Symbol 'composer' [51:59]>
                ├╴<lily.EqualSign [60:61]>
                ╰╴<lily.IdentifierRef 'title' [62:68]>
-        >>> n = m[1][1][2]  # the IdentifierRef node after "composer = "
+        >>> n = m[1].composer
         >>> n
         <lily.IdentifierRef 'title' [62:68]>
         >>> n.get_value()
