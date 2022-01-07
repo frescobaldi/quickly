@@ -37,6 +37,37 @@ import math
 NAMED_DURATIONS = ('breve', 'longa', 'maxima')
 
 
+class Transform:
+    """Combine modifications of a duration (shift and/or scale).
+
+    Use it to calculate the real length of musical items. Transforms can be
+    added. A Transform that doesn't modify anything evaluates to False.
+
+    """
+    def __init__(self, log=0, dotcount=0, scale=1):
+        self.log = log              #: the log to shift
+        self.dotcount = dotcount    #: the dots to shift
+        self.scale = scale          #: the scaling
+
+    def __bool__(self):
+        return bool(self.log or self.dotcount or self.scale != 1)
+
+    def __repr__(self):
+        return "<{} log={} dotcount={} scale={}>".format(
+            type(self).__name__, self.log, self.dotcount, self.scale)
+
+    def __add__(self, other):
+        log = self.log + other.log
+        dotcount = self.dotcount + other.dotcount
+        scale = self.scale * other.scale
+        return type(self)(log, dotcount, scale)
+
+    def length(self, duration, scaling=1):
+        """Return the actual musical length of the duration scaling values."""
+        if self.log or self.dotcount:
+            duration = shift_duration(duration, self.log, self.dotcount)
+        return duration * scaling * self.scale
+
 
 def log_dotcount(value):
     r"""Return the integer two-tuple (log, dotcount) for the duration value.

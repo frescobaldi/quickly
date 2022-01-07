@@ -78,7 +78,7 @@ class Scope:
         :attr:`relative_include` is True), the root scope's url and the urls in
         the :attr:`include_path`.
 
-        Returns None if no includeable document could be found. This scope
+        Returns None if no includable document could be found. This scope
         inherits the factory, the include_path and the relative_include setting
         of ourselves.
 
@@ -103,7 +103,7 @@ class Scope:
         return scope
 
     def urls(self, url):
-        """Return a list of unique urls representing possibly includeable files.
+        """Return a list of unique urls representing possibly includable files.
 
         The list results from the filename of our document (if set and if
         :attr:`relative_include` is True), the filename of the document that

@@ -34,6 +34,24 @@ from . import base, element, scm
 
 class Music(element.Element):
     """Base class for all elements that contain music."""
+    def transform(self):
+        """Return a :class:`~.duration.Transform` that adjusts the duration of child nodes."""
+        return duration.Transform()
+
+    def parent_transform(self):
+        """Return a :class:`~.duration.Transform`.
+
+        The returned Transform adds up all the Transforms returned by ancestors
+        until a non :class:`Music` ancestor is encountered.
+
+        """
+        transform = duration.Transform()
+        for parent in self.ancestors():
+            if isinstance(parent, Music):
+                transform += parent.transform()
+            else:
+                break
+        return transform
 
 
 class Durable(Music):
@@ -47,20 +65,42 @@ class Durable(Music):
     duration_required = False     #: Whether the Duration child is required (e.g. \skip)
     duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
 
-    def length(self):
-        """Return the musical length of this music.
+    def length(self, transform=None):
+        """Return the musical length.
 
-        Scaling, if defined, is also calculated in. May return 0 for an empty
-        chord or when the scaling is 0. Returns -1 if there is no Duration
-        child.
+        If a :class:`~.duration.Transform` is given, the length is adjusted by
+        the transform.
+
+        Returns -1 if this node has no Duration child.
 
         """
-        for d in self / Duration:
-            dur = d.head
-            for s in d / DurationScaling:
-                dur *= s.head
-            return dur
+        for n in self / Duration:
+            dur = n.head
+            scaling = 1
+            for s in n / DurationScaling:
+                scaling *= s.head
+            return transform.length(dur, scaling) if transform else dur * scaling
         return -1
+
+    def actual_length(self):
+        """Return the actual musical length.
+
+        This is a potentially slow method that finds the duration transform by
+        looking upwards itself, and also looks back to find a previous duration
+        if this node has no Duration child. If there is no previous duration, a
+        quarter note length is assumed, in accordance with LilyPond's
+        behaviour.
+
+        """
+        transform = self.parent_transform()
+        length = self.length(transform)
+        if length == -1:
+            n = self.previous_durable()
+            if n:
+                length = n.length(transform)
+            else:
+                length = transform.length(fractions.Fraction(1, 4), 1)
+        return length
 
     def previous_durable(self):
         """Return the closest preceding Durable that has a duration that
@@ -339,63 +379,6 @@ class Reference(element.Element):
     used to recursively resolve Reference nodes in the returned node.
 
     """
-    def search_ancestors(self):
-        """Yield the ancestors with index that should be searched for possible
-        definitions.
-
-        The default implementation yields ancestors that inherit HandleAssignments
-        and stops at the Document node.
-
-        """
-        for node, index in self.ancestors_with_index():
-            if isinstance(node, HandleAssignments):
-                yield node, index
-            if isinstance(node, Document):
-                break
-
-    def preceding_nodes_with_scope(self, scope=None, wait=True):
-        """Yield preceding nodes in ancestors and toplevel, in backward
-        direction, with scope.
-
-        Yields two-tuples (node, scope); the scope is the
-        :class:`~.scope.Scope` the node is in.
-
-        The ``scope``, if given, is used to resolve include files. If no scope
-        is given, only searches the current DOM document; the yielded scope is
-        then always None.
-
-        If a scope is given, include commands are followed and ``wait``
-        determines whether to wait for ongoing transformations of external DOM
-        documents. If wait is False, and a transformation is not yet finished
-        the included document's toplevel nodes will not be yielded.
-
-        """
-        if scope:
-            for p, i in self.search_ancestors():
-                stack = []
-                gen = reversed(p[:i])
-                while True:
-                    for n in gen:
-                        if isinstance(n, Include):
-                            new_scope = scope.include_scope(n.filename)
-                            if new_scope:
-                                dom = new_scope.document().get_transform(wait)
-                                if isinstance(dom, Document):
-                                    stack.append((scope, gen))
-                                    scope = new_scope
-                                    gen = reversed(dom)
-                                    break
-                        yield n, scope
-                    else:
-                        if stack:
-                            scope, gen = stack.pop()
-                        else:
-                            break
-        else:
-            for p, i in self.search_ancestors():
-                for n in reversed(p[:i]):
-                    yield n, None
-
     def get_value(self, scope=None, wait=True):
         """Find the value this variable refers to.
 
@@ -423,10 +406,7 @@ class Reference(element.Element):
         a value found in an included document will not be returned.
 
         """
-        name = self.get_name()
-        for node, scope in self.preceding_nodes_with_scope(scope, wait):
-            if isinstance(node, Assignment) and node.get_name() == name:
-                return node.get_value(), scope
+        return Lookup(self, scope, wait).find_assignment(self.get_name())
 
     def get_name(self):
         """Implement to return the name the ``get_value()`` methods search for."""
@@ -607,6 +587,10 @@ class Fraction(Number):
     The head value is a two-tuple of ints (numerator, denominator).
 
     """
+    def fraction(self):
+        """Return the head value as a :class:`fractions.Fraction`."""
+        return fractions.Fraction(*self.head)
+
     @classmethod
     def check_head(cls, head):
         return isinstance(head, tuple) and len(head) == 2 and \
@@ -1392,8 +1376,12 @@ class FigureMode(base.BackslashCommand, InputMode):
 
 class Chord(Durable):
     """A chord. Must have a ChordBody element."""
-    def length(self):
-        return super().length() if any(self[0] / Note) else 0
+    def length(self, transform=None):
+        """Return 0 if the chord is empty, in accordance with LilyPond's behaviour."""
+        for body in self:
+            if any(body / Note):
+                return super().length(transform)
+        return 0
 
 
 class ChordBody(element.BlockElement):
@@ -1463,7 +1451,16 @@ class After(element.HeadElement, Music):
 
 
 class Q(element.HeadElement, Durable):
-    """A ``q``, repeating the previous chord."""
+    """A ``q``, repeating the previous chord.
+
+    The repeated chord always has the same absolute pitch, Octave childs are
+    not possible. LilyPond signals a warning if there is no previous chord in
+    the current music expression, and the q becomes a skip.
+
+    Articulations attached to the repeated chord or to its individual notes are
+    not copied, but internal tweaks to the noteheads are.
+
+    """
     head = 'q'
 
 
@@ -1549,6 +1546,33 @@ class Duration(element.TextElement):
         '4..'
 
     """
+    @classmethod
+    def from_string(cls, text):
+        """Convenience constructor to make a Duration from a string.
+
+        Examples::
+
+            >>> lily.Duration.from_string('4')
+            <lily.Duration Fraction(1, 4)>
+            >>> lily.Duration.from_string('2.')
+            <lily.Duration Fraction(3, 4)>
+            >>> d = lily.Duration.from_string('1*1/3')
+            >>> d.dump()
+            <lily.Duration Fraction(1, 1) (1 child)>
+             ╰╴<lily.DurationScaling Fraction(1, 3)>
+            >>> d.duration()
+            Fraction(1, 3)
+
+        """
+        dur, *scalings = text.split('*')
+        n = cls(duration.from_string(dur))
+        scaling = 1
+        for t in scalings:
+            scaling *= fractions.Fraction(t)
+        if scaling != 1:
+            n.append(DurationScaling(scaling))
+        return n
+
     def duration(self):
         """Return our duration value, including scaling if a
         :class:`DurationScaling` child is present.
@@ -1964,6 +1988,11 @@ class Times(element.HeadElement, Music):
     space_after_head = space_between = " "
     head = r"\times"
 
+    def transform(self):
+        """Return a transform to scale durations of child nodes."""
+        for n in self / Fraction:
+            return duration.Transform(scale=n.fraction())
+
     def signatures(self):
         yield Fraction, MUSIC
 
@@ -1977,13 +2006,18 @@ class Tuplet(_ConvertUnpitchedToDuration, element.HeadElement, Music):
     space_after_head = space_between = " "
     head = r"\tuplet"
 
+    def transform(self):
+        """Return a transform to scale durations of child nodes."""
+        for n in self / Fraction:
+            return duration.Transform(scale=1/n.fraction())
+
     def signatures(self):
         yield Fraction, Duration, MUSIC
         yield Fraction, Unpitched, MUSIC
         yield Fraction, MUSIC
 
 
-class ScaleDurations(element.HeadElement, Music):
+class ScaleDurations(_ConvertUnpitchedToInt, element.HeadElement, Music):
     r"""A ``\scaleDurations`` command.
 
     Has a Fraction child and a Music child.
@@ -1992,8 +2026,13 @@ class ScaleDurations(element.HeadElement, Music):
     space_after_head = space_between = " "
     head = r"\scaleDurations"
 
+    def transform(self):
+        """Return a transform to scale durations of child nodes."""
+        for value in filter_map(get_num_value, self):
+            return duration.Transform(scale=value)
+
     def signatures(self):
-        yield Fraction, MUSIC
+        yield (Fraction, Int, Unpitched, Scheme), MUSIC
 
 
 class ShiftDurations(_ConvertUnpitchedToInt, element.HeadElement, Music):
@@ -2004,6 +2043,13 @@ class ShiftDurations(_ConvertUnpitchedToInt, element.HeadElement, Music):
     """
     space_after_head = space_between = " "
     head = r"\shiftDurations"
+
+    def transform(self):
+        """Return a transform to scale durations of child nodes."""
+        nums = filter_map(get_int_value, self)
+        for log in nums:
+            for dotcount in nums:
+                return duration.Transform(log, dotcount)
 
     def signatures(self):
         yield NUMBER, NUMBER, MUSIC
@@ -2018,53 +2064,51 @@ class Grace(element.HeadElement, Music):
     space_after_head = " "
     head = r"\grace"
 
+    def transform(self):
+        """Return a transform to scale durations of child nodes to 0."""
+        return duration.Transform(scale=0)
+
     def signatures(self):
         yield MUSIC,
 
 
-class Acciaccatura(element.HeadElement, Music):
+class Acciaccatura(Grace):
     r"""An ``\acciaccatura`` command.
 
-    Has two Music children.
+    Has a Music child.
 
     """
-    space_after_head = " "
     head = r"\acciaccatura"
 
-    def signatures(self):
-        yield MUSIC, MUSIC
 
-
-class Appoggiatura(element.HeadElement, Music):
+class Appoggiatura(Grace):
     r"""An ``\appoggiatura`` command.
 
-    Has two Music children.
+    Has a Music child.
 
     """
-    space_after_head = " "
     head = r"\appoggiatura"
 
-    def signatures(self):
-        yield MUSIC, MUSIC
 
-
-class SlashedGrace(element.HeadElement, Music):
+class SlashedGrace(Grace):
     r"""A ``\slashedGrace`` command.
 
-    Has two Music children.
+    Has a Music child.
 
     """
-    space_after_head = " "
     head = r"\slashedGrace"
-
-    def signatures(self):
-        yield MUSIC, MUSIC
 
 
 class AfterGrace(element.HeadElement, Music):
     r"""An ``\afterGrace`` command.
 
-    Has an optional Fraction and two Music children.
+    Has an optional Fraction and two Music children. The second music
+    expression is the grace music and has length 0, the fraction is multiplied
+    with the duration of the first music expression and determines the moment
+    the grace music is displayed.
+
+    The default fraction (if not specified) is in the toplevel
+    ``afterGraceFraction`` variable or 3/4.
 
     """
     space_after_head = " "
@@ -2827,6 +2871,89 @@ class Unit(element.MappingElement):
     }
 
 
+
+### Helper classes and functions
+
+class Lookup:
+    """Helper class to find definitions and other stuff in a lily.Document from
+    the viewpoint of a ``node``.
+
+    The ``scope``, if given, is used to resolve include files. If no scope is
+    given, only searches the current DOM document; the yielded scope is then
+    always None.
+
+    If a scope is given, include commands are followed and ``wait`` determines
+    whether to wait for ongoing transformations of external DOM documents. If
+    wait is False, and a transformation is not yet finished the included
+    document's toplevel nodes will not be yielded.
+
+    """
+    def __init__(self, node, scope=None, wait=True):
+        self.node = node
+        self.scope = scope
+        self.wait = wait
+
+    def __repr__(self):
+        return "<{} node={} scope={} wait={}>".format(
+            type(self).__name__, self.node, self.scope, self.wait)
+
+    def ancestors(self):
+        """Yield the ancestors with index of node that should be searched for
+        possible definitions.
+
+        The default implementation yields ancestors that inherit
+        HandleAssignments and stops at the Document node.
+
+        """
+        for node, index in self.node.ancestors_with_index():
+            if isinstance(node, HandleAssignments):
+                yield node, index
+            if isinstance(node, Document):
+                break
+
+    def preceding_nodes(self):
+        """Yield preceding nodes in ancestors and toplevel, in backward
+        direction, as two-tuples (node, scope).
+
+        """
+        scope = self.scope
+        if scope:
+            for p, i in self.ancestors():
+                stack = []
+                gen = reversed(p[:i])
+                while True:
+                    for n in gen:
+                        if isinstance(n, Include):
+                            new_scope = scope.include_scope(n.filename)
+                            if new_scope:
+                                dom = new_scope.document().get_transform(self.wait)
+                                if isinstance(dom, Document):
+                                    stack.append((scope, gen))
+                                    scope = new_scope
+                                    gen = reversed(dom)
+                                    break
+                        yield n, scope
+                    else:
+                        if stack:
+                            scope, gen = stack.pop()
+                        else:
+                            break
+        else:
+            for p, i in self.ancestors():
+                for n in reversed(p[:i]):
+                    yield n, None
+
+    def find_assignment(self, name):
+        """Find an Assignment from here, with name ``name``.
+
+        If found, return its value and the scope.
+
+        """
+        for node, scope in self.preceding_nodes():
+            if isinstance(node, Assignment) and node.get_name() == name:
+                return node.get_value(), scope
+
+
 def is_symbol(text):
     """Return True is text is a valid LilyPond symbol."""
     from parce.lang import lilypond, lilypond_words
@@ -2911,14 +3038,15 @@ def create_element_from_value(value):
 
 
 def create_value_from_element(node):
-    """Gets the value from an Element node.
+    """Get the Python value from an Element node.
 
     Returns:
 
-    * bool for a Scheme('#', scm.Bool(value)) node
+    * bool, int, float etc for a Scheme('#', scm.Bool(value) or scm.Number(value)) node
     * int for an Int node
     * float for a Float node
-    * str for a String or Symbol node
+    * Fraction for a Fraction node
+    * str for a String, Symbol or scm.String node
     * tuple(int, "unit") for a Int(Unit()) node
     * tuple(float, "unit") for a Float(Unit()) node
 
@@ -2932,8 +3060,54 @@ def create_value_from_element(node):
         return value
     elif isinstance(node, (String, Symbol)):
         return node.head
-    elif isinstance(node, Scheme) and len(node) == 1 and isinstance(node[0], scm.Bool):
-        return node[0].value
+    elif isinstance(node, Fraction):
+        return node.fraction()
+    elif isinstance(node, Scheme):
+        if len(node) == 1:
+            node = node[0]
+            if isinstance(node, (scm.Bool, scm.Number, scm.String)):
+                return node.value
+
+
+def get_num_value(node):
+    """Get a numerical value from a node, if possible, else None."""
+    if isinstance(node, (Int, Float)):
+        return node.head
+    elif isinstance(node, Fraction):
+        return node.fraction()
+    elif isinstance(node, Scheme):
+        if len(node) == 1:
+            if isinstance(node[0], scm.Number):
+                return node[0].head
+
+
+def get_int_value(node):
+    """Get a integer value from a node, if possible, else None."""
+    if isinstance(node, Int):
+        return node.head
+    elif isinstance(node, Float) and node.head.is_integer():
+        return int(node.head)
+    elif isinstance(node, Scheme):
+        if len(node) == 1:
+            if isinstance(node[0], scm.Number):
+                v = node[0].head
+                if isinstance(v, int):
+                    return v
+                if isinstance(v, float) and v.is_integer():
+                    return int(v)
+
+
+def filter_map(func, iterable):
+    """Call func on every item in iterable and yield the result value if not
+    None.
+
+    Equivalent to::
+
+        filter(lambda r: r is not None, map(func, iterable))
+
+    """
+    return filter(lambda r: r is not None, map(func, iterable))
+
 
 
 # often used signatures:
