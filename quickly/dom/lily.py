@@ -2923,32 +2923,58 @@ class Lookup:
                 break
 
     def preceding_nodes(self):
-        """Yield preceding nodes in ancestors and toplevel, in backward
+        r"""Yield preceding nodes in ancestors and toplevel, in backward
         direction, as two-tuples (node, scope).
+
+        If a scope was given on instantiation, included files are followed.
+
+        When the beginning of the current scope (document) is reached,
+        continues the search in parent scopes (if a scope was given), and if
+        that parent scope has a node pointer, continues the search from there.
+        This is useful when an included file refers to a variable that was set
+        in the parent document before the \include command.
+
+        So when ``file_a.ly`` reads::
+
+            music = { c }
+            \include "file_b.ly"
+
+        And ``file_b.ly`` only contains::
+
+            \new Score { \music }
+
+        When traversing the musical contents of file a, the value of the
+        ``\music`` Reference in file b is correctly found in file a.
 
         """
         scope = self.scope
         if scope:
-            for p, i in self.ancestors():
-                stack = []
-                gen = reversed(p[:i])
-                while True:
-                    for n in gen:
-                        if isinstance(n, Include):
-                            new_scope = scope.include_scope(n.filename)
-                            if new_scope:
-                                dom = new_scope.document().get_transform(self.wait)
-                                if isinstance(dom, Document):
-                                    stack.append((scope, gen))
-                                    scope = new_scope
-                                    gen = reversed(dom)
-                                    break
-                        yield n, scope
-                    else:
-                        if stack:
-                            scope, gen = stack.pop()
+            lookup = self
+            while True:
+                for p, i in lookup.ancestors():
+                    stack = []
+                    gen = reversed(p[:i])
+                    while True:
+                        for n in gen:
+                            if isinstance(n, Include):
+                                new_scope = scope.include_scope(n.filename, n)
+                                if new_scope:
+                                    dom = new_scope.document().get_transform(self.wait)
+                                    if isinstance(dom, Document):
+                                        stack.append((scope, gen))
+                                        scope = new_scope
+                                        gen = reversed(dom)
+                                        break
+                            yield n, scope
                         else:
-                            break
+                            if stack:
+                                scope, gen = stack.pop()
+                            else:
+                                break
+                if scope.parent and scope.node:
+                    lookup = type(self)(scope.node, scope.parent, self.wait)
+                else:
+                    break
         else:
             for p, i in self.ancestors():
                 for n in reversed(p[:i]):

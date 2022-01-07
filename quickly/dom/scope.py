@@ -53,12 +53,13 @@ class Scope:
     attribute, indicating folders where to search for includeable files.
 
     """
-    def __init__(self, doc, parent=None, factory=None):
+    def __init__(self, doc, parent=None, factory=None, node=None):
         if not factory:
             factory = parce.util.file_cache(quickly.load).__getitem__
-        self.factory = factory  #: A callable returning a :class:`parce.Document` for a filename.
         self._document = doc
         self.parent = parent    #: The parent Scope (None for the root Scope)
+        self.factory = factory  #: A callable returning a :class:`parce.Document` for a filename.
+        self.node = node        #: The node that was specified to :meth:`include_scope`.
         #: A list of directories to search for \include-d files.
         self.include_path = parent.include_path if parent else []
         #: Whether to search in the directory of an included file for new includes.
@@ -71,12 +72,17 @@ class Scope:
         """Return our parce Document."""
         return self._document
 
-    def include_scope(self, url):
+    def include_scope(self, url, node=None):
         """Return a child scope for the url.
 
-        If the url is relative, it is resolved against our document's url (if
-        :attr:`relative_include` is True), the root scope's url and the urls in
-        the :attr:`include_path`.
+        If the ``url`` is relative, it is resolved against our document's url
+        (if :attr:`relative_include` is True), the root scope's url and the
+        urls in the :attr:`include_path`.
+
+        A ``node`` can be given, that's simply put in the :attr:`node`
+        attribute of the returned child scope. It can be used to look further
+        in the document that included the current document, to find e.g. a
+        variable definition.
 
         Returns None if no includable document could be found. This scope
         inherits the factory, the include_path and the relative_include setting
@@ -86,7 +92,7 @@ class Scope:
         for u in self.urls(url):
             doc = self.get_document(u)
             if doc:
-                return type(self)(doc, self, self.factory)
+                return type(self)(doc, self, self.factory, node)
 
     def ancestors(self):
         """Yield the ancestor scopes."""
