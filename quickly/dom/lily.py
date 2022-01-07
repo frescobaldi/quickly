@@ -2889,9 +2889,9 @@ class Lookup:
     """Helper class to find definitions and other stuff in a lily.Document from
     the viewpoint of a ``node``.
 
-    The ``scope``, if given, is used to resolve include files. If no scope is
-    given, only searches the current DOM document; the yielded scope is then
-    always None.
+    A :class:`~.scope.Scope`, if given using the ``scope`` parameter, is used
+    to resolve include files. If no scope is given, only searches the current
+    DOM document; the yielded scope is then always None.
 
     If a scope is given, include commands are followed and ``wait`` determines
     whether to wait for ongoing transformations of external DOM documents. If
