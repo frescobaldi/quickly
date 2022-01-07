@@ -2932,7 +2932,7 @@ class Lookup:
         continues the search in parent scopes (if a scope was given), and if
         that parent scope has a node pointer, continues the search from there.
         This is useful when an included file refers to a variable that was set
-        in the parent document before the \include command.
+        in the parent document before the ``\include`` command.
 
         So when ``file_a.ly`` reads::
 
@@ -2959,7 +2959,7 @@ class Lookup:
                             if isinstance(n, Include):
                                 new_scope = scope.include_scope(n.filename, n)
                                 if new_scope:
-                                    dom = new_scope.document().get_transform(self.wait)
+                                    dom = new_scope.document().get_transform(lookup.wait)
                                     if isinstance(dom, Document):
                                         stack.append((scope, gen))
                                         scope = new_scope
@@ -2973,6 +2973,7 @@ class Lookup:
                                 break
                 if scope.parent and scope.node:
                     lookup = type(self)(scope.node, scope.parent, self.wait)
+                    scope = scope.parent
                 else:
                     break
         else:
