@@ -45,13 +45,9 @@ class Music(element.Element):
         until a non :class:`Music` ancestor is encountered.
 
         """
-        transform = duration.Transform()
-        for parent in self.ancestors():
-            if isinstance(parent, Music):
-                transform += parent.transform()
-            else:
-                break
-        return transform
+        is_music = lambda n: isinstance(n, Music)
+        ancestors = itertools.takewhile(is_music, self.ancestors())
+        return sum((n.transform() for n in ancestors), duration.Transform())
 
 
 class Durable(Music):
@@ -59,7 +55,9 @@ class Durable(Music):
 
     Used as base class for Note, Rest, Chord, LyricText etc. The
     :attr:`duration` and :attr:`scaling` properties make it easy to manipulate
-    the respective child and grandchild nodes.
+    the respective child and grandchild nodes. Floating point values are
+    automatically converted to Fractions, with a limit on the denominator, so
+    a lazy ``note.scaling = 1/3`` works properly.
 
     """
     duration_required = False     #: Whether the Duration child is required (e.g. \skip)
@@ -129,6 +127,8 @@ class Durable(Music):
         for n in self / Duration:
             if value is None:
                 self.remove(n)
+            elif not isinstance(value, fractions.Fraction):
+                n.head = fractions.Fraction(value).limit_denominator()
             else:
                 n.head = value
             return
@@ -169,6 +169,8 @@ class Durable(Music):
             for s in scaling:
                 if value in (1, None):
                     d.remove(s)
+                elif not isinstance(value, fractions.Fraction):
+                    s.head = fractions.Fraction(value).limit_denominator()
                 else:
                     s.head = value
                 for s in scaling:
@@ -1546,6 +1548,11 @@ class Duration(element.TextElement):
         '4..'
 
     """
+    def __init__(self, head, *children, **attrs):
+        if not isinstance(head, fractions.Fraction):
+            head = fractions.Fraction(head).limit_denominator()
+        super().__init__(head, *children, **attrs)
+
     @classmethod
     def from_string(cls, text):
         """Convenience constructor to make a Duration from a string.
@@ -1603,13 +1610,18 @@ class DurationScaling(element.TextElement):
     represented as a fraction (omitting the denominator if 1).
 
     """
+    def __init__(self, head, *children, **attrs):
+        if not isinstance(head, fractions.Fraction):
+            head = fractions.Fraction(head).limit_denominator()
+        super().__init__(head, *children, **attrs)
+
     @classmethod
     def read_head(cls, origin):
         """Read the scaling from the origin tokens."""
         scaling = 1
         for t in origin:
             if t != "*":
-                scaling *= fractions.Fraction(t.text)
+                scaling *= fractions.Fraction(t.text).limit_denominator()
         return scaling
 
     def write_head(self):
