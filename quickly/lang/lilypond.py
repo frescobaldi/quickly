@@ -684,6 +684,7 @@ class MusicBuilder:
         self._music = None
         self._duration = None
         self._scaling = None
+        self._rest_modifier = None
         self._chord_modifiers = []
         self._events = []         # for direction and spanner-id
         self._articulations = []
@@ -701,6 +702,8 @@ class MusicBuilder:
             else:
                 music = lily.Unpitched(dur)
         if music:
+            if self._rest_modifier:
+                music.append(self._rest_modifier)
             if self._chord_modifiers:
                 music.append(lily.ChordModifiers(*self._chord_modifiers))
                 self._chord_modifiers.clear()
@@ -728,7 +731,7 @@ class MusicBuilder:
             if isinstance(e, (lily.Tweak, lily.Tag, lily.Shape)):
                 yield e
         self._events.clear()
-        self._music = self._duration = self._scaling = None
+        self._music = self._duration = self._scaling = self._rest_modifier = None
 
     def add_articulation(self, art):
         """Add an articulation or script."""
@@ -842,7 +845,7 @@ class MusicBuilder:
                 self._music = lily.PitchedRest(self._music.head, *self._music)
             else:
                 self._music = self.factory(lily.PitchedRest, origin, (), *self._music)
-            self._articulations.append(self.factory(lily.RestModifier, (token,)))
+            self._rest_modifier = self.factory(lily.RestModifier, (token,))
 
     @_token(r'\tweak')
     def tweak_token(self, token):
