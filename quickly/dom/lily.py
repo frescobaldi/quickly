@@ -132,7 +132,7 @@ class Durable(Music):
                 n.head = value
             return
         if value is not None:
-            self.insert_after((Octave, Accidental, OctCheck), Duration(value))
+            self.add(Duration(value))
 
     @duration.deleter
     def duration(self):
@@ -212,7 +212,7 @@ class Pitchable(element.TextElement, Music):
             n.head = num
             return
         if num != 0:
-            self.insert(0, Octave(num))
+            self.add(Octave(num))
 
     @octave.deleter
     def octave(self):
@@ -239,7 +239,7 @@ class Pitchable(element.TextElement, Music):
                 n.head = value
             return
         if value:
-            self.insert_after(Octave, Accidental(value))
+            self.add(Accidental(value))
 
     @accidental.deleter
     def accidental(self):
@@ -266,7 +266,7 @@ class Pitchable(element.TextElement, Music):
                 n.head = num
             return
         if num is not None:
-            self.insert_after((Octave, Accidental), OctCheck(num))
+            self.add(OctCheck(num))
 
     @oct_check.deleter
     def oct_check(self):
@@ -1384,6 +1384,9 @@ class Chord(Durable):
                 return super().length(transform)
         return 0
 
+    def child_order(self):
+        yield ChordBody, Duration, Articulations, base.Comment
+
 
 class ChordBody(element.BlockElement):
     """The body of a chord ``<`` ... ``>``.
@@ -1404,14 +1407,22 @@ class ChordBody(element.BlockElement):
 class Note(Pitchable, Durable):
     """A pitch note name."""
 
+    def child_order(self):
+        yield Octave, Accidental, OctCheck, Duration, Articulations, base.Comment
+
 
 class Unpitched(Durable):
     """An unpitched note, always has a Duration child."""
     duration_required = True    #: always needs a duration
 
+    def child_order(self):
+        yield Duration, Articulations, base.Comment
+
 
 class RestType(Durable):
     """Base class for Rest, PitchedRest and MultiMeasureRest."""
+    def child_order(self):
+        yield Duration, Articulations, base.Comment
 
 
 class Rest(element.HeadElement, RestType):
@@ -1432,11 +1443,16 @@ class PitchedRest(Pitchable, RestType):
     the head value. This element can also have an Octave or OctCheck.
 
     """
+    def child_order(self):
+        yield Octave, Accidental, OctCheck, Duration, RestModifier, Articulations, base.Comment
 
 
 class Space(element.HeadElement, Durable):
     """A space (``s``)."""
     head = "s"
+
+    def child_order(self):
+        yield Duration, Articulations, base.Comment
 
 
 class Skip(element.HeadElement, Durable):
@@ -1444,6 +1460,9 @@ class Skip(element.HeadElement, Durable):
     head = r'\skip'
     duration_required = True        #: always needs a duration
     duration_sets_previous = False  #: the "previous" duration is not changed by \skip
+
+    def child_order(self):
+        yield Duration, base.Comment
 
 
 class After(element.HeadElement, Music):
@@ -1464,9 +1483,14 @@ class Q(element.HeadElement, Durable):
     """
     head = 'q'
 
+    def child_order(self):
+        yield Duration, Articulations, base.Comment
+
 
 class Drum(element.TextElement, Durable):
     """A drum note."""
+    def child_order(self):
+        yield Duration, Articulations, base.Comment
 
 
 class Accidental(element.MappingElement):
@@ -1632,10 +1656,14 @@ class DurationScaling(element.TextElement):
 
 class LyricItem(Durable):
     r"""Wraps a Scheme, String, Symbol or Markup in lyric mode so it can have a duration."""
+    def child_order(self):
+        yield (Scheme, String, Symbol, Markup), Duration, base.Comment
 
 
 class LyricText(element.TextElement, Durable):
     r"""A word in lyric mode."""
+    def child_order(self):
+        yield Duration, base.Comment
 
 
 class LyricExtender(element.HeadElement):
@@ -1655,6 +1683,8 @@ class LyricHyphen(element.HeadElement):
 class LyricSkip(element.HeadElement, Durable):
     r"""A lyric skip ``_``."""
     head = "_"
+    def child_order(self):
+        yield Duration, base.Comment
 
 
 class ChordModifiers(element.Element):

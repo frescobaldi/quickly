@@ -231,14 +231,6 @@ class Element(Node, metaclass=ElementType):
         except AttributeError:
             pass
 
-    def insert_after(self, skip, node):
-        """Insert a node after skipping specified classes."""
-        for n in self ^ skip:
-            i = self.index(n)
-            self.insert(i, node)
-            return
-        self.append(node)
-
     def __repr__(self):
         def result():
             # class name with last part module prepended
@@ -695,9 +687,11 @@ class Element(Node, metaclass=ElementType):
     def signatures(self):
         """Return an iterable of signature tuples.
 
-        A signature is a tuple. Every item in the tuple is an Element type,
-        or a tuple of Element types; and is used with :func:`isinstance` to see
+        A signature is a tuple. Every item in the tuple is an Element type, or
+        a tuple of Element types; and is used with :func:`build_tree` to see
         whether an element can be a child of this element.
+
+        By default an empty iterable is returned.
 
         """
         return ()
@@ -709,6 +703,39 @@ class Element(Node, metaclass=ElementType):
         perform some manipulation before appending it.
 
         """
+        self.append(node)
+
+    def child_order(self):
+        """Return an iterable of tuples with element types.
+
+        This is almost the same as :meth:`signatures` but used when a child
+        node is inserted using :meth:`add`.
+
+        By default an empty iterable is returned.
+
+        """
+        return ()
+
+    def add(self, node):
+        """Add a node, calling :meth:`child_order` to get the proper place to
+        insert it.
+
+        When the node type matches with one of the types in a child order
+        tuple, it is inserted in that position between the other children. Not
+        all node types need to be present, but at least the order is always
+        respected.
+
+        If the proper place can't be found, the node is appended at the end.
+
+        """
+        for order in self.child_order():
+            for index, cls in enumerate(order):
+                if isinstance(node, cls):
+                    skip = order[:index]
+                    for n in self ^ skip:
+                        i = self.index(n)
+                        self.insert(i, node)
+                        return
         self.append(node)
 
     def indent_children(self):
