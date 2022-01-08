@@ -63,6 +63,13 @@ class Edit:
         """
         return self._document
 
+    def find_block(self, node):
+        """The parce Block of the node (None if there is no parce Document)."""
+        if node.pos is not None:
+            doc = self.document()
+            if doc:
+                return doc.find_block(node.pos)
+
     def edit(self, music):
         """Convenience method calling one of the other edit_xxx methods depending on the type."""
         meth = (self.edit_cursor   if isinstance(music, parce.Cursor)

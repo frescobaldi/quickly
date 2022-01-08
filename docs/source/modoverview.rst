@@ -14,5 +14,6 @@ Overview of all modules
    pkginfo.rst
    registry.rst
    relative.rst
+   rhythm.rst
    transpose.rst
 
