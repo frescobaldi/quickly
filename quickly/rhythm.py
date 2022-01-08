@@ -62,6 +62,7 @@ class EditRhythm(edit.Edit):
 class Remove(EditRhythm):
     """Remove duration from Durable nodes, if allowed."""
     def process(self, node, prev):
+        """Remove duration from ``node``; ``prev`` is unused."""
         if not node.duration_required:
             del node.duration
 
@@ -69,12 +70,14 @@ class Remove(EditRhythm):
 class RemoveScaling(EditRhythm):
     """Remove scaling from Durable nodes."""
     def process(self, node, prev):
+        """Remove scaling from ``node``; ``prev`` is unused."""
         del node.scaling
 
 
 class RemoveFractionScaling(EditRhythm):
     """Remove scaling if it contains a fraction."""
     def process(self, node, prev):
+        """Remove scaling if it contains a fraction from ``node``; ``prev`` is unused."""
         s = node.scaling
         if s is not None and int(s) != s:
             del node.scaling
@@ -83,10 +86,11 @@ class RemoveFractionScaling(EditRhythm):
 class RhythmExplicit(EditRhythm):
     """Add the current duration to all nodes that don't have one."""
     def process(self, node, prev):
+        """Add duration to ``node`` if absent; ``prev`` is the previous Duration node."""
         if node.duration is None:
             if prev is None:
                 prev = self.previous_duration(node)
-            node.insert_duration(prev.copy())
+            node.add(prev.copy())
         elif node.duration_sets_previous:
             prev = next(node / lily.Duration)
         return prev
@@ -95,6 +99,7 @@ class RhythmExplicit(EditRhythm):
 class RhythmImplicit(EditRhythm):
     """Remove reoccurring durations."""
     def process(self, node, prev):
+        """Remove duration from ``node`` if same as (duration, scaling) tuple in ``prev``."""
         dur, scaling = node.duration, node.scaling
         if dur:
             if (dur, scaling) == prev and not node.duration_required:
@@ -114,6 +119,10 @@ class RhythmImplicitPerLine(EditRhythm):
 
     """
     def process(self, node, prev):
+        """Remove duration from ``node`` if duration and text block are the
+        same as [duration, scaling, block] list in ``prev``.
+
+        """
         dur, scaling = node.duration, node.scaling
         block = self.find_block(node)
         if dur:
@@ -175,6 +184,7 @@ class RhythmTransform(EditRhythm):
         self._transform = transform.transform   # store the transform method
 
     def process(self, node, prev):
+        """Apply Transform to ``node`` if it has a duration; ``prev`` is unused."""
         dur = node.duration
         if dur is not None:
             node.duration, node.scaling = self._transform(dur, node.scaling)
