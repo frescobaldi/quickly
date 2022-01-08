@@ -63,10 +63,15 @@ class Transform:
         return type(self)(log, dotcount, scale)
 
     def length(self, duration, scaling=1):
-        """Return the actual musical length of the duration scaling values."""
+        """Return the actual musical length of the duration and scaling values."""
+        duration, scaling = self.transform(duration, scaling)
+        return duration * scaling
+
+    def transform(self, duration, scaling=1):
+        """Return a transformed two-tuple (duration, scaling)."""
         if self.log or self.dotcount:
             duration = shift_duration(duration, self.log, self.dotcount)
-        return duration * scaling * self.scale
+        return duration, scaling * self.scale
 
 
 def log_dotcount(value):

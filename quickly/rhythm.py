@@ -23,7 +23,7 @@ Utilities and functions to manipulate the rhythm of music.
 """
 
 from .dom import edit, lily, util
-
+from .duration import duration
 
 
 class EditRhythm(edit.Edit):
@@ -110,7 +110,7 @@ class RhythmImplicitPerLine(EditRhythm):
 
     This only works when editing from a parce Document, otherwise we don't know
     the newlines in the original text. If there is no parce Document, the
-    behaviour is the same as class:`RhythmImplicit`.
+    behaviour is the same as :class:`RhythmImplicit`.
 
     """
     def process(self, node, prev):
@@ -125,5 +125,58 @@ class RhythmImplicitPerLine(EditRhythm):
             node.duration, node.scaling = prev[:2]
             prev[2] = block
         return prev
+
+
+class RhythmTransform(EditRhythm):
+    """Transform durations using a :class:`~.duration.Transform`.
+
+    This can be used for all types of shift and scale operations. For example,
+    to add a dot to all durations::
+
+        >>> from quickly.rhythm import RhythmTransform
+        >>> from quickly.duration import Transform
+        >>> from quickly.dom import read
+        >>> music = read.lily_document(r"{ c4 d8 e16 f g2 }")
+        >>> t = Transform(dotcount=1) # add a dot
+        >>> RhythmTransform(t).edit(music)
+        >>> music.write()
+        '{ c4. d8. e16. f g2. }'
+
+    Remove a dot::
+
+        >>> t = Transform(dotcount=-1)
+        >>> RhythmTransform(t).edit(music)
+        >>> music.write()
+        '{ c4 d8 e16 f g2 }'
+
+    Double durations::
+
+        >>> t = Transform(log=-1)
+        >>> RhythmTransform(t).edit(music)
+        >>> music.write()
+        '{ c2 d4 e8 f g1 }'
+
+    Add a scaling factor::
+
+        >>> t = Transform(scale=1/3)
+        >>> RhythmTransform(t).edit(music)
+        >>> music.write()
+        '{ c2*1/3 d4*1/3 e8*1/3 f g1*1/3 }'
+
+    Or modify all in one go::
+
+        >>> t = Transform(1, 1, 3)
+        >>> RhythmTransform(t).edit(music)
+        >>> music.write()
+        '{ c4. d8. e16. f g2. }'
+
+    """
+    def __init__(self, transform):
+        self._transform = transform.transform   # store the transform method
+
+    def process(self, node, prev):
+        dur = node.duration
+        if dur is not None:
+            node.duration, node.scaling = self._transform(dur, node.scaling)
 
 
