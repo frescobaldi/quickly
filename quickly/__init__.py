@@ -32,15 +32,18 @@ from .registry import find
 __all__ = ('find', 'load', 'version', 'version_string')
 
 
-def load(filename):
-    """Read text from filename and return a :class:`parce.Document`.
+def load(filename, lexicon=True, encoding=None):
+    """Read text from ``filename`` and return a :class:`parce.Document`.
 
-    The root lexicon is guessed based on filename and contents. Raises
-    :class:`OSError` if the file can't be read.
+    If ``lexicon`` is True, the lexicon will be guessed based on filename and
+    contents, otherwise the lexicon is used directly. The ``encoding`` is
+    passed directly to Python's :func:`open` function. Raises :class:`OSError`
+    if the file can't be read.
 
     """
-    text = open(filename).read()
-    lexicon = find(filename=filename, contents=text)
+    text = open(filename, encoding=encoding).read()
+    if lexicon is True:
+        lexicon = find(filename=filename, contents=text)
     doc = parce.Document(lexicon, text, transformer=True)
     doc.url = os.path.abspath(filename)
     return doc
