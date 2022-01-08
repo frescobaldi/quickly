@@ -2998,7 +2998,7 @@ def is_music(node):
 
 
 def is_symbol(text):
-    """Return True is text is a valid LilyPond symbol."""
+    """Return True if text is a valid LilyPond symbol."""
     from parce.lang import lilypond, lilypond_words
     return (re.fullmatch(lilypond.RE_LILYPOND_SYMBOL, text) and
             text not in lilypond_words.all_pitch_names)
