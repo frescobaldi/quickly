@@ -152,8 +152,21 @@ def replace_unknown(tree, text):
 
 def skip_comments(node):
     """Yield child nodes of the DOM node, skipping inheritants of base.Comment."""
-    from . import base
-    return (n for n in node if not isinstance(n, base.Comment))
+    from .base import Comment
+    return (n for n in node if not isinstance(n, Comment))
+
+
+def pop_comments(node):
+    """Pop and return comments off the end of node (and/or its children)."""
+    from .base import Comment
+    comments = []
+    while len(node):
+        if isinstance(node[-1], Comment):
+            comments.append(node.pop())
+        else:
+            node = node[-1]
+    comments.reverse()
+    return comments
 
 
 def lilypond_version(node):

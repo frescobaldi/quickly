@@ -48,7 +48,7 @@ import parce.lang.lilypond
 import parce.action as a
 from parce.rule import ifarg, bygroup
 from parce.util import Dispatcher
-from quickly.dom import base, element, htm, lily, scm, tex
+from quickly.dom import base, element, htm, lily, scm, tex, util
 
 
 class LilyPond(parce.lang.lilypond.LilyPond):
@@ -680,15 +680,53 @@ class MusicBuilder:
         self.transform = transform
         self.factory = transform.factory
         self.items = iter(items)
+        self._events = []         # for direction and spanner-id
+        self._comments = []       # for comments between pitch and duration...
+        self.reset()
 
+    def reset(self):
+        """Initialize all state."""
         self._music = None
         self._duration = None
         self._scaling = None
-        self._rest_modifier = None
-        self._chord_modifiers = []
-        self._events = []         # for direction and spanner-id
-        self._articulations = []
-        self._comments = []       # for comments between pitch and duration...
+        self._modifier = None
+        self._articulations = None
+        self._events.clear()
+        self._comments.clear()
+
+    def __iter__(self):
+        """Yield all the music from the items given at construction."""
+        for i in self.items:
+            if i.is_token:
+                # dispatch on token (text or action)
+                meth = self._token.get(i.text)
+                if not meth:
+                    for action in i.action:
+                        meth = self._action.get(action)
+                        if meth:
+                            break
+                    else:
+                        # TEMP
+                        print("Unknown token:", i)
+                        continue
+                result = meth(i)
+            else:
+                # dispatch on object name
+                meth = self._context.get(i.name)
+                if not meth:
+                    if isinstance(i.obj, element.Element):
+                        yield from self.pending_music()
+                        yield i.obj
+                    else:
+                        # TEMP
+                        print("Unknown item:", i)
+                    continue
+                result = meth(i.obj)
+            if result:
+                yield from result
+
+        # pending stuff
+        yield from self.pending_music()
 
     def pending_music(self):
         """Yield pending music."""
@@ -701,37 +739,30 @@ class MusicBuilder:
                 music.append(dur)
             else:
                 music = lily.Unpitched(dur)
+        elif music:
+            # move comment after pitch back to toplevel
+            self._comments[0:] = util.pop_comments(music)
         if music:
-            if self._rest_modifier:
-                music.append(self._rest_modifier)
-            if self._chord_modifiers:
-                music.append(lily.ChordModifiers(*self._chord_modifiers))
-                self._chord_modifiers.clear()
-                # move comments at end of chord modifiers back to toplevel
-                while len(music[-1][-1]) and isinstance(music[-1][-1][-1], base.Comment):
-                    self._comments.append(music[-1][-1].pop())
+            if self._modifier:
+                music.extend(self._comments)
+                music.append(self._modifier)
+                # move comments at the end of modifier(s) back to toplevel
+                self._comments[:] = util.pop_comments(self._modifier)
             if self._articulations:
-                if self._comments:
-                    music.extend(self._comments)
-                    self._comments.clear()
-                music.append(lily.Articulations(*self._articulations))
-                self._articulations.clear()
+                music.extend(self._comments)
+                music.append(self._articulations)
                 # move comments at end of articulations back to toplevel
-                while isinstance(music[-1][-1], base.Comment):
-                    self._comments.append(music[-1].pop())
+                self._comments[:] = util.pop_comments(self._articulations)
 
             yield music
-
             yield from self._comments
-            self._comments.clear()
 
         # if there are tweaks, tags or shapes but no articulations, the
         # tweak, tag or shape is meant for the next note. Output it now.
         for e in self._events:
             if isinstance(e, (lily.Tweak, lily.Tag, lily.Shape)):
                 yield e
-        self._events.clear()
-        self._music = self._duration = self._scaling = self._rest_modifier = None
+        self.reset()
 
     def add_articulation(self, art):
         """Add an articulation or script."""
@@ -743,6 +774,8 @@ class MusicBuilder:
                     e.append(f)
                     e = f
                 self._events.clear()
+            if not self._articulations:
+                self._articulations = lily.Articulations()
             self._articulations.append(art)
             return True
         else:
@@ -788,40 +821,6 @@ class MusicBuilder:
                self.add_tag(node) or \
                self.add_shape(node)
 
-    def __iter__(self):
-        """Yield all the music from the items given at construction."""
-        for i in self.items:
-            if i.is_token:
-                # dispatch on token (text or action)
-                meth = self._token.get(i.text)
-                if not meth:
-                    for action in i.action:
-                        meth = self._action.get(action)
-                        if meth:
-                            break
-                    else:
-                        # TEMP
-                        print("Unknown token:", i)
-                        continue
-                result = meth(i)
-            else:
-                # dispatch on object name
-                meth = self._context.get(i.name)
-                if not meth:
-                    if isinstance(i.obj, element.Element):
-                        yield from self.pending_music()
-                        yield i.obj
-                    else:
-                        # TEMP
-                        print("Unknown item:", i)
-                    continue
-                result = meth(i.obj)
-            if result:
-                yield from result
-
-        # pending stuff
-        yield from self.pending_music()
-
     @_token(r'\skip')
     def skip_token(self, token):
         r"""Called for ``\skip``."""
@@ -845,7 +844,7 @@ class MusicBuilder:
                 self._music = lily.PitchedRest(self._music.head, *self._music)
             else:
                 self._music = self.factory(lily.PitchedRest, origin, (), *self._music)
-            self._rest_modifier = self.factory(lily.RestModifier, (token,))
+            self._modifier = self.factory(lily.RestModifier, (token,))
 
     @_token(r'\tweak')
     def tweak_token(self, token):
@@ -982,7 +981,9 @@ class MusicBuilder:
             note = self.factory(lily.Note, (next(self.items),))
             elem.append(note)
         if self._music and not self._articulations:
-            self._chord_modifiers.append(elem)
+            if not self._modifier:
+                self._modifier = lily.ChordModifiers()
+            self._modifier.append(elem)
 
     @_action(a.Number)
     def number_action(self, token):
@@ -1121,7 +1122,7 @@ class MusicBuilder:
     @_context("chord_modifier")
     def chord_modifier(self, obj):
         """Called with the result of the ``chord_modifier`` context."""
-        self._chord_modifiers[-1].extend(obj)
+        self._modifier[-1].extend(obj)
 
     @_context("repeat", "lyricsto", "lyricmode", "drummode", "notemode",
               "chordmode", "figuremode")
@@ -1131,7 +1132,7 @@ class MusicBuilder:
 
     @_context("pitch")
     def pitch(self, obj):
-        """Called for ``pitch`` context: octave, accidental, octavecheck."""
+        """Called for ``pitch`` context: octave, accidental, octavecheck or comment."""
         if self._music:
             self._music.extend(obj)
         else:
@@ -1198,8 +1199,8 @@ class MusicBuilder:
         Comments are preserved as good as possible.
 
         """
-        if self._chord_modifiers:
-            self._chord_modifiers[-1].append(obj)
+        if self._modifier:
+            self._modifier.append(obj)
         elif self._events:
             self._events[-1].append(obj)
         elif self._articulations:
