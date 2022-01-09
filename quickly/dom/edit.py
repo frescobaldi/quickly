@@ -44,6 +44,7 @@ class Edit:
 
     """
     _document = None    # The parce document, if available
+    _changes = 0        # The result of Element.edit(document)
 
     #: If True, when there is a selection, a Range is created from the root
     #: node, otherwise from the younghest common ancestor.
@@ -52,6 +53,9 @@ class Edit:
     #: If True, a Range is created from the cursor's position to the end,
     #: instead of the full document in case there is no selection.
     range_from_cursor = False
+
+    #: If True, does not write back changes to the parce Document
+    readonly = False
 
     def document(self):
         """Return the parce Document, if available.
@@ -62,6 +66,10 @@ class Edit:
 
         """
         return self._document
+
+    def changes(self):
+        """Return the number of changes made to the parce Document."""
+        return self._changes
 
     def find_block(self, node):
         """The parce Block of the node (None if there is no parce Document)."""
@@ -115,8 +123,10 @@ class Edit:
         if r is None:
             r = Range(d)
         self._document = cursor.document()
+        self._changes = 0
         result = self.edit_range(r)
-        r.ancestor().edit(cursor.document(), start=start, end=end)
+        if not self.readonly:
+            self._changes = r.ancestor().edit(cursor.document(), start=start, end=end)
         self._document = None
         return result
 
