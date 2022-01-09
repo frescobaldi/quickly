@@ -22,6 +22,10 @@
 Utilities and functions to manipulate the rhythm of music.
 """
 
+
+import itertools
+
+
 from .dom import edit, lily, util
 from .duration import duration
 
@@ -189,4 +193,60 @@ class RhythmTransform(EditRhythm):
         if dur is not None:
             node.duration, node.scaling = self._transform(dur, node.scaling)
 
+
+class CopyRhythm(EditRhythm):
+    """Extract durations from a range in the form of (duration, scaling) tuples.
+
+    The durations are returned by :meth:`edit_range` and thus also all other
+    edit methods. Durables without duration yield a None. Example::
+
+        >>> from quickly.dom import read
+        >>> music = read.lily_document(r"{ c4 d8 e16 f g2 }")
+        >>> from quickly.rhythm import CopyRhythm
+        >>> durations = CopyRhythm().edit(music)
+        >>> durations
+        [(Fraction(1, 4), 1.0), (Fraction(1, 8), 1.0), (Fraction(1, 16), 1.0),
+        None, (Fraction(1, 2), 1.0)]
+
+    """
+    readonly = True
+
+    def edit_range(self, r):
+        """Return the list of extracted durations."""
+        def rhythm():
+            for n in self.durables(r):
+                dur = n.duration
+                yield (dur, n.scaling) if dur else None
+        return list(rhythm())
+
+
+class PasteRhythm(EditRhythm):
+    """Paste durations such as returned by :class:`CopyRhythm` into music.
+
+    The durations are an iterable of either the two-tuple (duration, scaling)
+    or None. If ``cycle`` is True, the pasted durations are endlessly repeated
+    in the selected range. Example::
+
+        >>> from fractions import Fraction
+        >>> durations = [(Fraction(1, 4), 1), (Fraction(3, 16), 0.5), None]
+        >>> from quickly.dom import read
+        >>> music = read.lily_document(r"{ c4 d8 e16 f g2 }")
+        >>> from quickly.rhythm import PasteRhythm
+        >>> PasteRhythm(durations).edit(music)
+        >>> music.write()
+        '{ c4 d8.*1/2 e f4 g8.*1/2 }'
+
+    """
+    def __init__(self, durations, cycle=True):
+        self._durations = durations
+        self.cycle = cycle
+
+    def edit_range(self, r):
+        """Paste the durations."""
+        durs = (itertools.cycle if self.cycle else iter)(self._durations)
+        for node, duration in zip(self.durables(r), durs):
+            if duration:
+                node.duration, node.scaling = duration
+            elif not node.duration_required:
+                del node.duration
 
