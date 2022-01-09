@@ -19,7 +19,13 @@
 
 
 """
-Utilities and functions to manipulate the rhythm of music.
+Classes and convenience functions to manipulate the rhythm of music.
+
+For all convenience functions: the ``music`` argument may be a
+:class:`parce.Document`, a parce :class:`~parce.document.Cursor` (optionally
+only selecting a range of the document to edit), a node :class:`~.node.Range`
+or any :class:`~.dom.element.Element` node (DOM tree).
+
 """
 
 
@@ -249,4 +255,94 @@ class PasteRhythm(EditRhythm):
                 node.duration, node.scaling = duration
             elif not node.duration_required:
                 del node.duration
+
+
+def remove(music):
+    """Remove all durations from music."""
+    return Remove().edit(music)
+
+
+def remove_scaling(music):
+    """Remove all scalings from the durations in music."""
+    return RemoveScaling().edit(music)
+
+
+def remove_fraction_scaling(music):
+    """Convenience function to remove all scalings that contain a fraction
+    (like ``1/3``) from the durations in music."""
+    return RemoveFractionScaling().edit(music)
+
+
+def explicit(music):
+    """Add the current duration to all notes, chords, rests etc in the music."""
+    return RhythmExplicit().edit(music)
+
+
+def implicit(music, per_line=False):
+    """Remove all reoccuring durations from the music.
+
+    If ``per_line`` is True, the first duration in a text line is not removed,
+    but rather added if absent. (This only works when editing a parce document
+    or cursor, otherwise we can't know the newlines in the original text.)
+
+    An example::
+
+        >>> import parce
+        >>> import quickly.rhythm
+        >>> d=parce.Document(quickly.find('lilypond'), r'''music = {
+        ...   c4 d8 e8 f8 g8 a4
+        ...   g f e4 d
+        ...   c d4 e2
+        ... }
+        ... ''', transformer=True)
+        >>> quickly.rhythm.implicit(d, True)
+        >>> print(d.text())
+        music = {
+          c4 d8 e f g a4
+          g4 f e d
+          c4 d e2
+        }
+
+    """
+    cls = RhythmImplicitPerLine if per_line else RhythmImplicit
+    return cls().edit(music)
+
+
+def transform(music, log=0, dotcount=0, scale=1):
+    """Transform durations in music by modifying log, dot count and/or scaling.
+
+    Increasing the log by 1 halves the durations, decreasing the log doubles
+    them. (See also the :mod:`.duration` module.) An example, where the
+    duration is halved and one dot is added::
+
+        >>> from quickly.dom import read
+        >>> from quickly import rhythm
+        >>> m = read.lily_document("{ c4 d8 e16 f g2 }")
+        >>> rhythm.transform(m, 1, 1)
+        >>> m.write()
+        '{ c8. d16. e32. f g4. }'
+
+    """
+    from .duration import Transform
+    return RhythmTransform(Transform(log, dotcount, scale)).edit(music)
+
+
+def copy(music):
+    """Extract durations from music.
+
+    Every duration is a two-tuple of integers or fractions (duration, scaling),
+    or None for Durables without duration.
+
+    """
+    return CopyRhythm().edit(music)
+
+
+def paste(music, durations, cycle=True):
+    """Replace durations in the music with the specified durations.
+
+    Every duration is a two-tuple of integers or fractions (duration, scaling),
+    or None for Durables without duration.
+
+    """
+    return PasteRhythm(durations, cycle).edit(music)
 
