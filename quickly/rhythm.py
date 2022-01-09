@@ -341,7 +341,8 @@ def paste(music, durations, cycle=True):
     """Replace durations in the music with the specified durations.
 
     Every duration is a two-tuple of integers or fractions (duration, scaling),
-    or None for Durables without duration.
+    or None for Durables without duration. If ``cycle`` is True, the pasted
+    durations are endlessly repeated in the selected range.
 
     """
     return PasteRhythm(durations, cycle).edit(music)

@@ -5,10 +5,14 @@ ChangeLog
 current: quickly-0.5.0
 
 - requires parce-0.30.0
+- added rhythm module to manipulate durations in music or a part thereof
 - added dom.scope module to find nodes from included files
 - introduced lily.ChordBody and FigureBody, to be able to add Duration at Chord
   and Figure directly
 - added lily.Durable as base type for any stuff that can have a Duration
+- added transform method to all Music nodes, to calculate durations in child
+  nodes
+- improvements to duration module
 
 
 2021-12-31: quickly-0.4.0
