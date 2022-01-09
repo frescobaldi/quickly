@@ -268,8 +268,8 @@ def remove_scaling(music):
 
 
 def remove_fraction_scaling(music):
-    """Convenience function to remove all scalings that contain a fraction
-    (like ``1/3``) from the durations in music."""
+    """Remove all scalings that contain a fraction (like ``1/3``) from the
+    durations in music."""
     return RemoveFractionScaling().edit(music)
 
 
