@@ -1660,6 +1660,11 @@ class LyricItem(Durable):
     def child_order(self):
         yield (Scheme, String, Symbol, Markup), Duration, base.Comment
 
+    @property
+    def duration_required(self):
+        """Duration is required if no visible child."""
+        return not any(self / (Scheme, String, Symbol, Markup))
+
 
 class LyricText(element.TextElement, Durable):
     r"""A word in lyric mode."""
