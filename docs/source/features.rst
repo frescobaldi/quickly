@@ -39,7 +39,7 @@ Transpose
 
 .. currentmodule:: quickly.transpose
 
-Transposing music is done using the :mod:`~quickly.transpose` module. A
+Transposing music is done using the :mod:`.transpose` module. A
 Transposer is created that can actually transpose pitches according to the
 user's wish, and optionally a PitchProcessor that reads and writes LilyPond
 pitch names in all languages.
@@ -81,7 +81,7 @@ Convert pitches to and from relative notation
 
 .. currentmodule:: quickly.relative
 
-The :mod:`~quickly.relative` module contains functions to convert music to and
+The :mod:`.relative` module contains functions to convert music to and
 from relative notation. These functions also use the PitchProcessor to read and
 write pitch names in all languages, and automatically adapt to the pitch
 language used in a document.
@@ -106,4 +106,40 @@ And convert back to relative::
 The function :func:`abs2rel` and :func:`rel2abs` are convenience functions that
 create respectively a :class:`Abs2rel` or :class:`Rel2abs` object and call
 their :meth:`~quickly.dom.edit.Edit.edit` method.
+
+
+Edit durations
+^^^^^^^^^^^^^^
+
+.. currentmodule:: quickly.rhythm
+
+The :mod:`.rhythm` module provides easy-to-use functions and classes to modify
+the durations of music. Nodes that have a duration (such as notes, rests,
+spacers, skips, drum notes but also lyric words) always inherit
+:class:`~.dom.lily.Durable`, and can have a :class:`~.dom.lily.Duration` child
+node that writes the duration. Durable nodes also have convenient attributes
+:attr:`~.dom.lily.Durable.duration` and :attr:`~.dom.lily.Durable.scaling` to
+manipulate their Duration and DurationScaling child nodes.
+
+That makes it not too complicated to build nice functions editing these nodes,
+that are used to refactor or modify existing music:
+
+.. list-table::
+
+   * - :func:`remove`
+     - remove all durations from music
+   * - :func:`remove_scaling`
+     - remove scaling e.g. (``*2`` or ``*1/3``) from all durations
+   * - :func:`remove_fraction_scaling`
+     - remove only scaling that contains a fraction from the durations
+   * - :func:`explicit`
+     - write the duration after all notes, rests etc
+   * - :func:`implicit`
+     - only write the duration if different from the previous
+   * - :func:`transform`
+     - modify duration log, number of dots and/or scaling
+   * - :func:`copy`
+     - extract durations to a list of (duration, scaling) tuples
+   * - :func:`paste`
+     - overwrite durations in music from a list of (duration, scaling) tuples
 
