@@ -838,12 +838,9 @@ class MusicBuilder:
         r"""Called for ``\rest``."""
         if isinstance(self._music, lily.Note):
             # make it a positioned rest, reuse old pitch token if possible
-            try:
-                origin = self._music.head_origin
-            except AttributeError:
-                self._music = lily.PitchedRest(self._music.head, *self._music)
-            else:
-                self._music = self.factory(lily.PitchedRest, origin, (), *self._music)
+            note = self._music
+            self._music = rest = lily.PitchedRest(note.head, *note)
+            rest.copy_origin_from(note)
             self._modifier = self.factory(lily.RestModifier, (token,))
 
     @_token(r'\tweak')
@@ -879,7 +876,9 @@ class MusicBuilder:
             cls = lily.Q if token == 'q' else lily.Note
             self._music = self.factory(cls, (token,))
 
-    _rest_mapping = element.head_mapping(lily.Space, lily.Rest, lily.MultiMeasureRest)
+    _rest_mapping = element.head_mapping(
+        lily.MultiMeasureRest, lily.Rest, lily.Space
+    )
 
     @_action(a.Text.Music.Rest)
     def rest_action(self, token):
@@ -914,8 +913,8 @@ class MusicBuilder:
 
     # articulations that are spanners, for articulation_action()
     _articulations_mapping = element.head_mapping(
-        lily.TextSpanner, lily.TrillSpanner, lily.Melisma, lily.LaissezVibrer,
-        lily.RepeatTie, lily.Arpeggio, lily.Glissando,
+        lily.Arpeggio, lily.Glissando, lily.LaissezVibrer, lily.Melisma,
+        lily.RepeatTie, lily.TextSpanner, lily.TrillSpanner,
     )
 
     @_action(a.Name.Script.Articulation)
@@ -1053,18 +1052,18 @@ class MusicBuilder:
         self._music = self.factory(lily.LyricSkip, (token,))
 
     _builtin_mapping = element.head_mapping(
-        lily.Key, lily.Clef, lily.Time, lily.Relative, lily.Absolute,
-        lily.Fixed, lily.Transpose, lily.Transposition, lily.Ottava,
-        lily.OctaveCheck, lily.Times, lily.Tuplet, lily.ScaleDurations,
-        lily.ShiftDurations, lily.Tempo, lily.Grace, lily.Acciaccatura,
-        lily.Appoggiatura, lily.SlashedGrace, lily.AfterGrace, lily.Bar,
-        lily.InStaffSegno, lily.Breathe, lily.Mark, lily.Default, lily.Label,
-        lily.AddQuote, lily.QuoteDuring, lily.Repeat, lily.UnfoldRepeats,
-        lily.Alternative, lily.Unfolded, lily.Volta, lily.KeepWithTag,
-        lily.RemoveWithTag, lily.TagGroup, lily.PushToTag, lily.AppendToTag,
-        lily.Break, lily.PageBreak, lily.PageTurn, lily.GrobDirection,
-        lily.GrobStyle, lily.Toggle, lily.Shape, lily.VShape,
-        lily.StringTuning, lily.VoiceN, lily.Unit, lily.Partial,
+        lily.Absolute, lily.Acciaccatura, lily.AddQuote, lily.AfterGrace,
+        lily.Alternative, lily.AppendToTag, lily.Appoggiatura, lily.Bar,
+        lily.Break, lily.Breathe, lily.Clef, lily.Default, lily.Fixed,
+        lily.Grace, lily.GrobDirection, lily.GrobStyle, lily.InStaffSegno,
+        lily.KeepWithTag, lily.Key, lily.Label, lily.Mark, lily.OctaveCheck,
+        lily.Ottava, lily.PageBreak, lily.PageTurn, lily.Partial,
+        lily.PushToTag, lily.QuoteDuring, lily.Relative, lily.RemoveWithTag,
+        lily.Repeat, lily.ScaleDurations, lily.Shape, lily.ShiftDurations,
+        lily.SlashedGrace, lily.StringTuning, lily.TagGroup, lily.Tempo,
+        lily.Time, lily.Times, lily.Toggle, lily.Transpose, lily.Transposition,
+        lily.Tuplet, lily.Unfolded, lily.UnfoldRepeats, lily.Unit, lily.VoiceN,
+        lily.Volta, lily.VShape,
     )
 
     @_action(a.Name.Builtin)
@@ -1075,12 +1074,12 @@ class MusicBuilder:
         yield self.factory(cls, (token,))
 
     _keyword_mapping = element.head_mapping(
-        lily.Accepts, lily.Denies, lily.Name, lily.Alias, lily.Consists,
-        lily.Remove, lily.DefaultChild, lily.Omit, lily.Hide, lily.Undo,
-        lily.Once, lily.Temporary, lily.Override, lily.Revert, lily.Set,
-        lily.Unset, lily.Version, lily.Language, lily.Include, lily.New,
-        lily.Context, lily.Change, lily.Sequential, lily.Simultaneous,
-        lily.NoteMode, lily.Etc,
+        lily.Accepts, lily.Alias, lily.Change, lily.Consists, lily.Context,
+        lily.DefaultChild, lily.Denies, lily.Etc, lily.Hide, lily.Include,
+        lily.Language, lily.Name, lily.New, lily.NoteMode, lily.Omit,
+        lily.Once, lily.Override, lily.Remove, lily.Revert, lily.Sequential,
+        lily.Set, lily.Simultaneous, lily.Temporary, lily.Undo, lily.Unset,
+        lily.Version,
     )
 
     @_action(a.Keyword)
@@ -1132,7 +1131,7 @@ class MusicBuilder:
 
     @_context("pitch")
     def pitch(self, obj):
-        """Called for ``pitch`` context: octave, accidental, octavecheck or comment."""
+        """Called for ``pitch`` context: octave, accidental, octavecheck and/or comment."""
         if self._music:
             self._music.extend(obj)
         else:
