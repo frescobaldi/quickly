@@ -1458,6 +1458,7 @@ class Space(element.HeadElement, Durable):
 class Skip(element.HeadElement, Durable):
     r"""A ``\skip``. Must have a Duration child."""
     head = r'\skip'
+    space_after_head = " "
     duration_required = True        #: always needs a duration
     duration_sets_previous = False  #: the "previous" duration is not changed by \skip
 
