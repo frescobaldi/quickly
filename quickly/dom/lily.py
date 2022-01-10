@@ -1656,7 +1656,12 @@ class DurationScaling(element.TextElement):
 
 
 class LyricItem(Durable):
-    r"""Wraps a Scheme, String, Symbol or Markup in lyric mode so it can have a duration."""
+    r"""Wrap a Scheme, String, Symbol or Markup in lyricmode.
+
+    If it has no Scherm, String, Symbol or Markup child, a duration is
+    required.
+
+    """
     def child_order(self):
         yield (Scheme, String, Symbol, Markup), Duration, base.Comment
 

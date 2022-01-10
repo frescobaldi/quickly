@@ -37,21 +37,16 @@ from .duration import duration
 
 
 class EditRhythm(edit.Edit):
-    """Base class for rhythm editing operations.
-    """
-    def durables(self, r):
+    """Base class for rhythm editing operations."""
+    @staticmethod
+    def durables(r):
         """Yield all Durable instances in range."""
         for n in r.nodes():
             if isinstance(n, lily.Durable):
                 yield n
 
-    def edit_range(self, r):
-        """Perform our operations on all Durables in the range."""
-        prev = None
-        for n in self.durables(r):
-            prev = self.process(n, prev)
-
-    def previous_duration(self, node):
+    @staticmethod
+    def previous_duration(node):
         """Return the Duration of node.previous_durable() or a default Duration."""
         prev = node.previous_durable()
         if prev:
@@ -59,7 +54,8 @@ class EditRhythm(edit.Edit):
         else:
             return lily.Duration.from_string('4')
 
-    def may_remove(self, node):
+    @staticmethod
+    def may_remove(node):
         """Return True if the duration of this node may be removed.
 
         A duration may not be removed if ``node.duration_required`` is True,
@@ -82,6 +78,12 @@ class EditRhythm(edit.Edit):
             elif isinstance(n, lily.LyricItem) and n.duration_required:
                 return False
         return True
+
+    def edit_range(self, r):
+        """Perform our operations on all Durables in the range."""
+        prev = None
+        for n in self.durables(r):
+            prev = self.process(n, prev)
 
     def process(self, node, prev):
         """Implement to perform an operation on the ``node``.
