@@ -288,7 +288,14 @@ class PasteRhythm(EditRhythm):
 
 
 def remove(music):
-    """Remove all durations from music."""
+    """Remove all durations from music.
+
+    Does not remove the duration from ``\skip``s and Unpitched notes, and also
+    not from durables that immediately precede Unpitched notes (or empty lyric
+    items), because the Unpitched's duration would then be mistakenly held for
+    the duration of the preceding note.
+
+    """
     return Remove().edit(music)
 
 

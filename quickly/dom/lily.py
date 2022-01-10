@@ -1319,21 +1319,21 @@ class SimultaneousMusicList(MusicList):
 
 
 class Sequential(element.HeadElement, Music):
-    r"""Music after ``\sequential``."""
+    r"""The ``\sequential`` command, has one MusicList child."""
     head = r'\sequential'
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield MUSIC,
+        yield MusicList,
 
 
 class Simultaneous(element.HeadElement, Music):
-    r"""Music after ``\simultaneous``."""
+    r"""The ``\simultaneous`` command, has one MusicList child."""
     head = r'\simultaneous'
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield MUSIC,
+        yield MusicList,
 
 
 class InputMode(Music):
