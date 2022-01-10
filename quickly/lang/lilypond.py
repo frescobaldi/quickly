@@ -532,20 +532,26 @@ class LilyPondTransform(base.Transform):
     def postprocess_lyriclist(self, nodes):
         """Yields nodes, combining syllabe nodes with a Duration.
 
-        If a String, Symbol or Scheme expression is followed by an Unpitched,
-        the node is wrapped in a Music node, with the Unpitched's duration.
-        (The Unpitched is then discarded.)
+        A String, Symbol, Scheme or Markup expression is wrapped in a LyricItem
+        node. If a lyric node is followed by an Unpitched, the unpitched's
+        duration is added to the node, the unpitched is then discarded.
+        Following Unpitcheds are converted to empty LyricItem nodes.
 
         """
         p = None
         for n in nodes:
-            if isinstance(p, (lily.String, lily.Symbol, lily.Scheme, lily.Markup)):
-                if isinstance(n, lily.Unpitched):
-                    yield lily.LyricItem(p, *n)
-                    n = None
-            elif p:
+            if isinstance(n, lily.Unpitched):
+                p = p or lily.LyricItem()
+                p.extend(n)
                 yield p
-            p = n
+            else:
+                if p:
+                    yield p
+                if isinstance(n, (lily.String, lily.Symbol, lily.Scheme, lily.Markup)):
+                    p = lily.LyricItem(n)
+                    continue
+                yield n
+            p = None
         if p:
             yield p
 
