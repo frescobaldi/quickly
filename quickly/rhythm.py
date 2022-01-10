@@ -59,6 +59,30 @@ class EditRhythm(edit.Edit):
         else:
             return lily.Duration.from_string('4')
 
+    def may_remove(self, node):
+        """Return True if the duration of this node may be removed.
+
+        A duration may not be removed if ``node.duration_required`` is True,
+        or when the node's right sibling has only the duration visible, such as
+        is the case with an unpitched note or an empty lyric item.
+
+        In that case, the current duration may not be removed, because the next
+        duration would then be understood as the duration of the current node
+        when rewriting the music text.
+
+        """
+        if node.duration_required:
+            return False
+        elif any(node / lily.Articulations):
+            return True
+        n = node.right_sibling()
+        if n:
+            if isinstance(n, lily.Unpitched):
+                return False
+            elif isinstance(n, lily.LyricItem) and n.duration_required:
+                return False
+        return True
+
     def process(self, node, prev):
         """Implement to perform an operation on the ``node``.
 
@@ -73,7 +97,7 @@ class Remove(EditRhythm):
     """Remove duration from Durable nodes, if allowed."""
     def process(self, node, prev):
         """Remove duration from ``node``; ``prev`` is unused."""
-        if not node.duration_required:
+        if self.may_remove(node):
             del node.duration
 
 
@@ -112,7 +136,7 @@ class RhythmImplicit(EditRhythm):
         """Remove duration from ``node`` if same as (duration, scaling) tuple in ``prev``."""
         dur, scaling = node.duration, node.scaling
         if dur:
-            if (dur, scaling) == prev and not node.duration_required:
+            if (dur, scaling) == prev and self.may_remove(node):
                 del node.duration
             elif node.duration_sets_previous:
                 prev = (dur, scaling)
@@ -136,7 +160,7 @@ class RhythmImplicitPerLine(EditRhythm):
         dur, scaling = node.duration, node.scaling
         block = self.find_block(node)
         if dur:
-            if [dur, scaling, block] == prev and not node.duration_required:
+            if [dur, scaling, block] == prev and self.may_remove(node):
                 del node.duration
             elif node.duration_sets_previous:
                 prev = [dur, scaling, block]
@@ -250,11 +274,15 @@ class PasteRhythm(EditRhythm):
     def edit_range(self, r):
         """Paste the durations."""
         durs = (itertools.cycle if self.cycle else iter)(self._durations)
+        prev = None
         for node, duration in zip(self.durables(r), durs):
             if duration:
                 node.duration, node.scaling = duration
-            elif not node.duration_required:
+                prev = duration
+            elif self.may_remove(node):
                 del node.duration
+            elif prev:
+                node.duration, node.scaling = prev
 
 
 def remove(music):
