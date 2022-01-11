@@ -288,9 +288,9 @@ class PasteRhythm(EditRhythm):
 
 
 def remove(music):
-    """Remove all durations from music.
+    r"""Remove all durations from music.
 
-    Does not remove the duration from ``\skip``s and Unpitched notes, and also
+    Does not remove the duration from ``\skip`` and Unpitched notes, and also
     not from durables that immediately precede Unpitched notes (or empty lyric
     items), because the Unpitched's duration would then be mistakenly held for
     the duration of the preceding note.
@@ -379,7 +379,17 @@ def paste(music, durations, cycle=True):
 
     Every duration is a two-tuple of integers or fractions (duration, scaling),
     or None for Durables without duration. If ``cycle`` is True, the pasted
-    durations are endlessly repeated in the selected range.
+    durations are endlessly repeated in the selected range. An example::
+
+        >>> from quickly.dom import read
+        >>> from quickly.rhythm import copy, paste
+        >>> durs = copy(read.lily_document("{ 8. 16 8 }"))
+        >>> durs
+        [(Fraction(3, 16), 1.0), (Fraction(1, 16), 1.0), (Fraction(1, 8), 1.0)]
+        >>> music = read.lily_document("{ g a g c d c a b a f g f }")
+        >>> paste(music, durs)
+        >>> music.write()
+        '{ g8. a16 g8 c8. d16 c8 a8. b16 a8 f8. g16 f8 }'
 
     """
     return PasteRhythm(durations, cycle).edit(music)
