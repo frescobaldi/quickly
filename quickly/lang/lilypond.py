@@ -1063,13 +1063,13 @@ class MusicBuilder:
         lily.Break, lily.Breathe, lily.Clef, lily.Default, lily.Fixed,
         lily.Grace, lily.GrobDirection, lily.GrobStyle, lily.InStaffSegno,
         lily.KeepWithTag, lily.Key, lily.Label, lily.Mark, lily.OctaveCheck,
-        lily.Ottava, lily.PageBreak, lily.PageTurn, lily.Partial,
-        lily.PushToTag, lily.QuoteDuring, lily.Relative, lily.RemoveWithTag,
-        lily.Repeat, lily.ScaleDurations, lily.Shape, lily.ShiftDurations,
-        lily.SlashedGrace, lily.StringTuning, lily.TagGroup, lily.Tempo,
-        lily.Time, lily.Times, lily.Toggle, lily.Transpose, lily.Transposition,
-        lily.Tuplet, lily.Unfolded, lily.UnfoldRepeats, lily.Unit, lily.VoiceN,
-        lily.Volta, lily.VShape,
+        lily.Ottava, lily.PageBreak, lily.PageTurn, lily.PartCombine,
+        lily.Partial, lily.PushToTag, lily.QuoteDuring, lily.Relative,
+        lily.RemoveWithTag, lily.Repeat, lily.ScaleDurations, lily.Shape,
+        lily.ShiftDurations, lily.SlashedGrace, lily.StringTuning,
+        lily.TagGroup, lily.Tempo, lily.Time, lily.Times, lily.Toggle,
+        lily.Transpose, lily.Transposition, lily.Tuplet, lily.Unfolded,
+        lily.UnfoldRepeats, lily.Unit, lily.VoiceN, lily.Volta, lily.VShape,
     )
 
     @_action(a.Name.Builtin)

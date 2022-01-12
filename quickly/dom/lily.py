@@ -2163,11 +2163,20 @@ class AfterGrace(element.HeadElement, Music):
     ``afterGraceFraction`` variable or 3/4.
 
     """
-    space_after_head = " "
+    space_after_head = space_between = " "
     head = r"\afterGrace"
 
     def signatures(self):
         yield Fraction, MUSIC, MUSIC
+        yield MUSIC, MUSIC
+
+
+class PartCombine(element.HeadElement, Music):
+    r"""The ``\partcombine`` command, with two Music arguments."""
+    space_after_head = space_between = " "
+    head = r"\partcombine"
+
+    def signatures(self):
         yield MUSIC, MUSIC
 
 
