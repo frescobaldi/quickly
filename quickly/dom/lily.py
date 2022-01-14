@@ -1401,6 +1401,20 @@ class FigureMode(base.BackslashCommand, InputMode):
 
 class Chord(Durable):
     """A chord. Must have a ChordBody element."""
+
+    @property
+    def duration_sets_previous(self):
+        """False if no duration is set.
+
+        (Normally this if True for a chord, and if :meth:`length` returns not
+        -1, the duration is often read and stored as the previous duration for
+        the next note. But for Chord, :meth:`length` can return 0, even if no
+        duration was set. This property then prevents the reader from storing
+        the non-existent duration as previous.)
+
+        """
+        return self.duration is not None
+
     def length(self, transform=None):
         """Return 0 if the chord is empty, in accordance with LilyPond's behaviour."""
         for body in self:

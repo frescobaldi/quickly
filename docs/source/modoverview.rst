@@ -15,5 +15,6 @@ Overview of all modules
    registry.rst
    relative.rst
    rhythm.rst
+   time.rst
    transpose.rst
 
