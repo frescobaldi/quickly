@@ -213,7 +213,7 @@ class Transpose(edit.Edit):
 
             # handle the start pitch
             nodes = list(util.skip_comments(node))
-            if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
+            if len(nodes) > 1 and isinstance(nodes[0], lily.Pitchable):
                 start_note, *nodes = nodes
                 last_pitch = processor.read_node(start_note)    # untransposed
                 if writable(start_note):

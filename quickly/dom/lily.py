@@ -34,6 +34,16 @@ from . import base, element, scm
 
 class Music(element.Element):
     """Base class for all elements that contain music."""
+    def is_sequential(self):
+        """Return True if child music nodes should be played sequentially.
+
+        This is used to compute the time position of a child: if this returns
+        False, every child starts at the same position; if True, preceding
+        nodes must be traversed in order to get the time position.
+
+        """
+        return False
+
     def transform(self):
         """Return a :class:`~.duration.Transform` that adjusts the duration of child nodes."""
         return duration.Transform()
@@ -50,7 +60,7 @@ class Music(element.Element):
 
 
 class Durable(Music):
-    """An element that can have a Duration child.
+    """A single musical object that takes time and can have a Duration child.
 
     Used as base class for Note, Rest, Chord, LyricText etc. The
     :attr:`duration` and :attr:`scaling` properties make it easy to manipulate
@@ -92,22 +102,8 @@ class Durable(Music):
         transform = self.parent_transform()
         length = self.length(transform)
         if length == -1:
-            n = self.previous_durable()
-            if n:
-                length = n.length(transform)
-            else:
-                length = transform.length(fractions.Fraction(1, 4), 1)
+            length = transform.length(*previous_duration(self))
         return length
-
-    def previous_durable(self):
-        """Return the closest preceding Durable that has a duration that
-        LilyPond would use if this node had no duration.
-
-        """
-        for n in self < Durable:
-            if n.duration_sets_previous:
-                for d in n / Duration:
-                    return n
 
     @property
     def duration(self):
@@ -155,7 +151,7 @@ class Durable(Music):
 
         """
         for d in self / Duration:
-            scaling = 1.0
+            scaling = 1
             for s in d / DurationScaling:
                 scaling *= s.head
             return scaling
@@ -1206,8 +1202,13 @@ class Relative(element.HeadElement, Music):
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield Note, MUSIC
+        yield Pitchable, MUSIC
         yield MUSIC,
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Absolute(element.HeadElement, Music):
@@ -1225,7 +1226,12 @@ class Fixed(element.HeadElement, Music):
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield Note, MUSIC
+        yield Pitchable, MUSIC
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Transpose(element.HeadElement, Music):
@@ -1234,7 +1240,12 @@ class Transpose(element.HeadElement, Music):
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield Note, Note, MUSIC
+        yield Pitchable, Pitchable, MUSIC
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 2:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Repeat(element.HeadElement, Music):
@@ -1289,7 +1300,12 @@ class Transposition(element.HeadElement, Music):
     space_between = space_after_head = " "
 
     def signatures(self):
-        yield Note,
+        yield Pitchable,
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Ottava(_ConvertUnpitchedToInt, element.HeadElement, Music):
@@ -1307,6 +1323,10 @@ class MusicList(element.BlockElement, Music):
     head = "{"
     tail = "}"
 
+    def is_sequential(self):
+        """Return False when the parent is a Simultaneous command, True otherwise."""
+        return not isinstance(self.parent, Simultaneous)
+
     def indent_align_indices(self):
         """How to align child nodes if on the same line as an indenting char."""
         yield 0
@@ -1316,6 +1336,10 @@ class SimultaneousMusicList(MusicList):
     """A list of music items between ``<<`` ... ``>>``."""
     head = "<<"
     tail = ">>"
+
+    def is_sequential(self):
+        """Return always False."""
+        return False
 
 
 class Sequential(element.HeadElement, Music):
@@ -1405,10 +1429,36 @@ class ChordBody(element.BlockElement):
 
 
 class Note(Pitchable, Durable):
-    """A pitch note name."""
+    """A musical note."""
 
     def child_order(self):
         yield Octave, Accidental, OctCheck, Duration, Articulations, base.Comment
+
+    def to_pitch(self):
+        """Convenience function to create a :class:`Pitch` from this note.
+
+        This is used when this Note is added to a command where the note has
+        not a musical meaning, but just a pitch is intended, e.g. ``\key`` or
+        ``\transpose``, etc.
+
+        """
+        p = Pitch(self.head, *self)
+        p.copy_origin_from(self)
+        return p
+
+
+class Pitch(Pitchable):
+    r"""A pitch name.
+
+    This is used as pitch argument for ``\transpose``, ``\tranposition``,
+    ``\fixed``, ``\relative``, ``\key`` etc. The difference with :class:`Note`
+    is that a Pitch is not a Durable and can't have a duration or
+    articulations.
+
+    """
+
+    def child_order(self):
+        yield Octave, Accidental, OctCheck, base.Comment
 
 
 class Unpitched(Durable):
@@ -1548,7 +1598,12 @@ class OctaveCheck(element.HeadElement):
     head = r'\octaveCheck'
 
     def signatures(self):
-        yield Note,
+        yield Pitchable,
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Duration(element.TextElement):
@@ -1596,23 +1651,42 @@ class Duration(element.TextElement):
 
         """
         dur, *scalings = text.split('*')
-        n = cls(duration.from_string(dur))
         scaling = 1
         for t in scalings:
             scaling *= fractions.Fraction(t)
+        return cls.from_duration(duration.from_string(dur), scaling)
+
+    @classmethod
+    def from_duration(cls, duration, scaling=1):
+        """Convenience constructor to make a Duration from a duration and scaling value.
+
+        An example::
+
+            >>> from quickly.dom.lily import Duration
+            >>> d = Duration.from_duration(1/4)
+            >>> d.write()
+            '4'
+            >>> d = Duration.from_duration(1/4, 1/3)
+            >>> d.write()
+            '4*1/3'
+
+        """
+        n = cls(duration)
         if scaling != 1:
             n.append(DurationScaling(scaling))
         return n
 
     def duration(self):
-        """Return our duration value, including scaling if a
-        :class:`DurationScaling` child is present.
+        """Return the two-tuple(duration, scaling).
+
+        The duration is simply our head value, the scaling is computed
+        from a :class:`DurationScaling` child if present, or 1.
 
         """
-        duration = self.head
-        for e in self / DurationScaling:
-            duration *= e.head
-        return duration
+        scaling = 1
+        for s in self / DurationScaling:
+            scaling *= s.head
+        return self.head, scaling
 
     @classmethod
     def read_head(cls, origin):
@@ -1985,7 +2059,12 @@ class Key(element.HeadElement, Music):
     head = r"\key"
 
     def signatures(self):
-        yield Note, Mode
+        yield Pitchable, Mode
+
+    def add_argument(self, node):
+        if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
+            node = node.to_pitch()
+        return super().add_argument(node)
 
 
 class Clef(element.HeadElement, Music):
@@ -3067,6 +3146,30 @@ def make_list_node(value):
         return Symbol(value) if is_symbol(value) else String(value)
     elif isinstance(value, int):
         return Int(value)
+
+
+def previous_duration(node):
+    """Return a two-tuple(duration, scaling) of the closest preceding Durable
+    that has a duration that LilyPond would use if the current node had no
+    duration.
+
+    If no such node was found, returns ``(Fraction(1, 4), 1)``.
+
+    This function is potentially slow, as it searches backwards for a Durable
+    node. Don't use it if you have the opportunity to keep track of the
+    previous duration yourself (from a :class:`Durable` that has the
+    :attr:`~Durable.duration_sets_previous` attribute set to True).
+
+    """
+    for n in node < Durable:
+        if n.duration_sets_previous:
+            for d in n / Duration:
+                dur = d.head
+                scaling = 1
+                for s in d / DurationScaling:
+                    scaling *= s.head
+                return dur, scaling
+    return fractions.Fraction(1, 4), 1
 
 
 def convert_duration_to_int(node):

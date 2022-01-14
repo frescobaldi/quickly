@@ -46,15 +46,6 @@ class EditRhythm(edit.Edit):
                 yield n
 
     @staticmethod
-    def previous_duration(node):
-        """Return the Duration of node.previous_durable() or a default Duration."""
-        prev = node.previous_durable()
-        if prev:
-            return next(prev / lily.Duration)
-        else:
-            return lily.Duration.from_string('4')
-
-    @staticmethod
     def may_remove(node):
         """Return True if the duration of this node may be removed.
 
@@ -125,7 +116,7 @@ class RhythmExplicit(EditRhythm):
         """Add duration to ``node`` if absent; ``prev`` is the previous Duration node."""
         if node.duration is None:
             if prev is None:
-                prev = self.previous_duration(node)
+                prev = lily.Duration.from_duration(*lily.previous_duration(node))
             node.add(prev.copy())
         elif node.duration_sets_previous:
             prev = next(node / lily.Duration)
