@@ -37,7 +37,7 @@ Result.time.__doc__ = "The position or duration time value."
 
 
 class Time:
-    """Compute the length of musical expressions.
+    r"""Compute the length of musical expressions.
 
     A :class:`~.scope.Scope`, if given using the ``scope`` parameter, is used
     to resolve include files. If no scope is given, only searches the current
