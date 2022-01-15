@@ -127,12 +127,12 @@ class RhythmImplicit(EditRhythm):
     """Remove reoccurring durations."""
     def process(self, node, prev):
         """Remove duration from ``node`` if same as (duration, scaling) tuple in ``prev``."""
-        dur, scaling = node.duration, node.scaling
+        dur = node.duration_scaling
         if dur:
-            if (dur, scaling) == prev and self.may_remove(node):
+            if dur == prev and self.may_remove(node):
                 del node.duration
             elif node.duration_sets_previous:
-                prev = (dur, scaling)
+                prev = dur
         return prev
 
 
@@ -150,16 +150,16 @@ class RhythmImplicitPerLine(EditRhythm):
         same as [duration, scaling, block] list in ``prev``.
 
         """
-        dur, scaling = node.duration, node.scaling
+        dur = node.duration_scaling
         block = self.find_block(node)
         if dur:
-            if [dur, scaling, block] == prev and self.may_remove(node):
+            if [dur, block] == prev and self.may_remove(node):
                 del node.duration
             elif node.duration_sets_previous:
-                prev = [dur, scaling, block]
-        elif block and prev and prev[2] != block:
-            node.duration, node.scaling = prev[:2]
-            prev[2] = block
+                prev = [dur, block]
+        elif block and prev and prev[1] != block:
+            node.duration_scaling = prev[0]
+            prev[1] = block
         return prev
 
 
@@ -212,9 +212,9 @@ class RhythmTransform(EditRhythm):
 
     def process(self, node, prev):
         """Apply Transform to ``node`` if it has a duration; ``prev`` is unused."""
-        dur = node.duration
-        if dur is not None:
-            node.duration, node.scaling = self._transform(dur, node.scaling)
+        dur = node.duration_scaling
+        if dur:
+            node.duration_scaling = self._transform(*dur)
 
 
 class CopyRhythm(EditRhythm):
@@ -236,11 +236,7 @@ class CopyRhythm(EditRhythm):
 
     def edit_range(self, r):
         """Return the list of extracted durations."""
-        def rhythm():
-            for n in self.durables(r):
-                dur = n.duration
-                yield (dur, n.scaling) if dur else None
-        return list(rhythm())
+        return [n.duration_scaling for n in self.durables(r)]
 
 
 class PasteRhythm(EditRhythm):
@@ -270,12 +266,12 @@ class PasteRhythm(EditRhythm):
         prev = None
         for node, duration in zip(self.durables(r), durs):
             if duration:
-                node.duration, node.scaling = duration
+                node.duration_scaling = duration
                 prev = duration
             elif self.may_remove(node):
                 del node.duration
             elif prev:
-                node.duration, node.scaling = prev
+                node.duration_scaling = prev
 
 
 def remove(music):

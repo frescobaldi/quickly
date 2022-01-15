@@ -181,6 +181,27 @@ class Durable(Music):
     def scaling(self):
         self.scaling = None
 
+    @property
+    def duration_scaling(self):
+        """Access duration and scaling in one go.
+
+        This value is either a two-tuple (duration, scaling) or None.
+
+        """
+        for d in self / Duration:
+            return d.duration()
+
+    @duration_scaling.setter
+    def duration_scaling(self, value):
+        if value:
+            self.duration, self.scaling = value
+        else:
+            del self.duration
+
+    @duration_scaling.deleter
+    def duration_scaling(self):
+        del self.duration
+
 
 class Pitchable(element.TextElement, Music):
     """Base class for a note or pitched rest.
@@ -1416,7 +1437,8 @@ class Chord(Durable):
         return self.duration is not None
 
     def length(self, transform=None):
-        """Return 0 if the chord is empty, in accordance with LilyPond's behaviour."""
+        """Return 0 if the chord is empty, even if this chord has no duration
+        set, in accordance with LilyPond's behaviour."""
         for body in self:
             if any(body / Note):
                 return super().length(transform)
@@ -1449,7 +1471,7 @@ class Note(Pitchable, Durable):
         yield Octave, Accidental, OctCheck, Duration, Articulations, base.Comment
 
     def to_pitch(self):
-        """Convenience function to create a :class:`Pitch` from this note.
+        r"""Convenience function to create a :class:`Pitch` from this note.
 
         This is used when this Note is added to a command where the note has
         not a musical meaning, but just a pitch is intended, e.g. ``\key`` or

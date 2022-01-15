@@ -23,8 +23,17 @@ Functionality to compute the time length of musical expressions.
 """
 
 
+import collections
+
 from . import duration
 from .dom import lily
+
+
+#: The result value (if not None) of the :meth:`~Time.position` and
+#: :meth:`~Time.duration` methods.
+Result = collections.namedtuple("Result", "node time")
+Result.node.__doc__ = "The topmost Music expression."
+Result.time.__doc__ = "The position or duration time value."
 
 
 class Time:
@@ -41,8 +50,7 @@ class Time:
 
     An example::
 
-        >>> import parce, quickly
-        >>> from quickly import time
+        >>> import parce, quickly.time
         >>> d = parce.Document(quickly.find('lilypond'), r'''
         ... music = { c4 d e f }
         ...
@@ -72,19 +80,19 @@ class Time:
             ├╴<lily.Note 'g' [42:43]>
             ├╴<lily.Note 'f' [44:45]>
             ╰╴<lily.Note 'd' [46:47]>
-        >>> t=time.Time()
+        >>> t=quickly.time.Time()
         >>> t.position(m[1][0])         # first note in second expression
-        (<lily.MusicList (8 children) [23:49]>, 0)
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=0)
         >>> t.position(m[1][1])         # \music identifier ref
-        (<lily.MusicList (8 children) [23:49]>, Fraction(1, 2))
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=Fraction(1, 2))
         >>> t.position(m[1][2])         # the g after the \music ref
-        (<lily.MusicList (8 children) [23:49]>, Fraction(3, 2))
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=Fraction(3, 2))
         >>> t.length(m[0][2])           # the \music expression
         Fraction(1, 1)
         >>> t.length(m[1])              # total length of second expression
         Fraction(3, 1)                  # referenced \music correctly counted in :)
-        >>> t.duration(m[1][0], m[1][2])
-        Fraction(2, 1)                  # length of "c2 \music g" part (g has duration 2)
+        >>> t.duration(m[1][0], m[1][2])# length of "c2 \music g" part (g has duration 2)
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=Fraction(2, 1))
 
     There are convenient methods to get the musical position of a parce
     :class:`~parce.Cursor`::
@@ -93,9 +101,29 @@ class Time:
         >>> c.text()                    # two notes
         'f d'
         >>> t.cursor_position(c)        # length or music before the cursor
-        (<lily.MusicList (8 children) [22:49]>, Fraction(11, 4))
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=Fraction(11, 4))
         >>> t.cursor_duration(c)        # duration of the selected music
-        (<lily.MusicList (8 children) [22:49]>, Fraction(1, 4))
+        Result(node=<lily.MusicList (8 children) [23:49]>, time=Fraction(1, 4))
+
+    LilyPond music functions that alter durations are recognized, and are
+    abstracted in simple transformations that alter log, dotcount and/or
+    scaling. An example::
+
+        >>> from quickly.dom import read
+        >>> m = read.lily(r"\tuplet 3/2 { c8 d e }")
+        >>> t.length(m)
+        Fraction(1, 4)
+        >>> m[1][1]                     # a single note in the tuplet
+        <lily.Note 'd'>
+        >>> t.length(m[1][1])
+        Fraction(1, 12)
+        >>> m = read.lily(r"\shiftDurations #1 #1 { c4 d e f }")
+        >>> t.length(m)         # note value halved and dot added, so should be 3/4
+        Fraction(3, 4)
+        >>> m[2][2]
+        <lily.Note 'e'>
+        >>> t.length(m[2][2])   # autodiscovers the current duration transform
+        Fraction(3, 16)
 
     """
     def __init__(self, scope=None, wait=False):
@@ -113,7 +141,8 @@ class Time:
                 transform += node.transform()
         return time, node, transform
 
-    def _music_child(self, node):
+    @staticmethod
+    def _music_child(node):
         """Return the topmost Music child or None."""
         # avoid picking one note of a chord
         if isinstance(node, lily.Chord):
@@ -125,7 +154,8 @@ class Time:
                 return node
             node = node.parent
 
-    def preceding_music(self, node):
+    @staticmethod
+    def _preceding_music(node):
         """Return a two-tuple(music, trail).
 
         The ``node`` must be (a child of) a :class:`~.dom.lily.Music` instance.
@@ -142,54 +172,15 @@ class Time:
         trail.reverse()
         return node, trail
 
-    def position(self, node, include=False):
-        """Return a two-tuple(ancestor, length).
-
-        The ``node`` must be (a child of) a :class:`~.dom.lily.Music` instance.
-        The returned ancestor is the topmost Music element, and the length is
-        the computed length of all preceding music nodes. If ``include`` is
-        True, the node's length itself is also added.
-
-        """
-        music, trail = self.preceding_music(node)
-        time, node, transform = self._follow_trail(music, trail, music.transform())
-        if include:
-            time += self.length(node, None, transform)
-        return music, time
-
-    def duration(self, start_node, end_node):
-        """Return a two-tuple(ancestor, length) or None.
-
-        The ancestor is the topmost Music element both nodes must be a
-        descendant of. Both nodes must be (children of)
-        :class:`~.dom.lily.Music` nodes. If they don't share the same ancestor,
-        None is returned. The returned length value can be negative when the
-        end node precedes the start node.
-
-        """
-        music, start_trail = self.preceding_music(start_node)
-        end_music, end_trail = self.preceding_music(end_node)
-        if end_music is not music:
-            return
-
-        node = music
-        transform = node.transform()
-
-        # common part, just follow transform
-        index = -1
-        for index, (pos, end) in enumerate(zip(start_trail, end_trail)):
-            if pos != end:
+    @staticmethod
+    def transform(node):
+        """Return the transform in this node, counted from the topmost Music ancestor."""
+        t = node.transform() if isinstance(node, lily.Music) else duration.Transform()
+        for p in node.ancestors():
+            if not isinstance(p, lily.Music):
                 break
-            node = node[pos]
-            transform += node.transform()
-        else:
-            index += 1
-
-        # compute time only for differing part of the trails
-        start_time = self._follow_trail(node, start_trail[index:], transform)[0]
-        end_time, node, transform = self._follow_trail(node, end_trail[index:], transform)
-        end_time += self.length(node, None, transform)
-        return music, end_time - start_time
+            t += p.transform()
+        return t
 
     def length(self, node, end=None, transform=None):
         """Return the total musical length of this node until ``end``.
@@ -219,7 +210,7 @@ class Time:
                     prev_dur = lily.previous_duration(node)
                 length = transform.length(*prev_dur)
             elif node.duration_sets_previous:
-                prev_dur = node.duration, node.scaling
+                prev_dur = node.duration_scaling
             return length
 
         def times(nodes, transform):
@@ -233,22 +224,76 @@ class Time:
                 elif isinstance(node, lily.Reference):
                     yield remote_length(node, transform)
 
+        if transform is None:
+            transform = self.transform(node)
+
         if isinstance(node, lily.Durable):
-            return durable_length(node, transform or duration.Transform())
+            return durable_length(node, transform)
         elif isinstance(node, lily.Music):
             if node.is_sequential():
-                return sum(times(node[:end], transform or node.transform()))
+                return sum(times(node[:end], transform))
             elif end is None:
-                return max(times(node, transform or node.transform()), default=0)
+                return max(times(node, transform), default=0)
         elif isinstance(node, lily.Reference):
-            return remote_length(node, transform or duration.Transform())
+            return remote_length(node, transform)
         return 0
 
-    def cursor_position(self, cursor):
-        """Return a two-tuple(node, position) or None.
+    def position(self, node, include=False):
+        """Return a :class:`Result` two-tuple(node, time).
 
-        The node is the music expression the cursor is in, and the position is
-        the time offset from the start of that expression to the cursor's
+        The ``node`` argument must be (a child of) a :class:`~.dom.lily.Music`
+        instance.
+
+        The returned ``node`` is the topmost Music element, and the ``time`` is
+        the computed length of all preceding music nodes. If ``include`` is
+        True, the node's length itself is also added.
+
+        """
+        music, trail = self._preceding_music(node)
+        time, node, transform = self._follow_trail(music, trail, music.transform())
+        if include:
+            time += self.length(node, None, transform)
+        return Result(music, time)
+
+    def duration(self, start_node, end_node):
+        """Return a :class:`Result` two-tuple(node, time) or None.
+
+        The returned ``node`` is the topmost Music element both nodes must be a
+        descendant of. Both nodes must be (children of)
+        :class:`~.dom.lily.Music` nodes. If they don't share the same ancestor,
+        None is returned. The returned ``time`` value can be negative when the
+        end node precedes the start node.
+
+        """
+        music, start_trail = self._preceding_music(start_node)
+        end_music, end_trail = self._preceding_music(end_node)
+        if end_music is not music:
+            return
+
+        node = music
+        transform = node.transform()
+
+        # common part, just follow transform
+        index = -1
+        for index, (pos, end) in enumerate(zip(start_trail, end_trail)):
+            if pos != end:
+                break
+            node = node[pos]
+            transform += node.transform()
+        else:
+            index += 1
+
+        # compute time only for differing part of the trails
+        start_time = self._follow_trail(node, start_trail[index:], transform)[0]
+        end_time, node, transform = self._follow_trail(node, end_trail[index:], transform)
+        end_time += self.length(node, None, transform)
+        return Result(music, end_time - start_time)
+
+    def cursor_position(self, cursor):
+        """Return a :class:`Result` two-tuple(node, time) or None.
+
+        The ``node`` is the music expression the cursor is in, and the ``time``
+        is the time offset from the start of that expression to the cursor's
         position.
 
         Returns None if the cursor is not in music.
@@ -262,13 +307,13 @@ class Time:
                 return self.position(c)
 
     def cursor_duration(self, cursor):
-        """Return a two-tuple(node, length) or None.
+        """Return a :class:`Result` two-tuple(node, time) or None.
 
-        The node is the music expression the cursor is in, and the length is
-        the length of the selected music fragment.
+        The ``node`` is the music expression the cursor is in, and the ``time``
+        is the length of the selected music fragment.
 
-        Returns None if the selection start and/or end are not in music, or in
-        different music expressions.
+        Returns None if there's no selection or the selection's start and/or
+        end are not in music, or in different music expressions.
 
         """
         if cursor.has_selection():
@@ -284,7 +329,7 @@ class Time:
                             end_node = self._music_child(n)
                             if end_node:
                                 result = self.duration(start_node, end_node)
-                                if result and result[1] >= 0:
+                                if result and result.time >= 0:
                                     return result
 
 

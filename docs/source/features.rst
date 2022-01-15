@@ -108,8 +108,8 @@ create respectively a :class:`Abs2rel` or :class:`Rel2abs` object and call
 their :meth:`~quickly.dom.edit.Edit.edit` method.
 
 
-Edit durations
-^^^^^^^^^^^^^^
+Time and rhythm
+^^^^^^^^^^^^^^^
 
 .. currentmodule:: quickly.rhythm
 
@@ -142,4 +142,8 @@ that are used to refactor or modify existing music:
      - extract durations to a list of (duration, scaling) tuples
    * - :func:`paste`
      - overwrite durations in music from a list of (duration, scaling) tuples
+
+There is also the :mod:`.time` module, which provides functions to compute the
+length of musical fragments, or to compute the musical position a text cursor
+is at. Low level duration logic is in the :mod:`.duration` module.
 
