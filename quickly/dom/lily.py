@@ -58,6 +58,20 @@ class Music(element.Element):
         ancestors = itertools.takewhile(is_music, self.ancestors())
         return sum((n.transform() for n in ancestors), duration.Transform())
 
+    def time_length(self, time, transform, end=None):
+        """Return the length of this expression, using a
+        :class:`~.time.TimeEvents` handler.
+
+        If ``end`` is give it is the index to stop just before.
+
+        """
+        transform += self.transform()
+        if self.is_sequential():
+            return sum(time.lengths(self[:end], transform))
+        elif end is None:
+            return max(time.lengths(self, transform), default=0)
+        return 0
+
 
 class Durable(Music):
     """A single musical object that takes time and can have a Duration child.
@@ -103,6 +117,22 @@ class Durable(Music):
         length = self.length(transform)
         if length == -1:
             length = transform.length(*previous_duration(self))
+        return length
+
+    def time_length(self, time, transform, end=None):
+        """Return the length of this Durable, using a
+        :class:`~.time.TimeEvents` handler.
+
+        For Durable, ``end`` is ignored.
+
+        """
+        length = self.length(transform)
+        if length == -1:
+            if not time.previous_duration:
+                time.previous_duration = previous_duration(self)
+            length = transform.length(*time.previous_duration)
+        elif self.duration_sets_previous:
+            time.previous_duration = self.duration_scaling
         return length
 
     @property
