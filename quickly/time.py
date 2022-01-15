@@ -175,8 +175,9 @@ class Time:
         """Return the total musical length of this node until ``end``.
 
         If end is None, all child nodes are counted. For Durable and Reference
-        nodes, the end value is ignored. The duration is transformed if a
-        :class:`~.duration.Transform` is specified.
+        nodes, the end value is ignored. If no :class:`~.duration.Transform` is
+        specified, the :meth:`~.dom.lily.Music.parent_transform` if used if it
+        is a Music node.
 
         """
         if transform is None:
@@ -284,9 +285,10 @@ class Time:
 class TimeEvents:
     """Simple event handler for measuring the length of music.
 
-    Created by and used during a :meth:`Time.length`. Calls the
+    Created by and used during :meth:`Time.length`. Calls the
     :meth:`~.lily.Music.time_length` method of Music items to compute the
-    length.
+    length. with the transform as argument, already added upto the node's own
+    Transform.
 
     """
     #: :class:`~.dom.lily.Durable` leaves the previous duration here,
@@ -308,7 +310,7 @@ class TimeEvents:
         if isinstance(node, lily.Reference):
             return self.remote_length(node, transform)
         elif isinstance(node, lily.Music):
-            return node.time_length(self, transform, end)
+            return node.time_length(self, transform + node.transform(), end)
         return 0
 
     def lengths(self, nodes, transform):
@@ -323,6 +325,6 @@ class TimeEvents:
             n, s = n.get_value_with_scope(s, self.wait)
         if isinstance(n, lily.Music):
             time = type(self)(s, self.wait)
-            return n.time_length(time, transform)
+            return n.time_length(time, transform + n.transform())
         return 0
 

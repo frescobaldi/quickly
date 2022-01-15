@@ -65,7 +65,6 @@ class Music(element.Element):
         If ``end`` is give it is the index to stop just before.
 
         """
-        transform += self.transform()
         if self.is_sequential():
             return sum(time.lengths(self[:end], transform))
         elif end is None:
