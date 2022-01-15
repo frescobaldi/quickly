@@ -86,7 +86,8 @@ class Time:
         >>> t.duration(m[1][0], m[1][2])
         Fraction(2, 1)                  # length of "c2 \music g" part (g has duration 2)
 
-    There are convenient methods to get the musical position of a
+    There are convenient methods to get the musical position of a parce
+    :class:`~parce.Cursor`::
 
         >>> c = parce.Cursor(d, 44, 47)
         >>> c.text()                    # two notes
@@ -98,8 +99,8 @@ class Time:
 
     """
     def __init__(self, scope=None, wait=False):
-        self.scope = scope  #: our :class:`~.scope.Scope`
-        self.wait = wait    #: whether to wait for parce transforms
+        self.scope = scope  #: Our :class:`~.scope.Scope`.
+        self.wait = wait    #: If True, parce transformations are waited for.
 
     def _follow_trail(self, node, trail, transform):
         """Compute length; return length, node, transform at end of trail."""
