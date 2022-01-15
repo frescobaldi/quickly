@@ -32,18 +32,18 @@ class Time:
 
     A :class:`~.scope.Scope`, if given using the ``scope`` parameter, is used
     to resolve include files. If no scope is given, only searches the current
-    DOM document; the yielded scope is then always None.
+    DOM document for variable assignments.
 
     If a scope is given, include commands are followed and ``wait`` determines
     whether to wait for ongoing transformations of external DOM documents. If
-    wait is False, and a transformation is not yet finished the included
-    document's toplevel nodes will not be searched for variable assignments.
+    wait is False, and a transformation is not yet finished the include is not
+    followed.
 
     An example::
 
         >>> import parce, quickly
         >>> from quickly import time
-        >>> d=parce.Document(quickly.find('lilypond'), r'''
+        >>> d = parce.Document(quickly.find('lilypond'), r'''
         ... music = { c4 d e f }
         ...
         ... { c2 \music g a b8 g f d }
@@ -86,15 +86,48 @@ class Time:
         >>> t.duration(m[1][0], m[1][2])
         Fraction(2, 1)                  # length of "c2 \music g" part (g has duration 2)
 
+    There are convenient methods to get the musical position of a
+
+        >>> c = parce.Cursor(d, 44, 47)
+        >>> c.text()                    # two notes
+        'f d'
+        >>> t.cursor_position(c)        # length or music before the cursor
+        (<lily.MusicList (8 children) [22:49]>, Fraction(11, 4))
+        >>> t.cursor_duration(c)        # duration of the selected music
+        (<lily.MusicList (8 children) [22:49]>, Fraction(1, 4))
+
     """
-    def __init__(self, scope=None, wait=True):
-        self.scope = scope
-        self.wait = wait
+    def __init__(self, scope=None, wait=False):
+        self.scope = scope  #: our :class:`~.scope.Scope`
+        self.wait = wait    #: whether to wait for parce transforms
+
+    def _follow_trail(self, node, trail, transform):
+        """Compute length; return length, node, transform at end of trail."""
+        time = 0
+        for index in trail:
+            if index and node.is_sequential():
+                time += self.length(node, index, transform)
+            node = node[index]
+            if isinstance(node, lily.Music):
+                transform += node.transform()
+        return time, node, transform
+
+    def _music_child(self, node):
+        """Return the topmost Music child or None."""
+        # avoid picking one note of a chord
+        if isinstance(node, lily.Chord):
+            return node
+        for chord in node << lily.Chord:
+            return chord
+        while node:
+            if isinstance(node, lily.Music) or isinstance(node.parent, lily.Music):
+                return node
+            node = node.parent
 
     def preceding_music(self, node):
         """Return a two-tuple(music, trail).
 
-        The ``node`` must be a child of a :class:`~.dom.lily.Music` instance.
+        The ``node`` must be (a child of) a :class:`~.dom.lily.Music` instance.
         The returned music is the topmost Music ancestor and the trail lists
         the indices of the children upto the node.
 
@@ -108,21 +141,10 @@ class Time:
         trail.reverse()
         return node, trail
 
-    def _follow_trail(self, node, trail, transform):
-        """Compute length; return length, node, transform at end of trail."""
-        time = 0
-        for index in trail:
-            if index and node.is_sequential():
-                time += self.length(node, index, transform)
-            node = node[index]
-            if isinstance(node, lily.Music):
-                transform += node.transform()
-        return time, node, transform
-
     def position(self, node, include=False):
         """Return a two-tuple(ancestor, length).
 
-        The ``node`` must be a child of a :class:`~.dom.lily.Music` instance.
+        The ``node`` must be (a child of) a :class:`~.dom.lily.Music` instance.
         The returned ancestor is the topmost Music element, and the length is
         the computed length of all preceding music nodes. If ``include`` is
         True, the node's length itself is also added.
@@ -135,17 +157,19 @@ class Time:
         return music, time
 
     def duration(self, start_node, end_node):
-        """Return the time from start upto and including end node.
+        """Return a two-tuple(ancestor, length) or None.
 
-        Both nodes must be children of :class:`~.dom.lily.Music` nodes. If they
-        don't share the same ancestor, -1 is returned. A negative value can
-        also be returned when the end node precedes the start node.
+        The ancestor is the topmost Music element both nodes must be a
+        descendant of. Both nodes must be (children of)
+        :class:`~.dom.lily.Music` nodes. If they don't share the same ancestor,
+        None is returned. The returned length value can be negative when the
+        end node precedes the start node.
 
         """
         music, start_trail = self.preceding_music(start_node)
         end_music, end_trail = self.preceding_music(end_node)
         if end_music is not music:
-            return -1
+            return
 
         node = music
         transform = node.transform()
@@ -164,7 +188,7 @@ class Time:
         start_time = self._follow_trail(node, start_trail[index:], transform)[0]
         end_time, node, transform = self._follow_trail(node, end_trail[index:], transform)
         end_time += self.length(node, None, transform)
-        return end_time - start_time
+        return music, end_time - start_time
 
     def length(self, node, end=None, transform=None):
         """Return the total musical length of this node until ``end``.
@@ -218,5 +242,48 @@ class Time:
         elif isinstance(node, lily.Reference):
             return remote_length(node, transform or duration.Transform())
         return 0
+
+    def cursor_position(self, cursor):
+        """Return a two-tuple(node, position) or None.
+
+        The node is the music expression the cursor is in, and the position is
+        the time offset from the start of that expression to the cursor's
+        position.
+
+        Returns None if the cursor is not in music.
+
+        """
+        dom = cursor.document().get_transform(self.wait)
+        if dom:
+            node = dom.find_descendant_right(cursor.pos)
+            c = self._music_child(node)
+            if c:
+                return self.position(c)
+
+    def cursor_duration(self, cursor):
+        """Return a two-tuple(node, length) or None.
+
+        The node is the music expression the cursor is in, and the length is
+        the length of the selected music fragment.
+
+        Returns None if the selection start and/or end are not in music, or in
+        different music expressions.
+
+        """
+        if cursor.has_selection():
+            pos, end = cursor.selection()
+            dom = cursor.document().get_transform(self.wait)
+            if dom:
+                n = dom.find_descendant_right(pos)
+                if n:
+                    start_node = self._music_child(n)
+                    if start_node:
+                        n = dom.find_descendant_left(end)
+                        if n:
+                            end_node = self._music_child(n)
+                            if end_node:
+                                result = self.duration(start_node, end_node)
+                                if result and result[1] >= 0:
+                                    return result
 
 
