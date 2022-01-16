@@ -125,10 +125,24 @@ class Time:
         >>> t.length(m[2][2])   # autodiscovers the current duration transform
         Fraction(3, 16)
 
+    .. note::
+
+       As a :class:`Time` instance uses some caching for the duration of
+       individual notes, don't rely on its computations while also modifying
+       durations of music notes, rests etc.
+
     """
     def __init__(self, scope=None, wait=False):
         self.scope = scope  #: Our :class:`~.scope.Scope`.
         self.wait = wait    #: If True, parce transformations are waited for.
+        self.get_duration = lily.duration_getter()
+
+    def get_duration(self, durable):
+        """Get the (duration, scaling) tuple of a single Durable. Uses some
+        caching to prevent long searches, see :func:`~.dom.lily.duration_getter`.
+
+        """
+        pass # overwritten by the duration_getter
 
     def _follow_trail(self, node, trail, transform):
         """Compute length; return length, node, transform at end of trail."""
@@ -172,12 +186,16 @@ class Time:
         return node, trail
 
     def length(self, node, transform=None, end=None):
-        """Return the total musical length of this node until ``end``.
+        """Return the musical length of this node.
 
-        If end is None, all child nodes are counted. For Durable and Reference
-        nodes, the end value is ignored. If no :class:`~.duration.Transform` is
-        specified, the :meth:`~.dom.lily.Music.parent_transform` if used if it
+        If given, ``end`` specifies the index until where to compute the
+        length. If None, the full length is returned. For Durable and Reference
+        nodes the end value is ignored. If no :class:`~.duration.Transform` is
+        specified, the :meth:`~.dom.lily.Music.parent_transform` is used if it
         is a Music node.
+
+        You can use this method directly, but it is also used by the
+        :meth:`~.lily.Music.time_length` method of some Music types.
 
         """
         if transform is None:
@@ -185,7 +203,35 @@ class Time:
                 transform = node.parent_transform()
             else:
                 transform = duration.Transform()
-        return TimeEvents(self.scope, self.wait).length(node, transform, end)
+        if isinstance(node, lily.Reference):
+            return self.remote_length(node, transform)
+        elif isinstance(node, lily.Music):
+            return node.time_length(self, transform + node.transform(), end)
+        return 0
+
+    def lengths(self, nodes, transform):
+        """Yield the length of every node.
+
+        Called by the :meth:`~.lily.Music.time_length` method of some Music
+        types.
+
+        """
+        for n in nodes:
+            yield self.length(n, transform)
+
+    def remote_length(self, node, transform):
+        """Return the length of the value of an IdentifierRef node.
+
+        Returns 0 if the node can't be found or is no music.
+
+        """
+        n, s = node.get_value_with_scope(self.scope, self.wait)
+        while isinstance(n, lily.Reference):
+            n, s = n.get_value_with_scope(s, self.wait)
+        if isinstance(n, lily.Music):
+            time = type(self)(s, self.wait)
+            return n.time_length(time, transform + n.transform())
+        return 0
 
     def position(self, node, include=False):
         """Return a :class:`Result` two-tuple(node, time).
@@ -199,7 +245,7 @@ class Time:
 
         """
         music, trail = self._preceding_music(node)
-        time, node, transform = self._follow_trail(music, trail, music.transform())
+        time, node, transform = self._follow_trail(music, trail, duration.Transform())
         if include:
             time += self.length(node, transform)
         return Result(music, time)
@@ -281,47 +327,4 @@ class Time:
                                 if result and result.time >= 0:
                                     return result
 
-
-class TimeEvents:
-    """Simple event handler for measuring the length of music.
-
-    Created by and used during :meth:`Time.length`. Calls the
-    :meth:`~.lily.Music.time_length` method of Music items to compute the
-    length. with the transform as argument, already added upto the node's own
-    Transform.
-
-    """
-    def __init__(self, scope=None, wait=False):
-        self.scope = scope
-        self.wait = wait
-        self.get_duration = lily.duration_getter()
-
-    def length(self, node, transform, end=None):
-        """Return the musical length of the node.
-
-        The ``transform`` should be the transform upto the current node (not
-        yet the current node's transform). If ``end`` is given, stops just
-        before that index (for musiclist nodes etc).
-
-        """
-        if isinstance(node, lily.Reference):
-            return self.remote_length(node, transform)
-        elif isinstance(node, lily.Music):
-            return node.time_length(self, transform + node.transform(), end)
-        return 0
-
-    def lengths(self, nodes, transform):
-        """Yield the length of every node. Non-musical nodes yield 0."""
-        for n in nodes:
-            yield self.length(n, transform)
-
-    def remote_length(self, node, transform):
-        """Return the length of the value of an IdentifierRef node."""
-        n, s = node.get_value_with_scope(self.scope, self.wait)
-        while isinstance(n, lily.Reference):
-            n, s = n.get_value_with_scope(s, self.wait)
-        if isinstance(n, lily.Music):
-            time = type(self)(s, self.wait)
-            return n.time_length(time, transform + n.transform())
-        return 0
 

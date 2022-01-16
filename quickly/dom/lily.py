@@ -59,8 +59,8 @@ class Music(element.Element):
         return sum((n.transform() for n in ancestors), duration.Transform())
 
     def time_length(self, time, transform, end=None):
-        """Return the length of this expression, using a
-        :class:`~.time.TimeEvents` handler.
+        """Return the length of this expression, using a :class:`~.time.Time`
+        handler.
 
         If ``end`` is given it is the index to stop just before.
 
@@ -86,8 +86,8 @@ class Durable(Music):
     duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
 
     def time_length(self, time, transform, end=None):
-        """Return the length of this Durable, using a
-        :class:`~.time.TimeEvents` handler.
+        """Return the length of this Durable, using a :class:`~.time.Time`
+        handler.
 
         For Durable, ``end`` is ignored.
 
@@ -1414,8 +1414,8 @@ class Chord(Durable):
     """A chord. Must have a ChordBody element."""
 
     def time_length(self, time, transform, end=None):
-        """Return the length of this Durable, using a
-        :class:`~.time.TimeEvents` handler.
+        """Return the length of this Durable, using a :class:`~.time.Time`
+        handler.
 
         For Chord, ``end`` is ignored; returns 0 if the chord is empty,
         in accordance with LilyPond's behaviour.
@@ -2264,8 +2264,8 @@ class AfterGrace(element.HeadElement, Music):
     head = r"\afterGrace"
 
     def time_length(self, time, transform, end=None):
-        """Return the length of this expression, using a
-        :class:`~.time.TimeEvents` handler.
+        """Return the length of this expression, using a :class:`~.time.Time`
+        handler.
 
         Reimplemented to skip the second child music expression.
 
