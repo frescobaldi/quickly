@@ -3180,11 +3180,11 @@ def make_list_node(value):
 
 def duration_getter():
     """Return a callable that returns the (duration, scaling) tuple of a
-    Durable.
+    :class:`Durable`.
 
     If the durable does not have a Duration child, the callable searches
-    backwards using until a durable is found that has a duration that LilyPond
-    would use for the current durable. All found durables without duration are
+    backwards until a Durable is found that has a duration that LilyPond would
+    use for the current durable. All found durables without duration are
     cached, so the next request only needs at most to search back one durable.
     If no durable with a value is found, ``(Fraction(1, 4), 1)`` is returned.
 
@@ -3237,6 +3237,9 @@ def previous_duration(node):
     node. Don't use it if you have the opportunity to keep track of the
     previous duration yourself (from a :class:`Durable` that has the
     :attr:`~Durable.duration_sets_previous` attribute set to True).
+
+    You can also use a :func:`duration_getter`, which optimizes for adjacent
+    notes without duration.
 
     """
     for n in node < Durable:
