@@ -291,13 +291,10 @@ class TimeEvents:
     Transform.
 
     """
-    #: :class:`~.dom.lily.Durable` leaves the previous duration here,
-    #: as a (duration, scaling) tuple.
-    previous_duration = None
-
     def __init__(self, scope=None, wait=False):
         self.scope = scope
         self.wait = wait
+        self.get_duration = lily.duration_getter()
 
     def length(self, node, transform, end=None):
         """Return the musical length of the node.

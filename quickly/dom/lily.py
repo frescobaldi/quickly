@@ -62,7 +62,7 @@ class Music(element.Element):
         """Return the length of this expression, using a
         :class:`~.time.TimeEvents` handler.
 
-        If ``end`` is give it is the index to stop just before.
+        If ``end`` is given it is the index to stop just before.
 
         """
         if self.is_sequential():
@@ -85,39 +85,6 @@ class Durable(Music):
     duration_required = False     #: Whether the Duration child is required (e.g. \skip)
     duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
 
-    def length(self, transform=None):
-        """Return the musical length.
-
-        If a :class:`~.duration.Transform` is given, the length is adjusted by
-        the transform.
-
-        Returns -1 if this node has no Duration child.
-
-        """
-        for n in self / Duration:
-            dur = n.head
-            scaling = 1
-            for s in n / DurationScaling:
-                scaling *= s.head
-            return transform.length(dur, scaling) if transform else dur * scaling
-        return -1
-
-    def actual_length(self):
-        """Return the actual musical length.
-
-        This is a potentially slow method that finds the duration transform by
-        looking upwards itself, and also looks back to find a previous duration
-        if this node has no Duration child. If there is no previous duration, a
-        quarter note length is assumed, in accordance with LilyPond's
-        behaviour.
-
-        """
-        transform = self.parent_transform()
-        length = self.length(transform)
-        if length == -1:
-            length = transform.length(*previous_duration(self))
-        return length
-
     def time_length(self, time, transform, end=None):
         """Return the length of this Durable, using a
         :class:`~.time.TimeEvents` handler.
@@ -125,14 +92,8 @@ class Durable(Music):
         For Durable, ``end`` is ignored.
 
         """
-        length = self.length(transform)
-        if length == -1:
-            if not time.previous_duration:
-                time.previous_duration = previous_duration(self)
-            length = transform.length(*time.previous_duration)
-        elif self.duration_sets_previous:
-            time.previous_duration = self.duration_scaling
-        return length
+        duration, scaling = time.get_duration(self)
+        return transform.length(duration, scaling)
 
     @property
     def duration(self):
@@ -1452,25 +1413,17 @@ class FigureMode(base.BackslashCommand, InputMode):
 class Chord(Durable):
     """A chord. Must have a ChordBody element."""
 
-    @property
-    def duration_sets_previous(self):
-        """False if no duration is set.
+    def time_length(self, time, transform, end=None):
+        """Return the length of this Durable, using a
+        :class:`~.time.TimeEvents` handler.
 
-        (Normally this if True for a chord, and if :meth:`length` returns not
-        -1, the duration is often read and stored as the previous duration for
-        the next note. But for Chord, :meth:`length` can return 0, even if no
-        duration was set. This property then prevents the reader from storing
-        the non-existent duration as previous.)
+        For Chord, ``end`` is ignored; returns 0 if the chord is empty,
+        in accordance with LilyPond's behaviour.
 
         """
-        return self.duration is not None
-
-    def length(self, transform=None):
-        """Return 0 if the chord is empty, even if this chord has no duration
-        set, in accordance with LilyPond's behaviour."""
         for body in self:
             if any(body / Note):
-                return super().length(transform)
+                return super().time_length(time, transform, end)
         return 0
 
     def child_order(self):
@@ -2309,6 +2262,18 @@ class AfterGrace(element.HeadElement, Music):
     """
     space_after_head = space_between = " "
     head = r"\afterGrace"
+
+    def time_length(self, time, transform, end=None):
+        """Return the length of this expression, using a
+        :class:`~.time.TimeEvents` handler.
+
+        Reimplemented to skip the second child music expression.
+
+        """
+        for n in self[:end]:
+            if isinstance(n, Music):
+                return time.length(n, transform)
+        return 0
 
     def signatures(self):
         yield Fraction, MUSIC, MUSIC
@@ -3211,6 +3176,54 @@ def make_list_node(value):
         return Symbol(value) if is_symbol(value) else String(value)
     elif isinstance(value, int):
         return Int(value)
+
+
+def duration_getter():
+    """Return a callable that returns the (duration, scaling) tuple of a
+    Durable.
+
+    If the durable does not have a Duration child, the callable searches
+    backwards using until a durable is found that has a duration that LilyPond
+    would use for the current durable. All found durables without duration are
+    cached, so the next request only needs at most to search back one durable.
+    If no durable with a value is found, ``(Fraction(1, 4), 1)`` is returned.
+
+    Use this getter if you are not sure you really iterate over all the
+    durables in a node and cannot keep track of the previous durable yourself.
+
+    Get a new getter if you also modify durations.
+
+    """
+    durables = set()
+    duration = None
+
+    def get_duration(durable):
+        """Return the tuple (duration, scaling) of the Durable."""
+        nonlocal durables, duration
+
+        dur = durable.duration_scaling
+        if dur:
+            return dur
+        elif durable in durables:
+            return duration
+
+        new = {durable}
+        for prev in durable < Durable:
+            if prev.duration_sets_previous:
+                dur = prev.duration_scaling
+                if dur:
+                    durables = new
+                    duration = dur
+                    return dur
+                elif prev in durables:
+                    durables.update(new)
+                    return duration
+                new.add(prev)
+        durables = new
+        duration = (fractions.Fraction(1, 4), 1)
+        return duration
+
+    return get_duration
 
 
 def previous_duration(node):

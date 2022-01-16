@@ -295,6 +295,8 @@ class Node(Common, list):
         trail = [i for p, i in self.ancestors_with_index()]
         return trail[::-1]
 
+    __hash__ = object.__hash__
+
     def __eq__(self, other):
         """Identity compare to make Node.index robust and "faster"."""
         return self is other
