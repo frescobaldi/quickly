@@ -209,16 +209,6 @@ class Time:
             return node.time_length(self, transform + node.transform(), end)
         return 0
 
-    def lengths(self, nodes, transform):
-        """Yield the length of every node.
-
-        Called by the :meth:`~.lily.Music.time_length` method of some Music
-        types.
-
-        """
-        for n in nodes:
-            yield self.length(n, transform)
-
     def remote_length(self, node, transform):
         """Return the length of the value of an IdentifierRef node.
 

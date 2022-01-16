@@ -66,9 +66,9 @@ class Music(element.Element):
 
         """
         if self.is_sequential():
-            return sum(time.lengths(self[:end], transform))
+            return sum(time.length(n, transform) for n in self[:end])
         elif end is None:
-            return max(time.lengths(self, transform), default=0)
+            return max((time.length(n, transform) for n in self), default=0)
         return 0
 
 
