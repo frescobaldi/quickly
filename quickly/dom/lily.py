@@ -45,30 +45,25 @@ class Music(element.Element):
         return False
 
     def transform(self):
-        """Return a :class:`~.duration.Transform` that adjusts the duration of child nodes."""
-        return duration.Transform()
+        """Can return a :class:`~.duration.Transform` that adjusts the duration
+        of child nodes.
 
-    def parent_transform(self):
-        """Return a :class:`~.duration.Transform`.
-
-        The returned Transform adds up all the Transforms returned by ancestors
-        until a non :class:`Music` ancestor is encountered.
+        By default, None is returned.
 
         """
-        ancestors = itertools.takewhile(is_music, self.ancestors())
-        return sum((n.transform() for n in ancestors), duration.Transform())
+        pass
 
-    def time_length(self, time, transform, end=None):
-        """Return the length of this expression, using a :class:`~.time.Time`
-        handler.
+    def time_length(self, context, end=None):
+        """Return the length of this expression, using a
+        :class:`~.time.TimeContext` handler.
 
         If ``end`` is given it is the index to stop just before.
 
         """
         if self.is_sequential():
-            return sum(time.length(n, transform) for n in self[:end])
+            return sum(context.length(n) for n in self[:end])
         elif end is None:
-            return max((time.length(n, transform) for n in self), default=0)
+            return max((context.length(n) for n in self), default=0)
         return 0
 
 
@@ -85,15 +80,14 @@ class Durable(Music):
     duration_required = False     #: Whether the Duration child is required (e.g. \skip)
     duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
 
-    def time_length(self, time, transform, end=None):
-        """Return the length of this Durable, using a :class:`~.time.Time`
-        handler.
+    def time_length(self, context, end=None):
+        """Return the length of this Durable, using a
+        :class:`~.time.TimeContext` handler.
 
         For Durable, ``end`` is ignored.
 
         """
-        duration, scaling = time.get_duration(self)
-        return transform.length(duration, scaling)
+        return context.durable_length(self)
 
     @property
     def duration(self):
@@ -1413,9 +1407,9 @@ class FigureMode(base.BackslashCommand, InputMode):
 class Chord(Durable):
     """A chord. Must have a ChordBody element."""
 
-    def time_length(self, time, transform, end=None):
-        """Return the length of this Durable, using a :class:`~.time.Time`
-        handler.
+    def time_length(self, context, end=None):
+        """Return the length of this Durable, using a
+        :class:`~.time.TimeContext` handler.
 
         For Chord, ``end`` is ignored; returns 0 if the chord is empty,
         in accordance with LilyPond's behaviour.
@@ -1423,7 +1417,7 @@ class Chord(Durable):
         """
         for body in self:
             if any(body / Note):
-                return super().time_length(time, transform, end)
+                return super().time_length(context, end)
         return 0
 
     def child_order(self):
@@ -2263,8 +2257,8 @@ class AfterGrace(element.HeadElement, Music):
     space_after_head = space_between = " "
     head = r"\afterGrace"
 
-    def time_length(self, time, transform, end=None):
-        """Return the length of this expression, using a :class:`~.time.Time`
+    def time_length(self, context, end=None):
+        """Return the length of this expression, using a :class:`~.time.TimeContext`
         handler.
 
         Reimplemented to skip the second child music expression.
@@ -2272,7 +2266,7 @@ class AfterGrace(element.HeadElement, Music):
         """
         for n in self[:end]:
             if isinstance(n, Music):
-                return time.length(n, transform)
+                return context.length(n)
         return 0
 
     def signatures(self):

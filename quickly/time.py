@@ -24,6 +24,7 @@ Functionality to compute the time length of musical expressions.
 
 
 import collections
+import itertools
 
 from . import duration
 from .dom import lily
@@ -137,23 +138,6 @@ class Time:
         self.wait = wait    #: If True, parce transformations are waited for.
         self.get_duration = lily.duration_getter()
 
-    def get_duration(self, durable):
-        """Get the (duration, scaling) tuple of a single Durable. Uses some
-        caching to prevent long searches, see :func:`~.dom.lily.duration_getter`.
-
-        """
-        pass # overwritten by the duration_getter
-
-    def _follow_trail(self, node, trail, transform):
-        """Compute length; return length, node, transform at end of trail."""
-        time = 0
-        for index in trail:
-            if index and node.is_sequential():
-                time += self.length(node, transform, index)
-            transform += node.transform()
-            node = node[index]
-        return time, node, transform
-
     @staticmethod
     def _music_child(node):
         """Return the topmost Music child or None."""
@@ -185,43 +169,14 @@ class Time:
         trail.reverse()
         return node, trail
 
-    def length(self, node, transform=None, end=None):
-        """Return the musical length of this node.
-
-        If given, ``end`` specifies the index until where to compute the
-        length. If None, the full length is returned. For Durable and Reference
-        nodes the end value is ignored. If no :class:`~.duration.Transform` is
-        specified, the :meth:`~.dom.lily.Music.parent_transform` is used if it
-        is a Music node.
-
-        You can use this method directly, but it is also used by the
-        :meth:`~.lily.Music.time_length` method of some Music types.
-
-        """
-        if transform is None:
-            if isinstance(node, lily.Music):
-                transform = node.parent_transform()
-            else:
-                transform = duration.Transform()
-        if isinstance(node, lily.Reference):
-            return self.remote_length(node, transform)
-        elif isinstance(node, lily.Music):
-            return node.time_length(self, transform + node.transform(), end)
-        return 0
-
-    def remote_length(self, node, transform):
-        """Return the length of the value of an IdentifierRef node.
-
-        Returns 0 if the node can't be found or is no music.
-
-        """
-        n, s = node.get_value_with_scope(self.scope, self.wait)
-        while isinstance(n, lily.Reference):
-            n, s = n.get_value_with_scope(s, self.wait)
-        if isinstance(n, lily.Music):
-            time = type(self)(s, self.wait)
-            return n.time_length(time, transform + n.transform())
-        return 0
+    def length(self, node):
+        """Return the musical length of this node."""
+        context = TimeContext(self)
+        if isinstance(node, (lily.Music, lily.Reference)):
+            ancestors = list(itertools.takewhile(lily.is_music, node.ancestors()))
+            for p in reversed(ancestors):
+                context = context.enter(p)
+        return context.length(node)
 
     def position(self, node, include=False):
         """Return a :class:`Result` two-tuple(node, time).
@@ -235,10 +190,11 @@ class Time:
 
         """
         music, trail = self._preceding_music(node)
-        time, node, transform = self._follow_trail(music, trail, duration.Transform())
+        context = TimeContext(self)
+        context, node, length = context._follow_trail(music, trail)
         if include:
-            time += self.length(node, transform)
-        return Result(music, time)
+            length += context.length(node)
+        return Result(music, length)
 
     def duration(self, start_node, end_node):
         """Return a :class:`Result` two-tuple(node, time) or None.
@@ -256,22 +212,22 @@ class Time:
             return
 
         node = music
-        transform = duration.Transform()
+        context = TimeContext(self)
 
         # common part, just follow transform
         index = -1
         for index, (pos, end) in enumerate(zip(start_trail, end_trail)):
+            context = context.enter(node)
             if pos != end:
                 break
-            transform += node.transform()
             node = node[pos]
         else:
             index += 1
 
         # compute time only for differing part of the trails
-        start_time = self._follow_trail(node, start_trail[index:], transform)[0]
-        end_time, node, transform = self._follow_trail(node, end_trail[index:], transform)
-        end_time += self.length(node, transform)
+        start_time = context._follow_trail(node, start_trail[index:])[2]
+        context, node, end_time = context._follow_trail(node, end_trail[index:])
+        end_time += context.length(node)
         return Result(music, end_time - start_time)
 
     def cursor_position(self, cursor):
@@ -317,4 +273,68 @@ class Time:
                                 if result and result.time >= 0:
                                     return result
 
+
+class TimeContext:
+    """Encapsulates the transform during time calculations."""
+    def __init__(self, time, transform=None):
+        self.time = time
+        self.transform = transform or duration.Transform()
+
+    def _follow_trail(self, node, trail):
+        """Compute length; return context, node and length at end of trail."""
+        context = self
+        length = 0
+        for index in trail:
+            context = context.enter(node)
+            if index and node.is_sequential():
+                length += node.time_length(context, index)
+            node = node[index]
+        return context, node, length
+
+    def enter(self, node, time=None):
+        """Return a new TimeContext.
+
+        The returned TimeContext uses the new :class:`Time` (if given,
+        otherwise the same as ours) and adds the :class:`~.duration.Transform`
+        of the specified ``node`` to the current.
+
+        """
+        transform = node.transform()
+        t = self.transform
+        if transform:
+            t += transform
+        return type(self)(time or self.time, t)
+
+    def length(self, node, end=None):
+        """Return the length of any node.
+
+        Follows variable references using the scope (if given to the
+        :class:`Time` instance) and calls :meth:`~.dom.lily.Music.time_length`
+        for Music nodes. Returns 0 for any other, non-musical, node.
+
+        """
+        if isinstance(node, lily.Reference):
+            return self.remote_length(node)
+        elif isinstance(node, lily.Music):
+            context = self.enter(node)
+            return node.time_length(context, end)
+        return 0
+
+    def durable_length(self, node):
+        """Return the length of a Durable node."""
+        return self.transform.length(*self.time.get_duration(node))
+
+    def remote_length(self, node):
+        """Return the length of the value of an IdentifierRef node.
+
+        Returns 0 if the node can't be found or is no music.
+
+        """
+        node, scope = node.get_value_with_scope(self.time.scope, self.time.wait)
+        while isinstance(node, lily.Reference):
+            node, scope = node.get_value_with_scope(scope, self.time.wait)
+        if isinstance(node, lily.Music):
+            time = type(self.time)(scope, self.time.wait)
+            return node.time_length(self.enter(node, time), None)
+        return 0
 
