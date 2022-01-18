@@ -138,6 +138,10 @@ class Time:
         self.wait = wait    #: If True, parce transformations are waited for.
         self.get_duration = lily.duration_getter()
 
+    def __repr__(self):
+        return "<{} scope={} wait={}>".format(
+            type(self).__name__, self.scope, self.wait)
+
     @staticmethod
     def _music_child(node):
         """Return the topmost Music child or None."""
@@ -275,10 +279,23 @@ class Time:
 
 
 class TimeContext:
-    """Encapsulates the transform during time calculations."""
-    def __init__(self, time, transform=None):
+    """Encapsulates the transform and properties during time calculations.
+
+    The transform (:class:`~.duration.Transform`) determines the actual length
+    of Durable objects, and the properties (:class:`~.dom.lily.Properties`) are
+    forwarded to child contexts, where inside the
+    :meth:`~.dom.lily.Music.time_length` of Music nodes values can be read and
+    also modified.
+
+    """
+    def __init__(self, time, transform=None, properties=None):
         self.time = time
         self.transform = transform or duration.Transform()
+        self.properties = properties or lily.Properties()
+
+    def __repr__(self):
+        return "<{} time={} transform={} properties={}>".format(
+            type(self).__name__, self.time, self.transform, self.properties)
 
     def _follow_trail(self, node, trail):
         """Compute length; return context, node and length at end of trail."""
@@ -299,11 +316,15 @@ class TimeContext:
         of the specified ``node`` to the current.
 
         """
-        transform = node.transform()
         t = self.transform
+        transform = node.transform()
         if transform:
             t += transform
-        return type(self)(time or self.time, t)
+        p = self.properties
+        properties = node.properties()
+        if properties:
+            p += properties
+        return type(self)(time or self.time, t, p)
 
     def length(self, node, end=None):
         """Return the length of any node.

@@ -53,6 +53,14 @@ class Music(element.Element):
         """
         pass
 
+    def properties(self):
+        """Can return a :class:`Properties` object with values to keep in the
+        context of this node.
+
+        By default, None is returned.
+
+        """
+
     def time_length(self, context, end=None):
         """Return the length of this expression, using a
         :class:`~.time.TimeContext` handler.
@@ -1731,7 +1739,7 @@ class DurationScaling(element.TextElement):
         scaling = 1
         for t in origin:
             if t != "*":
-                scaling *= fractions.Fraction(t.text).limit_denominator()
+                scaling *= fractions.Fraction(t.text)
         return scaling
 
     def write_head(self):
@@ -3145,6 +3153,56 @@ class Lookup:
                 return node.get_value(), scope
 
 
+class Properties:
+    """A dictionary wrapper that can access keys as attributes.
+
+    Adding another Properties object returns a new Properties instance
+    with updated dict contents. Example::
+
+        >>> from quickly.dom.lily import Properties
+        >>> p = Properties(repeat_count=3)
+        >>> p
+        <Properties repeat_count=3>
+        >>> p.repeat_count
+        3
+        >>> p1 = Properties(unfold=True)
+        >>> p + p1
+        <Properties repeat_count=3 unfold=True>
+        >>> del p.repeat_count
+        >>> p
+        <Properties>
+
+    """
+    def __init__(self, **kwargs):
+        object.__setattr__(self, '_d', kwargs)
+
+    def __bool__(self):
+        return bool(self._d)
+
+    def __repr__(self):
+        def fields():
+            yield type(self).__name__
+            yield " ".join(("{}={}".format(
+                name, repr(value)) for name, value in self._d.items()))
+        return "<{}>".format(" ".join(f for f in fields() if f))
+
+    def __setattr__(self, name, value):
+        self._d[name] = value
+
+    def __getattr__(self, name):
+        return self._d.get(name)
+
+    def __delattr__(self, name):
+        try:
+            del self._d[name]
+        except KeyError:
+            pass
+
+    def __add__(self, other):
+        d = self._d | other._d
+        return type(self)(**d)
+
+
 def is_music(node):
     """Return True if the node is an instance of Music."""
     return isinstance(node, Music)
@@ -3239,11 +3297,7 @@ def previous_duration(node):
     for n in node < Durable:
         if n.duration_sets_previous:
             for d in n / Duration:
-                dur = d.head
-                scaling = 1
-                for s in d / DurationScaling:
-                    scaling *= s.head
-                return dur, scaling
+                return d.duration()
     return fractions.Fraction(1, 4), 1
 
 
