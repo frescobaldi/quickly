@@ -54,10 +54,15 @@ class Music(element.Element):
         pass
 
     def properties(self):
-        """Can return a :class:`Properties` object with values to keep in the
-        context of this node.
+        """Can return a :class:`~.datatypes.Properties` object with values to
+        keep in the context of this node.
 
         By default, None is returned.
+
+        Inside the :meth:`Music.time_length` method you can access and modify
+        the accumulated properties of the current Music node via the
+        :attr:`~.time.TimeContext.properties` attribute of a
+        :class:`~.time.TimeContext` object
 
         """
 
@@ -3151,61 +3156,6 @@ class Lookup:
         for node, scope in self.preceding_nodes():
             if isinstance(node, Assignment) and node.get_name() == name:
                 return node.get_value(), scope
-
-
-class Properties:
-    """A dictionary-like object that accesses keys as attributes.
-
-    Adding another Properties object returns a new Properties instance
-    with updated dict contents. Example::
-
-        >>> from quickly.dom.lily import Properties
-        >>> p = Properties(repeat_count=3)
-        >>> p
-        <Properties repeat_count=3>
-        >>> p.repeat_count
-        3
-        >>> p1 = Properties(unfold=True)
-        >>> p + p1
-        <Properties repeat_count=3 unfold=True>
-        >>> del p.repeat_count
-        >>> p
-        <Properties>
-
-    The method :meth:`Music.properties` can return a Properties object, and you
-    can access and modify the :attr:`~.time.TimeContext.properties` of a
-    :class:`~.time.TimeContext` object inside the :meth:`Music.time_length`
-    method.
-
-    """
-    def __init__(self, **kwargs):
-        object.__setattr__(self, '_d', kwargs)
-
-    def __bool__(self):
-        return bool(self._d)
-
-    def __repr__(self):
-        def fields():
-            yield type(self).__name__
-            yield " ".join(("{}={}".format(
-                name, repr(value)) for name, value in self._d.items()))
-        return "<{}>".format(" ".join(f for f in fields() if f))
-
-    def __setattr__(self, name, value):
-        self._d[name] = value
-
-    def __getattr__(self, name):
-        return self._d.get(name)
-
-    def __delattr__(self, name):
-        try:
-            del self._d[name]
-        except KeyError:
-            pass
-
-    def __add__(self, other):
-        d = self._d | other._d
-        return type(self)(**d)
 
 
 def is_music(node):

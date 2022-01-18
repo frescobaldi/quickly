@@ -5,6 +5,7 @@ Overview of all modules
    :maxdepth: 2
 
    quickly.rst
+   datatypes.rst
    dom.rst
    duration.rst
    lang.rst

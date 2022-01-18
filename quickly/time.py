@@ -26,7 +26,7 @@ Functionality to compute the time length of musical expressions.
 import collections
 import itertools
 
-from . import duration
+from . import datatypes, duration
 from .dom import lily
 
 
@@ -282,16 +282,16 @@ class TimeContext:
     """Encapsulates the transform and properties during time calculations.
 
     The transform (:class:`~.duration.Transform`) determines the actual length
-    of Durable objects, and the properties (:class:`~.dom.lily.Properties`) are
-    forwarded to child contexts, where inside the
+    of Durable objects, and the properties (:class:`~.datatypes.Properties`)
+    are forwarded to child contexts, where inside the
     :meth:`~.dom.lily.Music.time_length` of Music nodes values can be read and
     also modified.
 
     """
     def __init__(self, time, transform=None, properties=None):
         self.time = time    #: The :class:`Time` object we originate from.
-        self.transform = transform or duration.Transform()  #: The current Transform.
-        self.properties = properties or lily.Properties()   #: The current Properties.
+        self.transform = transform or duration.Transform()      #: The current Transform.
+        self.properties = properties or datatypes.Properties()  #: The current Properties.
 
     def __repr__(self):
         return "<{} time={} transform={} properties={}>".format(
@@ -313,8 +313,8 @@ class TimeContext:
 
         The returned TimeContext uses the new :class:`Time` (if given,
         otherwise the same as ours) and adds the :class:`~.duration.Transform`
-        and the :class:`~.dom.lily.Properties` of the specified ``node`` to the
-        current ones.
+        and the :class:`~.datatypes.Properties` of the specified ``node`` to
+        the current ones.
 
         """
         t = self.transform
