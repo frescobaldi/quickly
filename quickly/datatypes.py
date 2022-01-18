@@ -52,7 +52,8 @@ class Properties:
     one that was set to None.
 
     Use :func:`vars` to get a dictionary view on the properties. Use ``"key" in
-    props`` to see whether an attribute is really present.
+    props`` to see whether an attribute is really present. An empty Properties
+    object evaluates to False.
 
     """
     def __init__(self, **kwargs):

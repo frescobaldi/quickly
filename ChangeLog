@@ -14,8 +14,11 @@ current: quickly-0.5.0
 - notes as argument to \relative, \key or \transpose are now Pitch, not Note
 - handle single durations in lyricmode, just like Unpitched
 - improvements to duration module, add duration.Transform
-- added transform method to all Music nodes, to calculate durations in child
+- added transform() method to all Music nodes, to calculate durations in child
   nodes
+- added properties() method to Music node type, to store information during
+  processing of descendant music
+- added datatypes module for small datatype helper classes, featuring Properties
 - documentation improvements
 
 

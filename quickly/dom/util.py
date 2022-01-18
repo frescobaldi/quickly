@@ -26,7 +26,7 @@ def whitespace_key(text):
     r"""Return a key to determine the importance of the whitespace.
 
     This is used by e.g. the :func:`collapse_whitespace` function. A two-tuple
-    is returned: ``(newlines spaces)``, where the first value is the number of
+    is returned: ``(newlines, spaces)``, where the first value is the number of
     newlines in the text, and the second value the number of spaces.
 
     """
