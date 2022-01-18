@@ -289,9 +289,9 @@ class TimeContext:
 
     """
     def __init__(self, time, transform=None, properties=None):
-        self.time = time
-        self.transform = transform or duration.Transform()
-        self.properties = properties or lily.Properties()
+        self.time = time    #: The :class:`Time` object we originate from.
+        self.transform = transform or duration.Transform()  #: The current Transform.
+        self.properties = properties or lily.Properties()   #: The current Properties.
 
     def __repr__(self):
         return "<{} time={} transform={} properties={}>".format(
@@ -313,7 +313,8 @@ class TimeContext:
 
         The returned TimeContext uses the new :class:`Time` (if given,
         otherwise the same as ours) and adds the :class:`~.duration.Transform`
-        of the specified ``node`` to the current.
+        and the :class:`~.dom.lily.Properties` of the specified ``node`` to the
+        current ones.
 
         """
         t = self.transform

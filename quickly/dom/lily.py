@@ -3154,7 +3154,7 @@ class Lookup:
 
 
 class Properties:
-    """A dictionary wrapper that can access keys as attributes.
+    """A dictionary-like object that accesses keys as attributes.
 
     Adding another Properties object returns a new Properties instance
     with updated dict contents. Example::
@@ -3171,6 +3171,11 @@ class Properties:
         >>> del p.repeat_count
         >>> p
         <Properties>
+
+    The method :meth:`Music.properties` can return a Properties object, and you
+    can access and modify the :attr:`~.time.TimeContext.properties` of a
+    :class:`~.time.TimeContext` object inside the :meth:`Music.time_length`
+    method.
 
     """
     def __init__(self, **kwargs):
