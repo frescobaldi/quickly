@@ -22,10 +22,8 @@
 Transpose pitches.
 """
 
-from fractions import Fraction
-
 from .dom import edit, lily, util
-from .pitch import Pitch, PitchProcessor
+from .pitch import MAJOR_SCALE, Pitch, PitchProcessor
 
 
 class AbstractTransposer:
@@ -47,9 +45,13 @@ class Transposer(AbstractTransposer):
     with the pitch height of the unaltered step (0 .. 6). The default scale is
     the normal scale: C, D, E, F, G, A, B.
 
+    Adding a Transposer to a Transposer creates a new Transposer, adding up
+    both transpositions. Subtracting a Transposer from a Transposer creates a
+    new one, reverting the last transposition.
+
     """
 
-    scale = (0, 1, 2, Fraction(5, 2), Fraction(7, 2), Fraction(9, 2), Fraction(11, 2))
+    scale = MAJOR_SCALE
 
     def __init__(self, from_pitch, to_pitch):
         # the number of octaves we need to transpose
@@ -61,6 +63,10 @@ class Transposer(AbstractTransposer):
         # the number (fraction) of real whole steps
         self.alter = (self.scale[to_pitch.note] + to_pitch.alter -
                       self.scale[from_pitch.note] - from_pitch.alter)
+
+    def __repr__(self):
+        return "<{} octave={} steps={} alter={}>".format(type(self).__name__,
+            self.octave, self.steps, self.alter)
 
     def transpose(self, pitch):
         doct, note = divmod(pitch.note + self.steps, 7)
@@ -78,6 +84,20 @@ class Transposer(AbstractTransposer):
             pitch.alter += doct * -6 + self.scale[pitch.note] - self.scale[note]
             pitch.octave += doct
             pitch.note = note
+
+    def __add__(self, other):
+        t = type(self).__new__(type(self))
+        doct, t.steps = divmod(self.steps + other.steps, 7)
+        t.octave = self.octave + other.octave + doct
+        t.alter = self.alter + other.alter - doct * 6
+        return t
+
+    def __sub__(self, other):
+        t = type(self).__new__(type(self))
+        doct, t.steps = divmod(self.steps - other.steps, 7)
+        t.octave = self.octave - other.octave + doct
+        t.alter = self.alter - other.alter + doct * 6
+        return t
 
 
 class Transpose(edit.Edit):

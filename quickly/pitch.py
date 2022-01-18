@@ -25,9 +25,14 @@ Classes and functions to deal with LilyPond pitches.
 
 import collections
 import contextlib
+from fractions import Fraction
 
 import parce.util
 from parce.lang.lilypond_words import pitch_names
+
+
+#: Major scale: C D E F G A B
+MAJOR_SCALE = (0, 1, 2, Fraction(5, 2), Fraction(7, 2), Fraction(9, 2), Fraction(11, 2))
 
 
 # reverse pitch names
@@ -107,6 +112,10 @@ class Pitch:
     def copy(self):
         """Return a new Pitch with our attributes."""
         return type(self)(self.note, self.alter, self.octave)
+
+    def to_midi(self, scale=MAJOR_SCALE):
+        """Return the MIDI key number for this pitch."""
+        return (self.octave + 4) * 12 + (scale[self.note] + self.alter) * 2
 
     def make_absolute(self, prev_pitch):
         """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
