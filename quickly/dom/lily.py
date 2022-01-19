@@ -1224,6 +1224,7 @@ class Relative(element.HeadElement, Music):
         yield MUSIC,
 
     def add_argument(self, node):
+        """Reimplemented to turn an added Note argument into a Pitch."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
             node = node.to_pitch()
         return super().add_argument(node)
@@ -1247,6 +1248,7 @@ class Fixed(element.HeadElement, Music):
         yield Pitchable, MUSIC
 
     def add_argument(self, node):
+        """Reimplemented to turn an added Note argument into a Pitch."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
             node = node.to_pitch()
         return super().add_argument(node)
@@ -1261,6 +1263,7 @@ class Transpose(element.HeadElement, Music):
         yield Pitchable, Pitchable, MUSIC
 
     def add_argument(self, node):
+        """Reimplemented to turn 2 added Note arguments into Pitch arguments."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 2:
             node = node.to_pitch()
         return super().add_argument(node)
@@ -1321,6 +1324,7 @@ class Transposition(element.HeadElement, Music):
         yield Pitchable,
 
     def add_argument(self, node):
+        """Reimplemented to turn an added Note argument into a Pitch."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
             node = node.to_pitch()
         return super().add_argument(node)
@@ -1626,6 +1630,7 @@ class OctaveCheck(element.HeadElement):
         yield Pitchable,
 
     def add_argument(self, node):
+        """Reimplemented to turn an added Note argument into a Pitch."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
             node = node.to_pitch()
         return super().add_argument(node)
@@ -2077,16 +2082,17 @@ class Mode(base.BackslashCommand):
 class Key(element.HeadElement, Music):
     r"""A \key statement.
 
-    Must have a Pitch and a Mode child.
+    Must have a Pitch and a (Mode, IdentifierRef or Scheme) child.
 
     """
     space_after_head = space_between = ' '
     head = r"\key"
 
     def signatures(self):
-        yield Pitchable, Mode
+        yield Pitchable, (Mode, IdentifierRef, Scheme)
 
     def add_argument(self, node):
+        """Reimplemented to turn an added Note argument into a Pitch."""
         if isinstance(node, Note) and sum(1 for n in self / Pitchable) < 1:
             node = node.to_pitch()
         return super().add_argument(node)

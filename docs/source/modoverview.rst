@@ -8,6 +8,7 @@ Overview of all modules
    datatypes.rst
    dom.rst
    duration.rst
+   key.rst
    lang.rst
    node.rst
    numbering.rst
