@@ -118,10 +118,10 @@ def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
     You can compose your own mode (inspired by the LilyPond manual)::
 
         >>> freygish = [0, -0.5, 0, 0, 0, -0.5, -0.5]
-        >>> signature(0, 0, freygish)
+        >>> accidentals(0, 0, freygish)
         [0, -0.5, 0, 0, 0, -0.5, -0.5]
         >>> tatooinish = [0.5, 0 -0.5, 0.5, 0, 0, -0.5]
-        >>> signature(3, 0.5, tatooinish)           # F-sharp tatooinish
+        >>> accidentals(3, 0.5, tatooinish)           # F-sharp tatooinish
         [0, 0.5, 0, 1, 0, 1]                        # (one sharp and two double sharps)
 
     """
