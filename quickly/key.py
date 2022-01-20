@@ -144,27 +144,27 @@ def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
     as if it where in that key.
 
     """
-    alter += scale[note] - scale[0]
-    semitones = int(scale[note] - scale[0] + alter)
-
     def chrom_scale():
         """Yield a chromatic scale."""
         note = 0
         for step in range(12):
             pitch = step / 2
-            if note < len(scale)-1 and (pitch in MAJOR_FLATS or pitch == scale[note+1]):
+            if note < len(scale)-1 and (pitch in flats or pitch == scale[note+1]):
                 note += 1
             yield note, pitch - scale[note]
 
     def transpose(notes):
+        """Transpose a chromatic scale."""
         l = len(scale)
         for n, a in notes:
             doct, new_note = divmod(n + note, l)
             new_alter = a + alter - doct * 6 - scale[new_note] + scale[n]
             yield new_note, _int(new_alter)
 
+    alter += scale[note] - scale[0]
+    semitones = int(alter * 2)
     notes = list(transpose(chrom_scale()))
-    return notes[-semitones:] + notes[:-semitones]
+    return notes[-semitones:] + notes[:-semitones]  # rotate so C-based pitch is at start
 
 
 
@@ -177,7 +177,7 @@ class KeySignature:
         self.scale = scale      #: The scale.
         if isinstance(mode, str):
             mode = alterations(mode_offset[mode])
-        self.accidentals = accidentals(note, alter, mode, scale)
+        self.accidentals = accidentals(note, alter, mode, scale)    #: The accidentals for this key signature.
 
     def midi_reader(self, flats=MAJOR_FLATS):
         """Return a callable that converts a MIDI key number to a sensible
@@ -189,6 +189,67 @@ class KeySignature:
         (in a C key) in an e-flat instead of d-sharp, and b-flat instead of
         a-sharp.
 
+        An example::
+
+            >>> from quickly.key import KeySignature
+            >>> a_major = KeySignature(5, 0, "major")       # A major
+            >>> midi = a_major.midi_reader(flats=(1.5, 4, 5))
+            >>> for k in range(60, 72):
+            ...     print(midi(k))
+            ...
+            <Pitch note=0, alter=0, octave=1 (c')>
+            <Pitch note=0, alter=0.5, octave=1 (cis')>
+            <Pitch note=1, alter=0, octave=1 (d')>
+            <Pitch note=1, alter=0.5, octave=1 (dis')>
+            <Pitch note=2, alter=0, octave=1 (e')>
+            <Pitch note=3, alter=0, octave=1 (f')>
+            <Pitch note=3, alter=0.5, octave=1 (fis')>
+            <Pitch note=4, alter=0, octave=1 (g')>
+            <Pitch note=4, alter=0.5, octave=1 (gis')>
+            <Pitch note=5, alter=0, octave=1 (a')>
+            <Pitch note=5, alter=0.5, octave=1 (ais')>
+            <Pitch note=6, alter=0, octave=1 (b')>
+
+        The same MIDI keys in another key signature::
+
+            >>> bf_minor = KeySignature(6, -.5, "minor")    # B-flat minor
+            >>> midi = bf_minor.midi_reader()
+            >>> for k in range(60, 72):
+            ...     print(midi(k))
+            ...
+            <Pitch note=0, alter=0, octave=1 (c')>
+            <Pitch note=1, alter=-0.5, octave=1 (des')>
+            <Pitch note=1, alter=0, octave=1 (d')>
+            <Pitch note=2, alter=-0.5, octave=1 (ees')>
+            <Pitch note=2, alter=0, octave=1 (e')>
+            <Pitch note=3, alter=0, octave=1 (f')>
+            <Pitch note=4, alter=-0.5, octave=1 (ges')>
+            <Pitch note=4, alter=0, octave=1 (g')>
+            <Pitch note=5, alter=-0.5, octave=1 (aes')>
+            <Pitch note=5, alter=0, octave=1 (a')>
+            <Pitch note=6, alter=-0.5, octave=1 (bes')>
+            <Pitch note=6, alter=0, octave=1 (b')>
+
+        Or G-sharp major::
+
+            >>> gs_major = KeySignature(4, .5, "major")    # G-sharp major
+            >>> midi = gs_major.midi_reader()
+            >>> for k in range(60, 72):
+            ...     print(midi(k))
+            ...
+            <Pitch note=6, alter=0.5, octave=0 (bis)>
+            <Pitch note=0, alter=0.5, octave=1 (cis')>
+            <Pitch note=0, alter=1, octave=1 (cisis')>
+            <Pitch note=1, alter=0.5, octave=1 (dis')>
+            <Pitch note=1, alter=1, octave=1 (disis')>
+            <Pitch note=2, alter=0.5, octave=1 (eis')>
+            <Pitch note=3, alter=0.5, octave=1 (fis')>
+            <Pitch note=3, alter=1, octave=1 (fisis')>
+            <Pitch note=4, alter=0.5, octave=1 (gis')>
+            <Pitch note=4, alter=1, octave=1 (gisis')>
+            <Pitch note=5, alter=0.5, octave=1 (ais')>
+            <Pitch note=6, alter=0, octave=1 (b')>
+
         """
         # cache for 12 semitones, get a default chromatic scale
         steps = list(chromatic_scale(self.note, self.alter, self.scale, flats))
@@ -197,14 +258,16 @@ class KeySignature:
             step = int((base + alter) * 2) % 12
             steps[step] = (note, alter)
         # add octave
-        steps = [(note, alter, _int(divmod(note + alter, 6)[0]))
+        def octave(pitch):
+            return -1 if pitch > 6 else 1 if pitch < 0 else 0
+        steps = [(note, alter, octave(note + alter))
             for note, alter in steps]
 
         def from_midi(key):
             """Return a Pitch from the MIDI key number."""
             octave, step = divmod(key, 12)
             note, alter, base_octave = steps[step]
-            return Pitch(note, alter, octave - base_octave - 4)
+            return Pitch(note, alter, octave + base_octave - 4)
 
         return from_midi
 
