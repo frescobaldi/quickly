@@ -41,6 +41,9 @@ mode_offset = {
     'locrian': 6,
 }
 
+#: Which pitch values get a flat by default instead of a sharp
+MAJOR_FLATS = (1.5, 5)
+
 
 def _int(value):
     """Return int if val is integer."""
@@ -76,8 +79,8 @@ def alterations(offset, scale=MAJOR_SCALE):
     """
     l = len(scale)
     offset %= l
-    diff = scale[offset] - scale[0]
-    return [_int(scale[step % l] + step // l * 6 - scale[orig] - diff)
+    alter = scale[offset] - scale[0]
+    return [_int(scale[step % l] + step // l * 6 - scale[orig] - alter)
                 for step, orig in enumerate(range(l), offset)]
 
 
@@ -130,6 +133,41 @@ def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
     return accs[-note:] + accs[:-note]  # rotate so C is always at start
 
 
+def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
+    """Return a default chromatic scale, based on the ``scale``.
+
+    Uses sharps for altered notes, unless a pitch value is in the ``flats``
+    list. By default, step 1.5 and 5 are in the flats list, resulting in an
+    e-flat instead of d-sharp, and b-flat instead of a-sharp.
+
+    If ``note`` and/or ``alter`` are given, the scale is transposed and rotated
+    as if it where in that key.
+
+    """
+    alter += scale[note] - scale[0]
+    semitones = int(scale[note] - scale[0] + alter)
+
+    def chrom_scale():
+        """Yield a chromatic scale."""
+        note = 0
+        for step in range(12):
+            pitch = step / 2
+            if note < len(scale)-1 and (pitch in MAJOR_FLATS or pitch == scale[note+1]):
+                note += 1
+            yield note, pitch - scale[note]
+
+    def transpose(notes):
+        l = len(scale)
+        for n, a in notes:
+            doct, new_note = divmod(n + note, l)
+            new_alter = a + alter - doct * 6 - scale[new_note] + scale[n]
+            yield new_note, _int(new_alter)
+
+    notes = list(transpose(chrom_scale()))
+    return notes[-semitones:] + notes[:-semitones]
+
+
+
 class KeySignature:
     """Represents a key signature."""
     def __init__(self, note, alter=0, mode=None, scale=MAJOR_SCALE):
@@ -141,30 +179,32 @@ class KeySignature:
             mode = alterations(mode_offset[mode])
         self.accidentals = accidentals(note, alter, mode, scale)
 
+    def midi_reader(self, flats=MAJOR_FLATS):
+        """Return a callable that converts a MIDI key number to a sensible
+        :class:`~.pitch.Pitch` for this key signature.
 
-    # Preferred base notes for every MIDI key number (0..11). MIDI tones are
-    # semitones, this list specifies the base note to pick. So, for MIDI key 3,
-    # (e-flat) a third is preferred, which in C will be an e-flat, but
-    _preferred_intervals = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6]
+        The optional ``flats`` parameter is a list of pitch values that get
+        flats instead of sharps (if they are not base steps of the current key
+        signature). By default, step 1.5 and 5 are in the flats list, resulting
+        (in a C key) in an e-flat instead of d-sharp, and b-flat instead of
+        a-sharp.
 
-    def from_midi(self, key):
-        """Convert a MIDI key number to a sensible Pitch."""
-        # cache for 12 semitones
-        steps = [None] * 12
-        # fill in the tones from the scale (note, alter, octave)
+        """
+        # cache for 12 semitones, get a default chromatic scale
+        steps = list(chromatic_scale(self.note, self.alter, self.scale, flats))
+        # fill in the base tones from the scale (note, alter)
         for note, (base, alter) in enumerate(zip(self.scale, self.accidentals)):
-            octave, step = divmod(int((base + alter) * 2), 12)
-            steps[step] = (note, alter, octave)
+            step = int((base + alter) * 2) % 12
+            steps[step] = (note, alter)
+        # add octave
+        steps = [(note, alter, _int(divmod(note + alter, 6)[0]))
+            for note, alter in steps]
 
-        print(steps)
-        tonic = self.scale[self.note]
-        alter = self.alter
-        midi_tonic = int((tonic + alter) * 2) % 12
-        print("MIDI tonic:", midi_tonic)
-        # find suitable base pitches for the missing semitones
-        for key, base in enumerate(self._preferred_intervals):
-            midi_step = (midi_tonic + key) % 12
-            if steps[midi_step] is None:
-                pass # TODO impl
+        def from_midi(key):
+            """Return a Pitch from the MIDI key number."""
+            octave, step = divmod(key, 12)
+            note, alter, base_octave = steps[step]
+            return Pitch(note, alter, octave - base_octave - 4)
 
+        return from_midi
 

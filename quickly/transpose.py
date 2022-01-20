@@ -51,9 +51,9 @@ class Transposer(AbstractTransposer):
 
     """
 
-    scale = MAJOR_SCALE
+    def __init__(self, from_pitch, to_pitch, scale=MAJOR_SCALE):
+        self.scale = scale
 
-    def __init__(self, from_pitch, to_pitch):
         # the number of octaves we need to transpose
         self.octave = to_pitch.octave - from_pitch.octave
 
