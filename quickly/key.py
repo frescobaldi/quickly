@@ -136,6 +136,7 @@ def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
 def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
     """Return a default chromatic scale, based on the ``scale``.
 
+    Every item in the scale is a tuple(note, alter).
     Uses sharps for altered notes, unless a pitch value is in the ``flats``
     list. By default, step 1.5 and 5 are in the flats list, resulting in an
     e-flat instead of d-sharp, and b-flat instead of a-sharp.
@@ -162,10 +163,9 @@ def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
             yield new_note, _int(new_alter)
 
     alter += scale[note] - scale[0]
-    semitones = int(alter * 2)
     notes = list(transpose(chrom_scale()))
+    semitones = int(alter * 2)
     return notes[-semitones:] + notes[:-semitones]  # rotate so C-based pitch is at start
-
 
 
 class KeySignature:
@@ -174,7 +174,7 @@ class KeySignature:
         self.note = note        #: The note (0..6).
         self.alter = alter      #: The alteration in whole tones (0 by default).
         self.mode = mode        #: The mode (None, standard LilyPond mode name like "major" or alterations list).
-        self.scale = scale      #: The scale.
+        self.scale = scale      #: The default scale.
         if isinstance(mode, str):
             mode = alterations(mode_offset[mode])
         self.accidentals = accidentals(note, alter, mode, scale)    #: The accidentals for this key signature.
