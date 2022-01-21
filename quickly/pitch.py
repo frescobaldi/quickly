@@ -123,8 +123,22 @@ class Pitch:
 
         All altered notes get a sharp, unless a pitch value is listed in the
         ``flats`` parameter. By default, the pitch value 5 gets a b-flat
-        instead of an a-sharp. A more powerful way to convert MIDI key numbers
-        to pitches is in the :class:`~.key.KeySignature` class.
+        instead of an a-sharp.
+
+        An example::
+
+            >>> from quickly.pitch import Pitch
+            >>> Pitch.from_midi(60)
+            <Pitch note=0, alter=0, octave=1 (c')>
+            >>> Pitch.from_midi(61)
+            <Pitch note=0, alter=0.5, octave=1 (cis')>
+            >>> Pitch.from_midi(70)
+            <Pitch note=6, alter=-0.5, octave=1 (bes')>
+            >>> Pitch.from_midi(70, flats=())
+            <Pitch note=5, alter=0.5, octave=1 (ais')>
+
+        A more powerful way to convert MIDI key numbers to pitches is in the
+        :class:`~.key.KeySignature` class.
 
         """
         octave, step = divmod(key, 12)
