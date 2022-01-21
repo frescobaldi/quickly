@@ -20,6 +20,23 @@
 
 """
 Classes and functions to deal with LilyPond pitches.
+
+A pitch consists of a step (note, the index in the global default scale) and an
+alteration, which is a rational value (fraction or floating point) in whole
+tones. The notes 0..6 correspond with the usual "white keys" C, D, E, F, G, A,
+B; a sharp is represented by a +0.5 alteration value, and a flat by a -0.5
+value.
+
+The octave of a pitch is 0 for the octave below middle C. (Note that this is
+different from LilyPond's internal handling, where 0 is used for the octave
+*starting* at middle C. For me it was easier to convert ``''`` to 2 and ``,,``
+to -2, see :func:`octave_to_string` and :func:`octave_from_string`.)
+
+All functions and classes in this module, and also in the :mod:`.key` module,
+allow specifying a different global default scale (set in the
+:py:data:`MAJOR_SCALE` module constant), to theoretically support other tone
+systems, but that will probably almost never be necessary.
+
 """
 
 import bisect
