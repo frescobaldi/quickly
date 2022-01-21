@@ -41,7 +41,7 @@ mode_offset = {
     'locrian': 6,
 }
 
-#: Which pitch values get a flat by default instead of a sharp
+#: Which pitch values get a flat by default instead of a sharp.
 MAJOR_FLATS = (1.5, 5)
 
 
@@ -178,24 +178,29 @@ class KeySignature:
         if isinstance(mode, str):
             mode = alterations(mode_offset[mode])
         self.accidentals = accidentals(note, alter, mode, scale)    #: The accidentals for this key signature.
+        #: The tuple of pitch values in the default scale to give a flat instead
+        #: of a sharp when converting a MIDI key number to a pitch. The default
+        #: value is set in the :py:data:`MAJOR_FLATS` module constant.
+        self.flats = MAJOR_FLATS
 
-    def midi_reader(self, flats=MAJOR_FLATS):
-        """Return a callable that converts a MIDI key number to a sensible
-        :class:`~.pitch.Pitch` for this key signature.
+    def from_midi(self, key, flats=None):
+        """Return a :class:`~.pitch.Pitch` representing the MIDI ``key`` number.
+
+        The pitch's note and alteration are chosen so that they logically fit
+        in the key signature.
 
         The optional ``flats`` parameter is a list of pitch values that get
         flats instead of sharps (if they are not base steps of the current key
-        signature). By default, step 1.5 and 5 are in the flats list, resulting
-        (in a C key) in an e-flat instead of d-sharp, and b-flat instead of
-        a-sharp.
+        signature). By default, the :attr:`flats` attribute is read, which
+        contains by default step 1.5 and 5, resulting (in a C key) in an e-flat
+        instead of a d-sharp, and a b-flat instead of an a-sharp.
 
-        An example::
+        An example, A major::
 
             >>> from quickly.key import KeySignature
-            >>> a_major = KeySignature(5, 0, "major")       # A major
-            >>> midi = a_major.midi_reader(flats=(1.5, 4, 5))
-            >>> for k in range(60, 72):
-            ...     print(midi(k))
+            >>> sig = KeySignature(5)
+            >>> for key in range(60, 72):
+            ...     print(sig.from_midi(key, (1.5, 4, 5)))
             ...
             <Pitch note=0, alter=0, octave=1 (c')>
             <Pitch note=0, alter=0.5, octave=1 (cis')>
@@ -210,12 +215,11 @@ class KeySignature:
             <Pitch note=5, alter=0.5, octave=1 (ais')>
             <Pitch note=6, alter=0, octave=1 (b')>
 
-        The same MIDI keys in another key signature::
+        The same MIDI keys in B-flat minor::
 
-            >>> bf_minor = KeySignature(6, -.5, "minor")    # B-flat minor
-            >>> midi = bf_minor.midi_reader()
-            >>> for k in range(60, 72):
-            ...     print(midi(k))
+            >>> sig = KeySignature(6, -0.5, "minor")
+            >>> for key in range(60, 72):
+            ...     print(sig.from_midi(key))
             ...
             <Pitch note=0, alter=0, octave=1 (c')>
             <Pitch note=1, alter=-0.5, octave=1 (des')>
@@ -232,10 +236,9 @@ class KeySignature:
 
         Or G-sharp major::
 
-            >>> gs_major = KeySignature(4, .5, "major")    # G-sharp major
-            >>> midi = gs_major.midi_reader()
-            >>> for k in range(60, 72):
-            ...     print(midi(k))
+            >>> sig = KeySignature(4, 0.5, "major")
+            >>> for key in range(60, 72):
+            ...     print(sig.from_midi(key))
             ...
             <Pitch note=6, alter=0.5, octave=0 (bis)>
             <Pitch note=0, alter=0.5, octave=1 (cis')>
@@ -250,7 +253,35 @@ class KeySignature:
             <Pitch note=5, alter=0.5, octave=1 (ais')>
             <Pitch note=6, alter=0, octave=1 (b')>
 
+        You may alter the :attr:`flats` attribute beforehand to influence the
+        returned MIDI pitches. This incantation makes all altered notes flats::
+
+            >>> sig = KeySignature(0)   # C-major
+            >>> sig.flats = (.5, 1.5, 3, 4, 5)
+            >>> for key in range(60, 72): print(sig.from_midi(key))
+            ...
+            <Pitch note=0, alter=0, octave=1 (c')>
+            <Pitch note=1, alter=-0.5, octave=1 (des')>
+            <Pitch note=1, alter=0, octave=1 (d')>
+            <Pitch note=2, alter=-0.5, octave=1 (ees')>
+            <Pitch note=2, alter=0, octave=1 (e')>
+            <Pitch note=3, alter=0, octave=1 (f')>
+            <Pitch note=4, alter=-0.5, octave=1 (ges')>
+            <Pitch note=4, alter=0, octave=1 (g')>
+            <Pitch note=5, alter=-0.5, octave=1 (aes')>
+            <Pitch note=5, alter=0, octave=1 (a')>
+            <Pitch note=6, alter=-0.5, octave=1 (bes')>
+            <Pitch note=6, alter=0, octave=1 (b')>
+
         """
+        if flats is None:
+            flats = self.flats
+        return self._midi_reader(flats)(key)
+
+    @cached_method
+    def _midi_reader(self, flats):
+        """Return a callable that converts a MIDI key number to a sensible
+        :class:`~.pitch.Pitch` for this key signature."""
         # cache for 12 semitones, get a default chromatic scale
         steps = list(chromatic_scale(self.note, self.alter, self.scale, flats))
         # fill in the base tones from the scale (note, alter)
@@ -258,16 +289,14 @@ class KeySignature:
             step = int((base + alter) * 2) % 12
             steps[step] = (note, alter)
         # add octave
-        def octave(pitch):
-            return -1 if pitch > 6 else 1 if pitch < 0 else 0
-        steps = [(note, alter, octave(note + alter))
-            for note, alter in steps]
+        octave = lambda p: -1 if p > 6 else 1 if p < 0 else 0
+        steps = [(note, alter, octave(note + alter) - 4) for note, alter in steps]
 
         def from_midi(key):
             """Return a Pitch from the MIDI key number."""
             octave, step = divmod(key, 12)
             note, alter, base_octave = steps[step]
-            return Pitch(note, alter, octave + base_octave - 4)
+            return Pitch(note, alter, octave + base_octave)
 
         return from_midi
 

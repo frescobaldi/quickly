@@ -115,18 +115,7 @@ class Pitch:
 
     def to_midi(self, scale=MAJOR_SCALE):
         """Return the MIDI key number for this pitch."""
-        return (self.octave + 4) * 12 + (scale[self.note] + self.alter) * 2
-
-    @classmethod
-    def from_midi(cls, key, keysig=2, scale=MAJOR_SCALE):
-        """Return a Pitch from the MIDI key number.
-
-        ``keysig`` is the preferred number of sharps, or, if negative, the
-        number of flats. The ``scale`` is the major scale by default.
-
-        """
-        octave, step = divmod(key, 12)
-
+        return int((self.octave + 4) * 12 + (scale[self.note] + self.alter) * 2)
 
     def make_absolute(self, prev_pitch):
         """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
