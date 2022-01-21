@@ -2088,6 +2088,32 @@ class Key(element.HeadElement, Music):
     space_after_head = space_between = ' '
     head = r"\key"
 
+    def key_signature(self, processor, scope=None, wait=True):
+        """Return a :class:`~.key.KeySignature` object for this key signature.
+
+        The processor is a :class:`~.pitch.PitchProcessor`, which interprets
+        the pitch language. ``scope`` and ``wait`` help (when the mode argument
+        is a variable) finding its value in another file.
+
+        """
+        pitch = mode = None
+        for n in self:
+            while True:
+                if isinstance(n, Pitchable):
+                    pitch = processor.read_node(n)
+                elif isinstance(n, Mode):
+                    mode = n.head
+                elif isinstance(n, IdentifierRef):
+                    scope, n = n.get_value_with_scope(scope, wait)
+                    continue
+                elif isinstance(n, Scheme):
+                    for n in n // scm.List:
+                        mode = [n.head for n in n / scm.Number]
+                break
+        if pitch and mode:
+            from ..key import KeySignature
+            return KeySignature(pitch.note, pitch.alter, mode)
+
     def signatures(self):
         yield Pitchable, (Mode, IdentifierRef, Scheme)
 

@@ -168,12 +168,49 @@ def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
     return notes[-semitones:] + notes[:-semitones]  # rotate so C-based pitch is at start
 
 
+def tonic(sf, scale=MAJOR_SCALE):
+    """Return the tuple(note, alter) which is the musical tonic for the major
+    scale with the given number of sharps or flats ``sf``.
+
+    If ``sf`` is negative, it is the number of flats, otherwise it is the
+    number of sharps. This function is useful when you only know the number of
+    sharps or flats, which is common in e.g. MIDI key signature meta messages.
+
+    If you want the tonic and alteration of a minor key signature, just add 3
+    sharps. So if you have the information that the key signature has 4 flats
+    and is minor, you get the tonic with ``tonic(-4 + 3)``, which results in
+    ``(3, 0.0)``, which in the default scale is F.
+
+    """
+    l = len(scale)
+    note, alter = 0, 0
+    d = 1 if sf > 0 else -1 if sf < 0 else 0
+    for _ in range(d * sf):
+        doct, new_note = divmod(note + d * 4, l)
+        alter += d * 3.5 - doct * 6 - scale[new_note] + scale[note]
+        note = new_note
+    return note, alter
+
+
 class KeySignature:
-    """Represents a key signature."""
-    def __init__(self, note, alter=0, mode=None, scale=MAJOR_SCALE):
+    r"""Represents a key signature.
+
+    This object can represent the information contained in a LilyPond ``\key``
+    command.
+
+    The ``note`` and ``alter`` attributes represent the pitch, and the ``mode``
+    the mode. Just as with LilyPond, the mode can be a standard name or a
+    custom list of alterations.
+
+    Additionally, it stores the accidentals such as returned by the
+    :func:`accidentals` function, and provides conversion of MIDI key numbers
+    to sensible pitches.
+
+    """
+    def __init__(self, note, alter=0, mode="major", scale=MAJOR_SCALE):
         self.note = note        #: The note (0..6).
         self.alter = alter      #: The alteration in whole tones (0 by default).
-        self.mode = mode        #: The mode (None, standard LilyPond mode name like "major" or alterations list).
+        self.mode = mode        #: The mode (a standard LilyPond mode name like "major" or a custom alterations list).
         self.scale = scale      #: The default scale.
         if isinstance(mode, str):
             mode = alterations(mode_offset[mode])
@@ -183,7 +220,7 @@ class KeySignature:
         #: value is set in the :py:data:`MAJOR_FLATS` module constant.
         self.flats = MAJOR_FLATS
 
-    def from_midi(self, key, flats=None):
+    def pitch(self, key, flats=None):
         """Return a :class:`~.pitch.Pitch` representing the MIDI ``key`` number.
 
         The pitch's note and alteration are chosen so that they logically fit
@@ -200,7 +237,7 @@ class KeySignature:
             >>> from quickly.key import KeySignature
             >>> sig = KeySignature(5)
             >>> for key in range(60, 72):
-            ...     print(sig.from_midi(key, (1.5, 4, 5)))
+            ...     print(sig.pitch(key, (1.5, 4, 5)))
             ...
             <Pitch note=0, alter=0, octave=1 (c')>
             <Pitch note=0, alter=0.5, octave=1 (cis')>
@@ -219,7 +256,7 @@ class KeySignature:
 
             >>> sig = KeySignature(6, -0.5, "minor")
             >>> for key in range(60, 72):
-            ...     print(sig.from_midi(key))
+            ...     print(sig.pitch(key))
             ...
             <Pitch note=0, alter=0, octave=1 (c')>
             <Pitch note=1, alter=-0.5, octave=1 (des')>
@@ -238,7 +275,7 @@ class KeySignature:
 
             >>> sig = KeySignature(4, 0.5, "major")
             >>> for key in range(60, 72):
-            ...     print(sig.from_midi(key))
+            ...     print(sig.pitch(key))
             ...
             <Pitch note=6, alter=0.5, octave=0 (bis)>
             <Pitch note=0, alter=0.5, octave=1 (cis')>
@@ -258,7 +295,7 @@ class KeySignature:
 
             >>> sig = KeySignature(0)   # C-major
             >>> sig.flats = (.5, 1.5, 3, 4, 5)
-            >>> for key in range(60, 72): print(sig.from_midi(key))
+            >>> for key in range(60, 72): print(sig.pitch(key))
             ...
             <Pitch note=0, alter=0, octave=1 (c')>
             <Pitch note=1, alter=-0.5, octave=1 (des')>
