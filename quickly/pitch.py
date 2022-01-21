@@ -22,7 +22,7 @@
 Classes and functions to deal with LilyPond pitches.
 """
 
-
+import bisect
 import collections
 import contextlib
 
@@ -116,6 +116,28 @@ class Pitch:
     def to_midi(self, scale=MAJOR_SCALE):
         """Return the MIDI key number for this pitch."""
         return int((self.octave + 4) * 12 + (scale[self.note] + self.alter) * 2)
+
+    @classmethod
+    def from_midi(cls, key, scale=MAJOR_SCALE, flats=(5,)):
+        """Return a :class:`Pitch` from the MIDI key value.
+
+        All altered notes get a sharp, unless a pitch value is listed in the
+        ``flats`` parameter. By default, the pitch value 5 gets a b-flat
+        instead of an a-sharp. A more powerful way to convert MIDI key numbers
+        to pitches is in the :class:`~.key.KeySignature` class.
+
+        """
+        octave, step = divmod(key, 12)
+        pitch = step / 2
+        if pitch in flats:
+            note = bisect.bisect_left(scale, pitch)
+        else:
+            note = bisect.bisect_right(scale, pitch) - 1
+        alter = pitch - scale[note]
+        a = int(alter)
+        if a == alter:
+            alter = a
+        return cls(note, alter, octave - 4)
 
     def make_absolute(self, prev_pitch):
         """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
