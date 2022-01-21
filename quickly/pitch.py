@@ -64,6 +64,10 @@ class Pitch:
     the ``>``, ``<``, ``>=`` and ``<=`` operators. These operators compare on
     octave first, then note, then alter.
 
+    ``str(pitch)`` returns always the dutch notation (or a question mark if
+    there's no known name for the note, alter combination), but you can use
+    :class:`PitchProcessor` to read/write pitch names in all LilyPond
+    languages.
 
     """
     def __init__(self, note=0, alter=0, octave=0):
@@ -71,13 +75,15 @@ class Pitch:
         self.alter = alter
         self.octave = octave
 
-    def __repr__(self):
+    def __str__(self):
         try:
-            name = pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + octave_to_string(self.octave)
+            return pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + octave_to_string(self.octave)
         except KeyError:
-            name = '?'
+            return '?'
+
+    def __repr__(self):
         return "<{} note={}, alter={}, octave={} ({})>".format(
-            self.__class__.__name__, self.note, self.alter, self.octave, name)
+            self.__class__.__name__, self.note, self.alter, self.octave, self)
 
     def _as_tuple(self):
         """Return our attributes as a sortable tuple."""
@@ -197,6 +203,9 @@ class PitchProcessor:
     def __init__(self, language=None):
         if language:
             self.language = language
+
+    def __repr__(self):
+        return "<{} ({})>".format(type(self).__name__, self._language)
 
     @property
     def language(self):

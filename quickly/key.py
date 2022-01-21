@@ -220,6 +220,11 @@ class KeySignature:
         #: value is set in the :py:data:`MAJOR_FLATS` module constant.
         self.flats = MAJOR_FLATS
 
+    def __repr__(self):
+        p = Pitch(self.note, self.alter)
+        return "<{} note,alter={},{} ({}) mode={}>".format(type(self).__name__,
+            self.note, self.alter, p, self.mode)
+
     def pitch(self, key, flats=None):
         """Return a :class:`~.pitch.Pitch` representing the MIDI ``key`` number.
 

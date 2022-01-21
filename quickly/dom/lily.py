@@ -81,13 +81,16 @@ class Music(element.Element):
 
 
 class Durable(Music):
-    """A single musical object that takes time and can have a Duration child.
+    """Base class for a single musical object that takes time and can have a
+    Duration child.
 
-    Used as base class for Note, Rest, Chord, LyricText etc. The
-    :attr:`duration` and :attr:`scaling` properties make it easy to manipulate
-    the respective child and grandchild nodes. Floating point values are
-    automatically converted to Fractions, with a limit on the denominator, so
-    a lazy ``note.scaling = 1/3`` works properly.
+    The :attr:`duration` and :attr:`scaling` properties make it easy to
+    manipulate the respective child and grandchild nodes. Floating point values
+    are automatically converted to Fractions, with a limit on the denominator,
+    so a lazy ``note.scaling = 1/3`` works properly.
+
+    Inherited by: :class:`Note`, :class:`Rest`, :class:`Chord`, :class:`Space`,
+    :class:`Skip`, :class:`LyricText` etc.
 
     """
     duration_required = False     #: Whether the Duration child is required (e.g. \skip)
@@ -203,8 +206,14 @@ class Durable(Music):
 class Pitchable(element.TextElement, Music):
     """Base class for a note or pitched rest.
 
+    The head value is the pitch name. To read, write and understand the pitch
+    name, use a :class:`~.pitch.PitchProcessor`.
+
     This class provides convenient properties to manipulate the
     :class:`Octave`, :class:`Accidental` and/or :class:`OctCheck` child nodes.
+
+    Inherited by: :class:`Note`, :class:`Pitch` (a pitch that is no durable
+    music), :class:`PitchedRest`.
 
     """
     @property
