@@ -220,7 +220,8 @@ class Pitchable(element.TextElement, Music):
     def octave(self):
         """Read or set the octave.
 
-        The octave is an integer value. Automatically creates an
+        The octave is an integer value, indicating how many ``'``-s or ``,``-s
+        are displayed after the pitch name. Automatically creates an
         :class:`Octave` child if needed. Delete this attribute or set it to 0
         to remove the octave.
 
@@ -247,7 +248,7 @@ class Pitchable(element.TextElement, Music):
 
         The accidental is ``None``, ``"cautionary"`` or ``"forced"``.
         Automatically creates an :class:`Accidental` child if needed.
-        Delete this attribute to remove the accidental.
+        Delete this attribute or set it to None to remove the accidental.
 
         """
         for n in self / Accidental:
@@ -1597,9 +1598,8 @@ class Accidental(element.MappingElement):
 class Octave(element.TextElement):
     """The octave after a note.
 
-    The default octave is 0; each ``'`` increases the octave by one; each ``,``
-    decreases the octave by one. Note that this differs from LilyPond, which
-    uses 0 to denote the ``'`` octave.
+    The head value is the number of ``'`` (if positive) or the number of ``,``,
+    if negative.
 
     """
     @classmethod
@@ -1615,9 +1615,8 @@ class Octave(element.TextElement):
 class OctCheck(element.TextElement):
     """The octavecheck after a note, e.g. like ``=,``.
 
-    The default octave is 0; each ``'`` increases the octave by one;
-    each ``,`` decreases the octave by one. Note that differs from LilyPond,
-    which uses 0 to denote the ``'`` octave.
+    The head value is the number of ``'`` (if positive) or the number of ``,``,
+    if negative.
 
     """
     @classmethod

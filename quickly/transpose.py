@@ -175,7 +175,7 @@ class Transpose(edit.Edit):
         def transpose_pitches(nodes):
             """Transpose the notes, and yield their pitches for extra changes."""
             for n in notes(nodes):
-                with processor.pitch(n, writable(n)) as p:
+                with processor.process(n, writable(n)) as p:
                     self.transposer.transpose(p)
                     yield p
 
@@ -196,7 +196,7 @@ class Transpose(edit.Edit):
                 if isinstance(note, lily.Pitchable) and writable(note):
                     # we may change this note, modify the octave
                     offset = self.transposer.octave
-                    with processor.pitch(note) as p:
+                    with processor.process(note) as p:
                         self.transposer.transpose(p)
                 else:
                     offset = 0
@@ -209,6 +209,7 @@ class Transpose(edit.Edit):
             def transpose(note, last_pitch):
                 """Transpose one note, return its pitch in absolute form for the next."""
                 p = processor.read_node(note)
+                default_octave = p.octave - note.octave # the octave of the pitch name itself
                 # absolute pitch determined from untransposed pitch of last_pitch
                 p.make_absolute(last_pitch)
                 if not writable(note):
@@ -226,7 +227,7 @@ class Transpose(edit.Edit):
                 self.transposer.transpose(p)
                 last_pitch.transposed = p.copy()
                 if note.oct_check is not None:
-                    note.oct_check = p.octave
+                    note.oct_check = p.octave - default_octave
                 p.make_relative(last)
                 processor.write_node(note, p)
                 return last_pitch
@@ -237,13 +238,13 @@ class Transpose(edit.Edit):
                 start_note, *nodes = nodes
                 last_pitch = processor.read_node(start_note)    # untransposed
                 if writable(start_note):
-                    with processor.pitch(start_note) as p:
+                    with processor.process(start_note) as p:
                         self.transposer.transpose(p)
                     last_pitch.transposed = p
                     last_pitch.octave -= self.transposer.octave
                     last_pitch.transposed.octave -= self.transposer.octave
             else:
-                last_pitch = Pitch(3) if relative_first_pitch_absolute else Pitch(0, 0, 1)
+                last_pitch = Pitch(-1, 3, 0) if relative_first_pitch_absolute else Pitch(0, 0, 0)
 
             # transpose the notes in the relative expression
             for n in notes(nodes, True):

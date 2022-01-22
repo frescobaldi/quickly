@@ -34,7 +34,7 @@ from quickly.pitch import Pitch
 def test_main():
     """Main test function."""
     sig = KeySignature(0, 0, "major")
-    assert sig.from_midi(61) == Pitch(0, 0.5, 1)
+    assert sig.pitch(61) == Pitch(0, 0.5, 1)
 
 
 

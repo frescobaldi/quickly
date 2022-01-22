@@ -47,44 +47,49 @@ def lydoc(text):
 def check_pitch():
     """Test pitch manipulations."""
     p = PitchProcessor()
-    assert 'c' == p.write(0)
-    assert 'cis' == p.write(0, 0.5)
+    c = Pitch(-1, 0, 0)
+    cis = Pitch(-1, 0, 0.5)
+    d = Pitch(-1, 1, 0)
+    dis = Pitch(-1, 1, 0.5)
+    disis = Pitch(-1, 1, 1)
+
+    assert 'c' == p.to_string(c)
+    assert 'cis' == p.to_string(cis)
 
     p.language = 'english'
-    assert 'cs' == p.write(0, 0.5)
+    assert 'cs' == p.to_string(cis)
     p.prefer_long = True
-    assert 'c-sharp' == p.write(0, 0.5)
+    assert 'c-sharp' == p.to_string(cis)
 
-    for language in 'francais', 'français':
-        p.language = language
-        p.prefer_accented = True
-        assert 'ré' == p.write(1, 0)
+    p.language = 'français'
+    p.prefer_accented = True
+    assert 'ré' == p.to_string(d)
 
-        p.prefer_x = True
-        assert 'réx' == p.write(1, 1)
-        p.prefer_x = False
-        assert 'rédd' == p.write(1, 1)
-        p.prefer_accented = False
-        p.prefer_x = True
-        assert 'rex' == p.write(1, 1)
-        p.prefer_x = False
-        assert 'redd' == p.write(1, 1)
+    p.prefer_x = True
+    assert 'réx' == p.to_string(disis)
+    p.prefer_x = False
+    assert 'rédd' == p.to_string(disis)
+    p.prefer_accented = False
+    p.prefer_x = True
+    assert 'rex' == p.to_string(disis)
+    p.prefer_x = False
+    assert 'redd' == p.to_string(disis)
 
     with pytest.raises(KeyError):
         p.language = "does_not_exist"
 
     p.language = "english"
-    assert 'c-sharp' == p.write(0, 0.5)
+    assert 'c-sharp' == p.to_string(cis)
 
     del p.language
     assert p.language == "nederlands"
-    assert p.read('dis') == (1, 0.5)
+    assert p.pitch('dis') == dis
 
-    p.language = 'francais'
-    assert p.read('réx') == (1, 1)
-    assert p.read('rex') == (1, 1)
-    assert p.read('rédd') == (1, 1)
-    assert p.read('redd') == (1, 1)
+    p.language = 'français'
+    assert p.pitch('réx') == disis
+    assert p.pitch('rex') == disis
+    assert p.pitch('rédd') == disis
+    assert p.pitch('redd') == disis
 
     # distill prefs
     p = PitchProcessor()
@@ -101,7 +106,7 @@ def check_pitch():
     assert p.prefer_classic == True
 
     # one note changes two prefs
-    p = PitchProcessor("francais")
+    p = PitchProcessor("français")
     p.prefer_x = False
     p.prefer_accented = False
     p.distill_preferences(['réx'])
@@ -121,16 +126,16 @@ def check_pitch():
     # node editing
     pp = PitchProcessor()
     n = lily.Note('c', octave=2)
-    with pp.pitch(n) as p:
+    with pp.process(n) as p:
         p.note += 2
-        p.octave = 1
+        p.octave = 0
     assert n.head == 'e'
     assert n.octave == 1
 
     # Pitch class
-    assert Pitch(0, 0, 0) < Pitch(1, 0, 0)
-    assert Pitch(0, 0, 0) > Pitch(1, 0, -1)
-    assert Pitch(1, .25, 0) == Pitch(1, .25, 0)
+    assert Pitch(0, 0, 0) < Pitch(0, 0, 1)
+    assert Pitch(0, 0, 0) > Pitch(-1, 1, 0)
+    assert Pitch(0, 1, .25) == Pitch(0, 1, .25)
 
 
     # other functions
@@ -141,45 +146,45 @@ def check_pitch():
     assert octave_from_string("',") == 0
 
     assert list(determine_language(['c', 'd', 'e', 'f', 'g'])) == \
-        ['nederlands', 'english', 'deutsch', 'norsk', 'suomi', 'svenska']
+        ['nederlands', 'english', 'deutsch', 'arabic', 'norsk', 'suomi', 'svenska']
     assert list(determine_language(['c', 'd', 'es', 'f', 'g'])) == \
         ['nederlands', 'english', 'deutsch', 'norsk', 'suomi']
     assert list(determine_language(['c', 'd', 'es', 'fis', 'g', 'bis'])) == \
         ['nederlands']
     assert list(determine_language(['c', 'do'])) == [] # ambiguous
     assert list(determine_language(['do', 'ré', 'r'])) == \
-        ['francais']    # r is ignored, ré with accent is francais
+        ['français']    # r is ignored, ré with accent is français
 
 
 def check_transpose():
     """Test Transposer."""
-    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 2, 0))
     p = Pitch(0, 0, 0)
     t.transpose(p)
-    assert p == Pitch(2, 0, 0)
+    assert p == Pitch(0, 2, 0)
 
-    p = Pitch(6, 0, 0)
+    p = Pitch(0, 6, 0)
     t.transpose(p)
-    assert p == Pitch(1, 0.5, 1)
+    assert p == Pitch(1, 1, 0.5)
 
-    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 2, 0))
     music = read.lily_document("{ c d e f g }")
     Transpose(t).edit_node(music)
     assert music.write() == "{ e fis gis a b }"
     Transpose(t).edit_node(music)
     assert music.write() == "{ gis ais bis cis' dis' }"
 
-    t = Transposer(Pitch(0, 0, 0), Pitch(0, 0, 1))
+    t = Transposer(Pitch(0, 0, 0), Pitch(1, 0, 0))
     music = read.lily_document(r"\relative { c' d e f g }")
     Transpose(t).edit_node(music)
     assert music.write() == r"\relative { c'' d e f g }"
 
-    t = Transposer(Pitch(0, 0, 0), Pitch(4, 0, 0))
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 4, 0))
     music = read.lily_document(r"\relative c' { c d e f g }")
     Transpose(t).edit_node(music)
     assert music.write() == r"\relative g' { g a b c d }"
 
-    t = Transposer(Pitch(0, 0, 0), Pitch(6, -.5, -1))
+    t = Transposer(Pitch(0, 0, 0), Pitch(-1, 6, -.5))
     music = read.lily_document(r"\relative { g a b c d }")
     Transpose(t, relative_first_pitch_absolute=False).edit_node(music)
     assert music.write() == r"\relative { f, g a bes c }"
@@ -198,7 +203,7 @@ def check_transpose():
 
     doc = lydoc("{ c d e f g }")
     cur = parce.Cursor(doc).select(4, 7)
-    t = Transposer(Pitch(0, 0, 0), Pitch(2, 0, 0))
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 2, 0))
     Transpose(t).edit_cursor(cur)
     assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 

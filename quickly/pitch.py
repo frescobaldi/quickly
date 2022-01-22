@@ -27,10 +27,8 @@ tones. The notes 0..6 correspond with the usual "white keys" C, D, E, F, G, A,
 B; a sharp is represented by a +0.5 alteration value, and a flat by a -0.5
 value.
 
-The octave of a pitch is 0 for the octave below middle C. (Note that this is
-different from LilyPond's internal handling, where 0 is used for the octave
-*starting* at middle C. For me it was easier to convert ``''`` to 2 and ``,,``
-to -2, see :func:`octave_to_string` and :func:`octave_from_string`.)
+The octave of a pitch is 0 for the octave starting at middle C, just like
+LilyPond handles the octave.
 
 All functions and classes in this module, and also in the :mod:`.key` module,
 allow specifying a different global default scale (set in the
@@ -55,11 +53,12 @@ MAJOR_SCALE = (0, 1, 2, 2.5, 3.5, 4.5, 5.5)
 # reverse pitch names
 def _make_reverse_pitch_table():
     for language, pitches in pitch_names.items():
-        notes = collections.defaultdict(list)
-        for name, note_alter in pitches.items():
-            notes[note_alter].append(name)
-        yield language, {note_alter: tuple(names)
-                for note_alter, names in notes.items()}
+        notes = collections.defaultdict(lambda: collections.defaultdict(list))
+        for name, (octave, note, alter) in pitches.items():
+            notes[note, alter][octave].append(name)
+        yield language, {note_alter:
+            {octave: tuple(names) for octave, names in d.items()}
+                for note_alter, d in notes.items()}
 
 pitch_names_reversed = dict(_make_reverse_pitch_table())
 del _make_reverse_pitch_table
@@ -87,20 +86,21 @@ class Pitch:
     languages.
 
     """
-    def __init__(self, note=0, alter=0, octave=0):
+    def __init__(self, octave, note, alter):
+        self.octave = octave
         self.note = note
         self.alter = alter
-        self.octave = octave
 
     def __str__(self):
+        p = PitchProcessor()
         try:
-            return pitch_names_reversed['nederlands'][(self.note, self.alter)][0] + octave_to_string(self.octave)
+            return p.to_string(self)
         except KeyError:
             return '?'
 
     def __repr__(self):
-        return "<{} note={}, alter={}, octave={} ({})>".format(
-            self.__class__.__name__, self.note, self.alter, self.octave, self)
+        return "<{} octave={}, note={}, alter={} ({})>".format(
+            self.__class__.__name__, self.octave, self.note, self.alter, self)
 
     def _as_tuple(self):
         """Return our attributes as a sortable tuple."""
@@ -134,7 +134,7 @@ class Pitch:
 
     def copy(self):
         """Return a new Pitch with our attributes."""
-        return type(self)(self.note, self.alter, self.octave)
+        return type(self)(self.octave, self.note, self.alter)
 
     def to_midi(self, scale=MAJOR_SCALE):
         """Return the MIDI key number for this pitch."""
@@ -246,11 +246,15 @@ class PitchProcessor:
         Raises a :obj:`KeyError` if the language you try to set does not exist.
         Valid languages are: {langs}.
 
+        Do not modify the language between a :meth:`read_node` and
+        :meth:`write_node` operation on the same node. For translation of pitch
+        names, use two PitchProcessors.
+
         """.format(langs = ", ".join('``"{}"``'.format(name)
             for name in sorted(pitch_names)))
 
-    def read(self, name):
-        """Returns ``(note, alter)`` for the specified note name.
+    def pitch(self, name):
+        """Return a :class:`Pitch` for the specified note name.
 
         Raises a :obj:`KeyError` if the language does not know the pitch name,
         or when the language name is unknown.
@@ -258,42 +262,55 @@ class PitchProcessor:
         For example::
 
             >>> from quickly.pitch import PitchProcessor
-            >>> p=PitchProcessor()
+            >>> p = PitchProcessor()
             >>> p.read('cis')
-            (0, 0.5)
+            <Pitch octave=-1, note=0, alter=0.5 (cis)>
 
         """
-        return pitch_names[self._language][name]
+        return Pitch(*pitch_names[self._language][name])
 
-    def write(self, note, alter=0):
-        """Return a pitch name for the specified note and alter.
+    def name_octave(self, pitch):
+        """Return a two-tuple (name, octave) for the :class:`Pitch`.
 
-        The ``note`` is a value in the range 0..6, and ``alter`` a value
-        between -1 and 1. Most used alterations are -1, -0.5, 0, 0.5 and 1, but
-        some languages also support quarter tones, like 0.25.
+        The name is the note name, the octave is the number of ``,`` (if
+        negative) or ``'`` that still need to be added.
+
+        Raises a :obj:`KeyError` if the language does not contain a pitch name.
+
+        """
+        octave_dict = pitch_names_reversed[self._language][pitch.note, pitch.alter]
+        for octave in sorted(octave_dict, key=lambda o: abs(o - pitch.octave)):
+            names = octave_dict[octave]
+            octave = pitch.octave - octave
+            if len(names) == 1:
+                name = names[0]
+            else:
+                name = self._suitable(self._language, names) or names[-1]
+            return name, octave
+
+    def to_string(self, pitch):
+        """Return a string representing the pitch.
 
         Raises a :obj:`KeyError` if the language does not contain a pitch name.
 
         For example::
 
             >>> from quickly.pitch import PitchProcessor
-            >>> p=PitchProcessor()
-            >>> p.write(0)
+            >>> p = PitchProcessor()
+            >>> p.write(Pitch(-1, 0, 0))
             'c'
-            >>> p.write(4, 1)
-            'gisis'
+            >>> p.write(Pitch(0, 4, 1))
+            "gisis'"
             >>> p.language = 'english'
-            >>> p.write(4, 1)
-            'gss'
+            >>> p.write(Pitch(0, 4, 1))
+            "gss'"
             >>> p.prefer_long = True
-            >>> p.write(4, 1)
-            'g-sharpsharp'
+            >>> p.write(Pitch(0, 4, 1))
+            "g-sharpsharp'"
 
         """
-        names = pitch_names_reversed[self._language][note, alter]
-        if len(names) == 1:
-            return names[0]
-        return self._suitable(self._language, names) or names[-1]
+        name, octave = self.name_octave(pitch)
+        return name + octave_to_string(octave)
 
     def read_node(self, node):
         """Return a Pitch, initialized from the node.
@@ -306,11 +323,12 @@ class PitchProcessor:
             >>> n = lily.Note('re')
             >>> p = PitchProcessor('français')
             >>> p.read_node(n)
-            <Pitch note=1, alter=0, octave=0 (d)>
+            <Pitch octave=-1, note=1, alter=0 (d)>
 
         """
-        note, alter = self.read(node.head)
-        return Pitch(note, alter, node.octave)
+        p = self.pitch(node.head)
+        p.octave += node.octave
+        return p
 
     def write_node(self, node, pitch):
         """Write the Pitch's note, alter and octave to the node.
@@ -322,17 +340,22 @@ class PitchProcessor:
             >>> from quickly.dom import lily
             >>> n = lily.Note('c')
             >>> p = PitchProcessor()
-            >>> p.write_node(n, Pitch(1, 0.5, 2))
+            >>> p.write_node(n, Pitch(2, 1, 0.5))
             >>> n.dump()
             <lily.Note 'dis' (1 child)>
-             ╰╴<lily.Octave 2>
+             ╰╴<lily.Octave 3>
 
         """
-        node.head = self.write(pitch.note, pitch.alter)
-        node.octave = pitch.octave
+        p = self.pitch(node.head)
+        if (p.note, p.alter) == (pitch.note, pitch.alter):
+            # keep the head value, even if there are multiple pitch names
+            # in the current language (that can differ in octave)
+            node.octave = pitch.octave - p.octave
+        else:
+            node.head, node.octave = self.name_octave(pitch)
 
     @contextlib.contextmanager
-    def pitch(self, node, write=True):
+    def process(self, node, write=True):
         """Return a context manager that yields a :class:`Pitch` when entered.
 
         The ``node`` is a :class:`~.dom.lily.Note` or
@@ -343,7 +366,7 @@ class PitchProcessor:
             >>> from quickly.dom import lily
             >>> n = lily.Note('c')
             >>> p = PitchProcessor()
-            >>> with p.pitch(n) as pitch:
+            >>> with p.process(n) as pitch:
             ...     pitch.note += 2
             ...     pitch.alter = 0.5
             ...     pitch.octave += 1
@@ -360,19 +383,17 @@ class PitchProcessor:
 
         """
         p = self.read_node(node)
-        c = p.copy()
         yield p
         if write:
-            if p.note != c.note or p.alter != c.alter:
-                node.head = self.write(p.note, p.alter)
-            if p.octave != c.octave:
-                node.octave = p.octave
+            self.write_node(node, p)
 
-    def note(self, pitch):
-        """Return a new Note element for the pitch."""
+    def pitchable(self, pitch, cls=None):
+        """Return a new Note element for the pitch(or another Pitchable)."""
+        name, octave = self.name_octave(pitch)
         from .dom import lily
-        name = self.write(pitch.note, pitch.alter)
-        return lily.Note(name, octave=pitch.octave)
+        if cls is None:
+            cls = lily.Note
+        return cls(name, octave=octave)
 
     def find_language(self, node):
         r"""Search backwards from node to find the last set language.
@@ -448,7 +469,7 @@ class PitchProcessor:
                         prefer_long = True
                     elif not prefer_long and pnames[name][1] in {-1, -0.5, 0.5, 1}:
                         prefer_long = False
-                elif language in ("francais", "français"):
+                elif language == "français":
                     if 'é' in name:
                         prefer_accented = True
                     elif not prefer_accented and 'e' in name:
@@ -467,7 +488,7 @@ class PitchProcessor:
                     prefer_x = True
                 elif not prefer_x and (
                            (name.endswith('ss') and language in ("english", "espanol", "español"))
-                        or (name.endswith('dd') and language in ("francais", "français"))):
+                        or (name.endswith('dd') and language == "français")):
                     prefer_x = False
             elif name in pitch_names:
                 language = name
@@ -523,7 +544,6 @@ class PitchProcessor:
             if self.prefer_x == name.endswith('x'):
                 return name
 
-    @_suitable("francais")
     @_suitable("français")
     def _francais(self, names):
         subset = [name for name in names if self.prefer_accented == ('é' in name)]
@@ -557,8 +577,7 @@ def octave_to_string(n):
     """Convert a numeric value to an octave notation.
 
     The octave notation consists of zero or more ``'`` or ``,``. The octave
-    ``0`` returns the empty string. Note that this differs from LilyPond, which
-    uses -1 for the octave without a ``'`` or ``,``.
+    ``0`` returns the empty string.
 
     """
     return "," * -n if n < 0 else "'" * n
@@ -588,10 +607,21 @@ def determine_language(names):
         []  # ambiguous
 
     """
-    langs = ["nederlands", "english", "deutsch", "francais", "italiano"]
-    langs.extend(sorted(set(pitch_names) - set(langs) - {'français', 'español'}))
+    def langs():
+        # prefer often used languages
+        langs = ["nederlands", "english", "deutsch", "français", "italiano"]
+        yield from langs
+        def other_names():
+            # remove synonyms
+            seen = set(id(pitch_names[name]) for name in langs)
+            for name, value in pitch_names.items():
+                if name not in langs and id(value) not in seen:
+                    seen.add(id(value))
+                    yield name
+        yield from sorted(other_names())
+
     names = set(names) - set('rRsq') # remove language-agnostic names ;-)
-    for language in langs:
+    for language in langs():
         if not names - set(pitch_names[language]):
             yield language
 

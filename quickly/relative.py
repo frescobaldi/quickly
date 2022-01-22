@@ -94,23 +94,23 @@ class Rel2abs(edit.Edit):
                 start_note, *nodes = nodes
                 last_pitch = processor.read_node(start_note)
             elif first_pitch_absolute:
-                last_pitch = Pitch(3)
+                last_pitch = Pitch(-1, 3, 0)
             else:
-                last_pitch = Pitch(0, 0, 1)
+                last_pitch = Pitch(0, 0, 0)
 
             parent[index:index+1] = nodes   # remove \relative node but keep its child(ren)
 
             for n in notes(nodes):
                 if isinstance(n, lily.Pitchable):
                     # note (or positioned rest)
-                    with processor.pitch(n) as p:
+                    with processor.process(n) as p:
                         p.make_absolute(last_pitch)
                         last_pitch = p
                 elif isinstance(n, lily.Chord):
                     # chord
                     stack = [last_pitch]
                     for note in notes(n):
-                        with processor.pitch(note) as p:
+                        with processor.process(note) as p:
                             p.make_absolute(stack[-1])
                             stack.append(p)
                     last_pitch = stack[:2][-1]  # first note of chord, or the old if chord was empty
@@ -218,22 +218,24 @@ class Abs2rel(edit.Edit):
 
         def get_first_pitch(p):
             if self.start_pitch:
-                last_pitch = Pitch(0, 0, p.octave)
+                last_pitch = Pitch(p.octave, 0, 0)
                 if p.note > 3:
                     last_pitch.octave += 1
-                rel.append(processor.note(last_pitch))
+                rel.append(processor.pitchable(last_pitch, lily.Pitch))
             elif first_pitch_absolute:
-                last_pitch = Pitch(3)
+                last_pitch = Pitch(-1, 3, 0)
             else:
-                last_pitch = Pitch(0, 0, 1)
+                last_pitch = Pitch(0, 0, 0)
             return last_pitch
 
         def relative_note(node, last_pitch):
-            with processor.pitch(node) as p:
+            with processor.process(node) as p:
+                default_octave = p.octave - node.octave
                 if last_pitch is None:
                     last_pitch = get_first_pitch(p)
                 lp = p.copy()
                 p.make_relative(last_pitch)
+                p.octave += default_octave
             return lp
 
         def relative_notes(node, last_pitch=None):
