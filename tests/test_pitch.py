@@ -246,6 +246,10 @@ def check_relative():
     Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(cur)
     assert doc.text() == r"\relative { c { c' d e f g } { d e fis g a } }"
 
+    doc = lydoc("{ c { c' d e' f g' } { d' e'' fis' g a' } }")
+    cur = parce.Cursor(doc)
+    Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(cur)
+    assert doc.text() == r"\relative { c { c' d, e' f, g' } { d e' fis, g, a' } }"
 
 
 def test_main():
