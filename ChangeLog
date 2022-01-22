@@ -6,8 +6,12 @@ current: quickly-0.5.0
 
 - requires parce-0.30.0
 - added time module for time computations
+- added key module for key signature and tonic computations
 - added rhythm module to manipulate durations in music or a part thereof
 - added dom.scope module to find nodes from included files
+- modified PitchProcessor:
+    - note names now carry a default octave
+    - pitch() method now returns a Pitch, old pitch() renamed to process()
 - introduced lily.ChordBody and FigureBody, to be able to add Duration at Chord
   and Figure directly
 - added lily.Durable as base type for any stuff that can have a Duration
