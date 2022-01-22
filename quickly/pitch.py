@@ -65,16 +65,19 @@ del _make_reverse_pitch_table
 
 
 class Pitch:
-    """A pitch with ``note``, ``alter`` and ``octave`` attributes.
+    """A pitch with ``octave``, ``note``, and ``alter`` attributes.
 
-    The attributes may be manipulated directly.
+    The attributes may be manipulated directly, and have the same contents and
+    meaning as the three values in LilyPond's ``(ly:make-pitch octave note
+    alter)`` construct.
 
-    The ``note`` is an integer in the 0..6 range, where 0 stands for C; the
-    ``alter`` is a float in the range -1..1, where all pitch languages support
-    the values -1, -0.5, 0, 0.5, 1, and some languages also support semi and
-    three-quarter alterations like 0.25; and ``octave`` is an integer where 0
-    stands for the octave below "middle C" (with no comma or apostrophe in
-    LilyPond's format).
+    The ``octave`` is an integer where 0 stands for the octave containing
+    "middle C" (with one apostrophe in LilyPond's format). The ``note`` is an
+    integer in the 0..6 range, where 0 stands for C; the ``alter`` is an
+    integer, float or fraction denoting the alteration in whole tones, where
+    all pitch languages support the values -1, -0.5, 0, 0.5, 1, and some
+    languages also support semi and three-quarter alterations like 0.25 (i.e.
+    ``Fraction(1, 4)``).
 
     Pitches compare equal when their attributes are the same, and also support
     the ``>``, ``<``, ``>=`` and ``<=`` operators. These operators compare on
