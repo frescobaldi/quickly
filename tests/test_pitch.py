@@ -184,6 +184,21 @@ def check_transpose():
     Transpose(t).edit_node(music)
     assert music.write() == r"\relative g' { g a b c d }"
 
+    t = Transposer(Pitch(0, 0, 0), Pitch(0, 1, 0))
+    music = read.lily_document(r"\relative { c' d' e, f g }")
+    Transpose(t).edit_node(music)
+    assert music.write() == r"\relative { d' e' fis, g a }"
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(-1, 6, .5))
+    music = read.lily_document(r"\relative { c' d' e, f g }")
+    Transpose(t, relative_first_pitch_absolute=True).edit_node(music)
+    assert music.write() == r"\relative { bis cisis' disis, eis fisis }"
+
+    t = Transposer(Pitch(0, 0, 0), Pitch(-1, 6, .5))
+    music = read.lily_document(r"\relative c' { c d' e, f g }")
+    Transpose(t, relative_first_pitch_absolute=True).edit_node(music)
+    assert music.write() == r"\relative bis { bis cisis' disis, eis fisis }"
+
     t = Transposer(Pitch(0, 0, 0), Pitch(-1, 6, -.5))
     music = read.lily_document(r"\relative { g a b c d }")
     Transpose(t, relative_first_pitch_absolute=False).edit_node(music)
