@@ -26,7 +26,7 @@ import collections
 
 from parce.util import cached_method
 
-from .pitch import Pitch, MAJOR_SCALE
+from . import pitch
 
 #: The offset of the standard key modes to the default major scale in LilyPond.
 mode_offset = {
@@ -41,9 +41,6 @@ mode_offset = {
     'locrian': 6,
 }
 
-#: Which pitch values get a flat by default instead of a sharp.
-MAJOR_FLATS = (1.5, 5)
-
 
 def _int(value):
     """Return int if val is integer."""
@@ -51,7 +48,7 @@ def _int(value):
     return i if value == i else value
 
 
-def alterations(offset, scale=MAJOR_SCALE):
+def alterations(offset, scale=None):
     """Return the list of alterations for the specified offset.
 
     The list has the same length as the :py:data:`scale <.pitch.MAJOR_SCALE>`
@@ -77,6 +74,7 @@ def alterations(offset, scale=MAJOR_SCALE):
     would be needed for C dorian.
 
     """
+    scale = scale or pitch.MAJOR_SCALE
     l = len(scale)
     offset %= l
     alter = scale[offset] - scale[0]
@@ -84,7 +82,7 @@ def alterations(offset, scale=MAJOR_SCALE):
                 for step, orig in enumerate(range(l), offset)]
 
 
-def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
+def accidentals(note, alter=0, mode=None, scale=None):
     """Return the list of 7 alterations for the specified key signature.
 
     The ``note`` is a note from 0..6; the ``alter`` is the alteration of that
@@ -125,6 +123,7 @@ def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
         [0, 0.5, 0, 1, 0, 1]                        # (one sharp and two double sharps)
 
     """
+    scale = scale or pitch.MAJOR_SCALE
     if mode is None:
         mode = alterations(0, scale)
     note %= len(scale)
@@ -133,7 +132,7 @@ def accidentals(note, alter=0, mode=None, scale=MAJOR_SCALE):
     return accs[-note:] + accs[:-note]  # rotate so C is always at start
 
 
-def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
+def chromatic_scale(note=0, alter=0, scale=None, flats=None):
     """Return a default chromatic scale, based on the ``scale``.
 
     Every item in the scale is a tuple(note, alter).
@@ -145,6 +144,9 @@ def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
     as if it where in that key.
 
     """
+    scale = scale or pitch.MAJOR_SCALE
+    flats = pitch.MAJOR_FLATS if flats is None else flats
+
     def chrom_scale():
         """Yield a chromatic scale."""
         note = 0
@@ -168,7 +170,7 @@ def chromatic_scale(note=0, alter=0, scale=MAJOR_SCALE, flats=MAJOR_FLATS):
     return notes[-semitones:] + notes[:-semitones]  # rotate so C-based pitch is at start
 
 
-def tonic(sf, scale=MAJOR_SCALE):
+def tonic(sf, scale=None):
     """Return the tuple(note, alter) which is the musical tonic for the major
     scale with the given number of sharps or flats ``sf``.
 
@@ -182,6 +184,7 @@ def tonic(sf, scale=MAJOR_SCALE):
     ``(3, 0.0)``, which in the default scale is F.
 
     """
+    scale = scale or pitch.MAJOR_SCALE
     l = len(scale)
     note, alter = 0, 0
     d = 1 if sf > 0 else -1 if sf < 0 else 0
@@ -207,7 +210,8 @@ class KeySignature:
     to sensible pitches.
 
     """
-    def __init__(self, note, alter=0, mode="major", scale=MAJOR_SCALE):
+    def __init__(self, note, alter=0, mode="major", scale=None):
+        scale = scale or pitch.MAJOR_SCALE
         self.note = note        #: The note (0..6).
         self.alter = alter      #: The alteration in whole tones (0 by default).
         self.mode = mode        #: The mode (a standard LilyPond mode name like "major" or a custom alterations list).
@@ -218,10 +222,10 @@ class KeySignature:
         #: The tuple of pitch values in the default scale to give a flat instead
         #: of a sharp when converting a MIDI key number to a pitch. The default
         #: value is set in the :py:data:`MAJOR_FLATS` module constant.
-        self.flats = MAJOR_FLATS
+        self.flats = pitch.MAJOR_FLATS
 
     def __repr__(self):
-        p = Pitch(self.note, self.alter)
+        p = pitch.Pitch(self.note, self.alter)
         return "<{} note,alter={},{} ({}) mode={}>".format(type(self).__name__,
             self.note, self.alter, p, self.mode)
 
@@ -338,7 +342,7 @@ class KeySignature:
             """Return a Pitch from the MIDI key number."""
             octave, step = divmod(key, 12)
             base_octave, note, alter = steps[step]
-            return Pitch(octave + base_octave, note, alter)
+            return pitch.Pitch(octave + base_octave, note, alter)
 
         return from_midi
 

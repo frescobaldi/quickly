@@ -146,7 +146,7 @@ def check_pitch():
     assert octave_from_string("',") == 0
 
     assert list(determine_language(['c', 'd', 'e', 'f', 'g'])) == \
-        ['nederlands', 'english', 'deutsch', 'arabic', 'norsk', 'suomi', 'svenska']
+        ['nederlands', 'english', 'deutsch', 'norsk', 'suomi', 'svenska', 'arabic', 'bagpipe']
     assert list(determine_language(['c', 'd', 'es', 'f', 'g'])) == \
         ['nederlands', 'english', 'deutsch', 'norsk', 'suomi']
     assert list(determine_language(['c', 'd', 'es', 'fis', 'g', 'bis'])) == \

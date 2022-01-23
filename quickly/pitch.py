@@ -49,6 +49,10 @@ from parce.lang.lilypond_words import pitch_names
 #: C in whole tones.
 MAJOR_SCALE = (0, 1, 2, 2.5, 3.5, 4.5, 5.5)
 
+#: Which pitch values get a flat by default instead of a sharp when converting
+#: a MIDI key number to a pitch.
+MAJOR_FLATS = (1.5, 5)
+
 
 # reverse pitch names
 def _make_reverse_pitch_table():
@@ -76,8 +80,8 @@ class Pitch:
     integer in the 0..6 range, where 0 stands for C; the ``alter`` is an
     integer, float or fraction denoting the alteration in whole tones, where
     all pitch languages support the values -1, -0.5, 0, 0.5, 1, and some
-    languages also support semi and three-quarter alterations like 0.25 (i.e.
-    ``Fraction(1, 4)``).
+    languages also support semi, three-quarter alterations like 0.25 (i.e.
+    ``Fraction(1, 4)``), or even other alterations.
 
     Pitches compare equal when their attributes are the same, and also support
     the ``>``, ``<``, ``>=`` and ``<=`` operators. These operators compare on
@@ -140,17 +144,19 @@ class Pitch:
         """Return a new Pitch with our attributes."""
         return type(self)(self.octave, self.note, self.alter)
 
-    def to_midi(self, scale=MAJOR_SCALE):
+    def to_midi(self, scale=None):
         """Return the MIDI key number for this pitch."""
+        scale = scale or MAJOR_SCALE
         return int((self.octave + 5) * 12 + (scale[self.note] + self.alter) * 2)
 
     @classmethod
-    def from_midi(cls, key, scale=MAJOR_SCALE, flats=(5,)):
+    def from_midi(cls, key, scale=None, flats=None):
         """Return a :class:`Pitch` from the MIDI key value.
 
         All altered notes get a sharp, unless a pitch value is listed in the
-        ``flats`` parameter. By default, the pitch value 5 gets a b-flat
-        instead of an a-sharp.
+        ``flats`` parameter. By default, the pitch values 1.5 and 5 get a flat,
+        resulting in an e-flat instead of d-sharp and a b-flat instead of an
+        a-sharp.
 
         An example::
 
@@ -168,6 +174,8 @@ class Pitch:
         :class:`~.key.KeySignature` class.
 
         """
+        scale = scale or MAJOR_SCALE
+        flats = MAJOR_FLATS if flats is None else flats
         octave, step = divmod(key, 12)
         pitch = step / 2
         if pitch in flats:
@@ -180,13 +188,15 @@ class Pitch:
             alter = a
         return cls(octave - 5, note, alter)
 
-    def make_absolute(self, prev_pitch):
+    def make_absolute(self, prev_pitch, scale=None):
         """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
-        self.octave += prev_pitch.octave - (self.note - prev_pitch.note + 3) // 7
+        l = len(scale or MAJOR_SCALE)
+        self.octave += prev_pitch.octave - (self.note - prev_pitch.note + 3) // l
 
-    def make_relative(self, prev_pitch):
+    def make_relative(self, prev_pitch, scale=None):
         """Make ourselves relative, i.e. change our octave from ``prev_pitch``."""
-        self.octave -= prev_pitch.octave - (self.note - prev_pitch.note + 3) // 7
+        l = len(scale or MAJOR_SCALE)
+        self.octave -= prev_pitch.octave - (self.note - prev_pitch.note + 3) // l
 
 
 class PitchProcessor:
@@ -316,8 +326,9 @@ class PitchProcessor:
     def read_node(self, node):
         """Return a Pitch, initialized from the node.
 
-        The ``node`` is a :class:`~.dom.lily.Note` (or positioned
-        :class:`~.dom.lily.Rest`). For example::
+        The ``node`` is a :class:`~.dom.lily.Note`, positioned
+        :class:`~.dom.lily.PitchedRest` or any other
+        :class:`~.dom.lily.Pitchable` For example::
 
             >>> from quickly.pitch import PitchProcessor
             >>> from quickly.dom import lily
@@ -326,11 +337,11 @@ class PitchProcessor:
             >>> p.read_node(n)
             <Pitch octave=-1, note=1, alter=0 (d)>
 
-        The octave handling might be a little confusing at first sight:
-        A lily.Note without octave characters has octave 0, while the pitch
-        has octave -1. This is because the pitch name itself carries the
-        octave -1, and the octave count of the node is added to it to get the
-        resulting octave of the actual pitch::
+        The octave handling might be a little confusing at first sight: A Note
+        node without octave characters has octave 0, while the pitch has octave
+        -1. This is because, just like in LilyPond, the pitch name itself
+        carries the octave -1, and the octave count of the node is added to it
+        to get the resulting octave of the actual pitch::
 
             >>> n.octave                    # number of ' or ,
             0
@@ -635,16 +646,20 @@ def determine_language(names):
     """
     def langs():
         # prefer often used languages
-        langs = ["nederlands", "english", "deutsch", "français", "italiano"]
-        yield from langs
-        def other_names():
+        ubiquitous = ["nederlands", "english", "deutsch", "français", "italiano"]
+        exotic = ["arabic", "bagpipe"]
+
+        def others():
             # remove synonyms
-            seen = set(id(pitch_names[name]) for name in langs)
+            seen = set(id(pitch_names[name]) for name in ubiquitous + exotic)
             for name, value in pitch_names.items():
-                if name not in langs and id(value) not in seen:
+                if id(value) not in seen:
                     seen.add(id(value))
                     yield name
-        yield from sorted(other_names())
+
+        yield from ubiquitous
+        yield from sorted(others())
+        yield from exotic
 
     names = set(names) - set('rRsq') # remove language-agnostic names ;-)
     for language in langs():
