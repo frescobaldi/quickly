@@ -83,7 +83,7 @@ class Pitch:
     the ``>``, ``<``, ``>=`` and ``<=`` operators. These operators compare on
     octave first, then note, then alter.
 
-    ``str(pitch)`` returns always the dutch notation (or a question mark if
+    ``format(pitch)`` returns always the dutch notation (or a question mark if
     there's no known name for the note, alter combination), but you can use
     :class:`PitchProcessor` to read/write pitch names in all LilyPond
     languages.
@@ -94,12 +94,13 @@ class Pitch:
         self.note = note
         self.alter = alter
 
-    def __str__(self):
+    def __format__(self, format_spec):
         p = PitchProcessor()
         try:
-            return p.to_string(self)
+            s = p.to_string(self)
         except KeyError:
-            return '?'
+            s = '?'
+        return format(s, format_spec)
 
     def __repr__(self):
         return "<{} octave={}, note={}, alter={} ({})>".format(
@@ -141,7 +142,7 @@ class Pitch:
 
     def to_midi(self, scale=MAJOR_SCALE):
         """Return the MIDI key number for this pitch."""
-        return int((self.octave + 4) * 12 + (scale[self.note] + self.alter) * 2)
+        return int((self.octave + 5) * 12 + (scale[self.note] + self.alter) * 2)
 
     @classmethod
     def from_midi(cls, key, scale=MAJOR_SCALE, flats=(5,)):
@@ -177,7 +178,7 @@ class Pitch:
         a = int(alter)
         if a == alter:
             alter = a
-        return cls(note, alter, octave - 4)
+        return cls(octave - 5, note, alter)
 
     def make_absolute(self, prev_pitch):
         """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
@@ -191,13 +192,10 @@ class Pitch:
 class PitchProcessor:
     """Read and write pitch names in all LilyPond languages.
 
-    The language to use by default can be set in the ``language`` attribute;
-    you can also specify the language on every call to the :meth:`read` or
-    :meth:`write` method.
-
-    Some languages have multiple pitch names for the same note; using the
-    ``prefer_`` attributes you can control which style is chosen on
-    :meth:`write`.
+    The language to use by default can be given on instantiation or set in the
+    ``language`` attribute. Some languages have multiple pitch names for the
+    same note; using the ``prefer_`` attributes you can control which style is
+    chosen when writing the pitch name.
 
     """
     #: Prefer long names in english, e.g. ``c-sharpsharp`` above ``css``
@@ -328,6 +326,17 @@ class PitchProcessor:
             >>> p.read_node(n)
             <Pitch octave=-1, note=1, alter=0 (d)>
 
+        The octave handling might be a little confusing at first sight:
+        A lily.Note without octave characters has octave 0, while the pitch
+        has octave -1. This is because the pitch name itself carries the
+        octave -1, and the octave count of the node is added to it to get the
+        resulting octave of the actual pitch::
+
+            >>> n.octave                    # number of ' or ,
+            0
+            >>> p.read_node(n).octave       # actual octave
+            -1
+
         """
         p = self.pitch(node.head)
         p.octave += node.octave
@@ -391,7 +400,21 @@ class PitchProcessor:
             self.write_node(node, p)
 
     def pitchable(self, pitch, cls=None):
-        """Return a new Note element for the pitch(or another Pitchable)."""
+        """Return a new Pitchable element for the pitch.
+
+        By default, a Note is returned, but you may specify any Pitchable
+        subclass.
+
+            >>> from quickly.pitch import *
+            >>> p = PitchProcessor('nederlands')
+            >>> n = p.pitchable(Pitch(2, 3, -.25))
+            >>> n.dump()
+            <lily.Note 'feh' (1 child)>
+             ╰╴<lily.Octave 3>
+            >>> n.write()
+            "feh'''"
+
+        """
         name, octave = self.name_octave(pitch)
         from .dom import lily
         if cls is None:

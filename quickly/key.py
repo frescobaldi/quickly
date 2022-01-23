@@ -332,13 +332,13 @@ class KeySignature:
             steps[step] = (note, alter)
         # add octave
         octave = lambda p: -1 if p > 6 else 1 if p < 0 else 0
-        steps = [(note, alter, octave(note + alter) - 4) for note, alter in steps]
+        steps = [(octave(note + alter) - 5, note, alter) for note, alter in steps]
 
         def from_midi(key):
             """Return a Pitch from the MIDI key number."""
             octave, step = divmod(key, 12)
-            note, alter, base_octave = steps[step]
-            return Pitch(note, alter, octave + base_octave)
+            base_octave, note, alter = steps[step]
+            return Pitch(octave + base_octave, note, alter)
 
         return from_midi
 
