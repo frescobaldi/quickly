@@ -2,7 +2,7 @@ ChangeLog
 =========
 
 
-current: quickly-0.5.0
+2022-01-23: quickly-0.5.0
 
 - requires parce-0.30.0
 - added time module for time computations
