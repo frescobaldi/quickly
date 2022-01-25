@@ -221,21 +221,39 @@ class CopyRhythm(EditRhythm):
     """Extract durations from a range in the form of (duration, scaling) tuples.
 
     The durations are returned by :meth:`edit_range` and thus also all other
-    edit methods. Durables without duration yield a None. Example::
+    edit methods. Durables without duration yield a None if ``explicit`` is
+    False, otherwise the previous duration is repeated. Example::
 
         >>> from quickly.dom import read
         >>> music = read.lily_document(r"{ c4 d8 e16 f g2 }")
         >>> from quickly.rhythm import CopyRhythm
         >>> durations = CopyRhythm().edit(music)
         >>> durations
-        [(Fraction(1, 4), 1.0), (Fraction(1, 8), 1.0), (Fraction(1, 16), 1.0),
-        None, (Fraction(1, 2), 1.0)]
+        [(Fraction(1, 4), 1), (Fraction(1, 8), 1), (Fraction(1, 16), 1), None,
+        (Fraction(1, 2), 1.0)]
+        >>> CopyRhythm(True).edit(music)
+        [(Fraction(1, 4), 1), (Fraction(1, 8), 1), (Fraction(1, 16), 1),
+        (Fraction(1, 16), 1), (Fraction(1, 2), 1)]
 
     """
     readonly = True
 
+    def __init__(self, explicit=False):
+        self.explicit = explicit    #: If True, yield every reoccurring duration explicit instead of None
+
     def edit_range(self, r):
         """Return the list of extracted durations."""
+        if self.explicit:
+            def durations():
+                prev = None
+                for n in self.durables(r):
+                    dur = n.duration_scaling
+                    if dur:
+                        prev = dur
+                    elif not prev:
+                        prev = lily.previous_duration(n)
+                    yield prev
+            return list(durations())
         return [n.duration_scaling for n in self.durables(r)]
 
 
@@ -351,14 +369,16 @@ def transform(music, log=0, dotcount=0, scale=1):
     return RhythmTransform(Transform(log, dotcount, scale)).edit(music)
 
 
-def copy(music):
+def copy(music, explicit=False):
     """Extract durations from music.
 
     Every duration is a two-tuple of integers or fractions (duration, scaling),
-    or None for Durables without duration.
+    or, if ``explicit`` is False, None for Durables without duration. If
+    ``explicit`` is True, the previous duration is repeated for Durables
+    without duration.
 
     """
-    return CopyRhythm().edit(music)
+    return CopyRhythm(explicit).edit(music)
 
 
 def paste(music, durations, cycle=True):
