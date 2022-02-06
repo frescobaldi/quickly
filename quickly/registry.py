@@ -33,26 +33,17 @@ import itertools
 import parce.registry
 
 
-registry = parce.registry.Registry()
+registry = parce.registry.Registry(parce.registry.registry)
 
 
-def find(name=None, *, filename=None, mimetype=None, contents=None):
+def find(name=None, filename=None, mimetype=None, contents=None):
     """Get the root lexicon for a language with name.
 
     See for all the arguments :func:`parce.find`. If no root lexicon can be
     found in quickly's bundled languages, falls back to :mod:`parce`.
 
     """
-    if name:
-        lexicon_name = registry.find(name)
-    else:
-        for lexicon_name in registry.suggest(filename, mimetype, contents):
-            break
-        else:
-            lexicon_name = None
-    if lexicon_name:
-        return parce.registry.root_lexicon(lexicon_name)
-    return parce.find(name, filename=filename, mimetype=mimetype, contents=contents)
+    return registry.find(name, filename, mimetype, contents)
 
 
 def register(lexicon_name, parce_lexicon_name=None, *,
@@ -84,13 +75,13 @@ def register(lexicon_name, parce_lexicon_name=None, *,
         filenames = list(itertools.chain(template.filenames, filenames))
         mimetypes = list(itertools.chain(template.mimetypes, mimetypes))
         guesses = list(itertools.chain(template.guesses, guesses))
-    registry.register(
+    registry.add(
         lexicon_name, name = name, desc = desc, aliases = aliases,
         filenames = filenames, mimetypes = mimetypes, guesses = guesses)
 
 
 
-## register bundled languages here
+## register bundled languages in quickly here
 register("quickly.lang.html.Html.root", "parce.lang.html.Html.root",
     name = "HTML",
     desc = "HTML with embedded LilyPond",
