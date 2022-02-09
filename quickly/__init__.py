@@ -41,10 +41,6 @@ def load(filename, lexicon=True, encoding=None):
     if the file can't be read.
 
     """
-    text = open(filename, encoding=encoding).read()
-    if lexicon is True:
-        lexicon = find(filename=filename, contents=text)
-    doc = parce.Document(lexicon, text, transformer=True)
-    doc.url = os.path.abspath(filename)
-    return doc
+    from .registry import registry
+    return parce.Document.load(os.path.abspath(filename), lexicon, encoding, registry=registry, transformer=True)
 
