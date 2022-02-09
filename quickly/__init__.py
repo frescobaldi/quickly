@@ -36,9 +36,10 @@ def load(filename, lexicon=True, encoding=None):
     """Read text from ``filename`` and return a :class:`parce.Document`.
 
     If ``lexicon`` is True, the lexicon will be guessed based on filename and
-    contents, otherwise the lexicon is used directly. The ``encoding`` is
-    passed directly to Python's :func:`open` function. Raises :class:`OSError`
-    if the file can't be read.
+    contents. If it is a string name, its name is looked up in the registry;
+    otherwise the lexicon is used directly. The ``encoding`` is passed directly
+    to Python's :func:`open` function. Raises :class:`OSError` if the file
+    can't be read.
 
     """
     from .registry import registry
