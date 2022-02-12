@@ -33,16 +33,20 @@ from .registry import find
 __all__ = ('find', 'load', 'version', 'version_string')
 
 
-def load(filename, lexicon=True, encoding=None):
-    """Read text from ``filename`` and return a :class:`parce.Document`.
+def load(filename, lexicon=True, encoding=None, errors=None, newline=None):
+    """Convenience function to read text from ``filename`` and return a
+    :class:`parce.Document`.
 
     If ``lexicon`` is True, the lexicon will be guessed based on filename and
     contents. If it is a string name, its name is looked up in the registry;
-    otherwise the lexicon is used directly. The ``encoding`` is passed directly
-    to Python's :func:`open` function. Raises :class:`OSError` if the file
-    can't be read.
+    otherwise the lexicon is used directly.
+
+    The ``encoding``, if specified, is used to read the file; otherwise the
+    encoding is autodetected. The ``errors`` and ``newline`` arguments will be
+    passed to Python's :func:`open` function. Raises :class:`OSError` if the
+    file can't be read.
 
     """
     from .registry import registry
-    return parce.Document.load(os.path.abspath(filename), lexicon, encoding, registry=registry, transformer=True)
+    return parce.Document.load(os.path.abspath(filename), lexicon, encoding, errors, newline, registry=registry, transformer=True)
 
