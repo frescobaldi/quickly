@@ -2,7 +2,7 @@ ChangeLog
 =========
 
 
-current: quickly-0.6.0
+2022-02-12: quickly-0.6.0
 
 - requires parce-0.31.0
 - small registry module changes to adapt to parce
