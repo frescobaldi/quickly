@@ -20,14 +20,16 @@
 
 """
 The quickly module.
+
+On first import, our own language definitions are added to the parce registry.
+
 """
 
 import os.path
 
-import parce
+from parce import find, Document
 
 from .pkginfo import version, version_string
-from .registry import find
 
 
 __all__ = ('find', 'load', 'version', 'version_string')
@@ -47,6 +49,32 @@ def load(filename, lexicon=True, encoding=None, errors=None, newline=None):
     file can't be read.
 
     """
-    from .registry import registry
-    return parce.Document.load(os.path.abspath(filename), lexicon, encoding, errors, newline, registry=registry, transformer=True)
+    return Document.load(os.path.abspath(filename), lexicon, encoding, errors, newline, transformer=True)
+
+
+## register bundled languages in quickly here
+from parce.registry import register
+register("quickly.lang.html.Html.root",
+    inherit = "parce.lang.html.Html.root",
+    name = "HTML",
+    desc = "HTML with embedded LilyPond",
+)
+
+register("quickly.lang.latex.Latex.root",
+    inherit =  "parce.lang.tex.Latex.root",
+    name = "LaTeX",
+    desc = "LaTeX with embedded LilyPond",
+    filenames = [("*.lytex", 1)],
+)
+
+register("quickly.lang.lilypond.LilyPond.root",
+    inherit = "parce.lang.lilypond.LilyPond.root",
+)
+
+register("quickly.lang.scheme.Scheme.root",
+    inherit = "parce.lang.scheme.Scheme.root",
+)
+
+#TODO: texinfo and docbook
+del register
 

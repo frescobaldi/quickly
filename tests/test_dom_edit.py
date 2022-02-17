@@ -33,7 +33,7 @@ sys.path.insert(0, '.')
 import parce
 
 import quickly
-from quickly.registry import find
+from quickly import find
 from quickly.dom import lily, util
 
 

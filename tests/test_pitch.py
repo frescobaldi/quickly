@@ -36,7 +36,7 @@ from quickly.pitch import (
 from quickly.transpose import Transposer, Transpose
 from quickly.relative import Abs2rel, Rel2abs, abs2rel, rel2abs
 from quickly.dom import read, lily
-from quickly.registry import find
+from quickly import find
 
 
 def lydoc(text):
