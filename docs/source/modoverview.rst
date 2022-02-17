@@ -14,7 +14,6 @@ Overview of all modules
    numbering.rst
    pitch.rst
    pkginfo.rst
-   registry.rst
    relative.rst
    rhythm.rst
    time.rst
