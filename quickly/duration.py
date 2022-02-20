@@ -229,7 +229,7 @@ def from_string(text, dotcount=None):
     return duration(log, dotcount)
 
 
-def is_valid(value):
+def is_writable(value):
     """Return True if the value can be exactly expressed in a log and dotcount
     value, without loss.
 
