@@ -43,6 +43,10 @@ class EditRhythm(edit.Edit):
         """Yield all Durable instances in range."""
         for n in r.nodes():
             if isinstance(n, lily.Durable):
+                # skip \skip with music instead of duration (which is legal
+                # as of LilyPond 2.23.6)
+                if isinstance(n, lily.Skip) and not any(n / lily.Duration):
+                    continue
                 yield n
 
     @staticmethod

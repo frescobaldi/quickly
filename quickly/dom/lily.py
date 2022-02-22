@@ -1545,11 +1545,41 @@ class Space(element.HeadElement, Durable):
 
 
 class Skip(element.HeadElement, Durable):
-    r"""A ``\skip``. Must have a Duration child."""
+    r"""A ``\skip``.
+
+    For LilyPond version upto and including 2.22, must have a Duration child.
+    For LilyPond version from 2.23.6, may have a Music argument instead, which
+    then defines the length of the skip.
+
+    With a duration, LilyPond creates a SkipMusic event; with a music argument,
+    LilyPond creates a SkippedMusic construct with music that's just not printed
+    and does not create outputs, but whose length is computed precisely.
+
+    We handle both; the ``duration_required`` means here that it may not be
+    removed if it's there. If there is no direct Duration child, the Skip
+    is not to be regarded as a regular Durable, but rather as a music function.
+
+    """
     head = r'\skip'
     space_after_head = " "
     duration_required = True        #: always needs a duration
     duration_sets_previous = False  #: the "previous" duration is not changed by \skip
+
+    def time_length(self, context, end=None):
+        r"""Return the length of this Durable, using a
+        :class:`~.time.TimeContext` handler.
+
+        Reimplemented to handle the case where ``\skip`` has a music argument
+        instead of a Duration argument.
+
+        """
+        if any(self / Duration):
+            return super().time_length(context, end)
+        return super(Durable, self).time_length(context, end)
+
+    def signatures(self):
+        yield Duration,
+        yield MUSIC,
 
     def child_order(self):
         yield Duration, base.Comment
