@@ -168,7 +168,7 @@ class RhythmImplicitPerLine(EditRhythm):
 
 
 class RhythmTransform(EditRhythm):
-    """Transform durations using a :class:`~.duration.Transform`.
+    r"""Transform durations using a :class:`~.duration.Transform`.
 
     This can be used for all types of shift and scale operations. For example,
     to add a dot to all durations::
@@ -210,15 +210,24 @@ class RhythmTransform(EditRhythm):
         >>> music.write()
         '{ c4. d8. e16. f g2. }'
 
+    This function also modifies durations in ``\tempo``, ``\tuplet``,
+    ``\after`` and ``\partial`` commands.
+
     """
     def __init__(self, transform):
         self._transform = transform.transform   # store the transform method
 
-    def process(self, node, prev):
-        """Apply Transform to ``node`` if it has a duration; ``prev`` is unused."""
-        dur = node.duration_scaling
-        if dur:
-            node.duration_scaling = self._transform(*dur)
+    def edit_range(self, r):
+        """Transform all durations."""
+        for n in r.nodes():
+            if isinstance(n, lily.HandleDuration):
+                dur = n.duration_scaling
+                if dur:
+                    dur = self._transform(*dur)
+                    if isinstance(n, lily.Tempo):
+                        n.duration = dur[0] # \tempo does not support scaling
+                    else:
+                        n.duration_scaling = dur
 
 
 class CopyRhythm(EditRhythm):
@@ -367,6 +376,9 @@ def transform(music, log=0, dotcount=0, scale=1):
         >>> rhythm.transform(m, 1, 1)
         >>> m.write()
         '{ c8. d16. e32. f g4. }'
+
+    This function also modifies durations in ``\tempo``, ``\tuplet``,
+    ``\after`` and ``\partial`` commands.
 
     """
     from .duration import Transform

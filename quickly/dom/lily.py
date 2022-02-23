@@ -80,30 +80,18 @@ class Music(element.Element):
         return 0
 
 
-class Durable(Music):
-    """Base class for a single musical object that takes time and can have a
-    Duration child.
+class HandleDuration(element.Element):
+    """Mixin class to manipulate a Duration child via attributes.
 
-    The :attr:`duration` and :attr:`scaling` properties make it easy to
-    manipulate the respective child and grandchild nodes. Floating point values
-    are automatically converted to Fractions, with a limit on the denominator,
-    so a lazy ``note.scaling = 1/3`` works properly.
-
-    Inherited by: :class:`Note`, :class:`Rest`, :class:`Chord`, :class:`Space`,
-    :class:`Skip`, :class:`LyricText` etc.
+    The :attr:`duration`, :attr:`scaling` and :attr:`duration_scaling`
+    properties make it easy to manipulate the respective child and grandchild
+    nodes. Floating point values are automatically converted to Fractions, with
+    a limit on the denominator, so a lazy ``note.scaling = 1/3`` works
+    properly.
 
     """
-    duration_required = False     #: Whether the Duration child is required (e.g. \skip)
-    duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
-
-    def time_length(self, context, end=None):
-        """Return the length of this Durable, using a
-        :class:`~.time.TimeContext` handler.
-
-        For Durable, ``end`` is ignored.
-
-        """
-        return context.durable_length(self)
+    duration_required = False      #: Whether the Duration child is required (e.g. \skip)
+    duration_sets_previous = False #: Whether this Duration is stored as the previous duration for Durables without Duration
 
     @property
     def duration(self):
@@ -201,6 +189,27 @@ class Durable(Music):
     @duration_scaling.deleter
     def duration_scaling(self):
         del self.duration
+
+
+class Durable(HandleDuration, Music):
+    """Base class for a single musical object that takes time and can have a
+    Duration child.
+
+    Inherited by: :class:`Note`, :class:`Rest`, :class:`Chord`, :class:`Space`,
+    :class:`Skip`, :class:`LyricText` etc.
+
+    """
+    duration_required = False     #: Whether the Duration child is required (e.g. \skip)
+    duration_sets_previous = True #: Whether this Duration is stored as the previous duration for Durables without Duration
+
+    def time_length(self, context, end=None):
+        """Return the length of this Durable, using a
+        :class:`~.time.TimeContext` handler.
+
+        For Durable, ``end`` is ignored.
+
+        """
+        return context.durable_length(self)
 
 
 class Pitchable(element.TextElement, Music):
@@ -1585,7 +1594,7 @@ class Skip(element.HeadElement, Durable):
         yield Duration, base.Comment
 
 
-class After(element.HeadElement, Music):
+class After(element.HeadElement, HandleDuration, Music):
     r"""An ``\after``. Must have a Duration child and an event."""
     head = r'\after'
 
@@ -2064,7 +2073,7 @@ class Default(element.HeadElement):
     head = r'\default'
 
 
-class Tempo(_ConvertUnpitchedToDuration, element.HeadElement, Music):
+class Tempo(_ConvertUnpitchedToDuration, HandleDuration, element.HeadElement, Music):
     r"""A ``\tempo`` command.
 
     Can have text (symbol, string, markup) child and/or duration, EqualSign and
@@ -2073,6 +2082,9 @@ class Tempo(_ConvertUnpitchedToDuration, element.HeadElement, Music):
     """
     space_after_head = space_between = " "
     head = r"\tempo"
+
+    def child_order(self):
+        yield TEXT, Duration, EqualSign, Int
 
     def signatures(self):
         yield TEXT,
@@ -2189,7 +2201,7 @@ class Time(element.HeadElement, Music):
         yield Fraction,
 
 
-class Partial(_ConvertUnpitchedToDuration, element.HeadElement, Music):
+class Partial(_ConvertUnpitchedToDuration, HandleDuration, element.HeadElement, Music):
     r"""A ``\partial`` statement.
 
     Has a Duration child.
@@ -2223,7 +2235,7 @@ class Times(element.HeadElement, Music):
         yield Fraction, MUSIC
 
 
-class Tuplet(_ConvertUnpitchedToDuration, element.HeadElement, Music):
+class Tuplet(_ConvertUnpitchedToDuration, HandleDuration, element.HeadElement, Music):
     r"""A ``\tuplet`` statement.
 
     Has a Fraction child, an optional Duration child and a Music child.
@@ -2236,6 +2248,9 @@ class Tuplet(_ConvertUnpitchedToDuration, element.HeadElement, Music):
         """Return a transform to scale durations of child nodes."""
         for n in self / Fraction:
             return duration.Transform(scale=1/n.fraction())
+
+    def child_order(self):
+        yield Fraction, Duration, MUSIC
 
     def signatures(self):
         yield Fraction, Duration, MUSIC
