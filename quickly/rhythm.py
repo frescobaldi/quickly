@@ -364,7 +364,7 @@ def implicit(music, per_line=False):
 
 
 def transform(music, log=0, dotcount=0, scale=1):
-    """Transform durations in music by modifying log, dot count and/or scaling.
+    r"""Transform durations in music by modifying log, dot count and/or scaling.
 
     Increasing the log by 1 halves the durations, decreasing the log doubles
     them. (See also the :mod:`.duration` module.) An example, where the
