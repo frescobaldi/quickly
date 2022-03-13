@@ -90,7 +90,7 @@ class Rel2abs(edit.Edit):
             index = parent.index(node)
 
             nodes = list(util.skip_comments(node))
-            if len(nodes) > 1 and isinstance(nodes[0], lily.Note):
+            if len(nodes) > 1 and isinstance(nodes[0], lily.Pitch):
                 start_note, *nodes = nodes
                 last_pitch = processor.read_node(start_note)
             elif first_pitch_absolute:
@@ -104,14 +104,16 @@ class Rel2abs(edit.Edit):
                 if isinstance(n, lily.Pitchable):
                     # note (or positioned rest)
                     with processor.process(n) as p:
-                        p.make_absolute(last_pitch)
+                        default_octave = p.octave - n.octave # the octave of the pitch name itself
+                        p.make_absolute(last_pitch, default_octave)
                         last_pitch = p
                 elif isinstance(n, lily.Chord):
                     # chord
                     stack = [last_pitch]
                     for note in notes(n):
                         with processor.process(note) as p:
-                            p.make_absolute(stack[-1])
+                            default_octave = p.octave - note.octave # the octave of the pitch name itself
+                            p.make_absolute(stack[-1], default_octave)
                             stack.append(p)
                     last_pitch = stack[:2][-1]  # first note of chord, or the old if chord was empty
                 elif isinstance(n, lily.OctaveCheck):
@@ -234,8 +236,7 @@ class Abs2rel(edit.Edit):
                 if last_pitch is None:
                     last_pitch = get_first_pitch(p)
                 lp = p.copy()
-                p.make_relative(last_pitch)
-                p.octave += default_octave
+                p.make_relative(last_pitch, default_octave)
             return lp
 
         def relative_notes(node, last_pitch=None):

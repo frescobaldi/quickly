@@ -188,15 +188,25 @@ class Pitch:
             alter = a
         return cls(octave - 5, note, alter)
 
-    def make_absolute(self, prev_pitch, scale=None):
-        """Make ourselves absolute, i.e. set our octave from ``prev_pitch``."""
-        l = len(scale or MAJOR_SCALE)
-        self.octave += prev_pitch.octave - (self.note - prev_pitch.note + 3) // l
+    def make_absolute(self, prev_pitch, default_octave=-1, scale=None):
+        """Make ourselves absolute, i.e. set our octave from ``prev_pitch``.
 
-    def make_relative(self, prev_pitch, scale=None):
-        """Make ourselves relative, i.e. change our octave from ``prev_pitch``."""
+        The default octave is the octave a pitch name without octave indication
+        by itself has (-1 by default).
+
+        """
         l = len(scale or MAJOR_SCALE)
-        self.octave -= prev_pitch.octave - (self.note - prev_pitch.note + 3) // l
+        self.octave += prev_pitch.octave - (self.note - prev_pitch.note + 3) // l - default_octave
+
+    def make_relative(self, prev_pitch, default_octave=-1, scale=None):
+        """Make ourselves relative, i.e. change our octave from ``prev_pitch``.
+
+        The default octave is the octave a pitch name without octave indication
+        by itself has (-1 by default).
+
+        """
+        l = len(scale or MAJOR_SCALE)
+        self.octave -= prev_pitch.octave - (self.note - prev_pitch.note + 3) // l - default_octave
 
 
 class PitchProcessor:

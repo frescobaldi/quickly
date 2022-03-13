@@ -225,6 +225,7 @@ def check_transpose():
 
 def check_relative():
     """Test functions in the relative module."""
+    # abs2rel
     doc = lydoc("{ c' d' e' f' g' }")
     abs2rel(doc)
     assert doc.text() == r"\relative c' { c d e f g }"
@@ -250,6 +251,13 @@ def check_relative():
     cur = parce.Cursor(doc)
     Abs2rel(start_pitch=False, first_pitch_absolute=True).edit(cur)
     assert doc.text() == r"\relative { c { c' d, e' f, g' } { d e' fis, g, a' } }"
+
+    # rel2abs
+    doc = lydoc(r"music = \relative c' { c d e f g }")
+    rel2abs(doc)
+    assert doc.text() == "music = { c' d' e' f' g' }"
+    abs2rel(doc)
+    assert doc.text() == r"music = \relative c' { c d e f g }"
 
 
 def test_main():
