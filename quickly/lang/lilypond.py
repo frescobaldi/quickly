@@ -983,7 +983,7 @@ class MusicBuilder:
         elem = self.factory(self._chord_modifier_mapping[token.text], (token,))
         if token.group == 0:
             # next item is the pitch of an inversion
-            note = self.factory(lily.Note, (next(self.items),))
+            note = self.factory(lily.Pitch, (next(self.items),))
             elem.append(note)
         if self._music and not self._articulations:
             if not self._modifier:

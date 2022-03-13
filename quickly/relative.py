@@ -77,7 +77,7 @@ class Rel2abs(edit.Edit):
                 elif isinstance(n, lily.Relative):
                     make_absolute(n)
                 elif isinstance(n, (
-                        lily.ChordMode, lily.Key, lily.Absolute, lily.Fixed,
+                        lily.Inversion, lily.Key, lily.Absolute, lily.Fixed,
                         lily.Transpose, lily.Transposition, lily.StringTuning,
                     )):
                     pass
@@ -198,6 +198,9 @@ class Abs2rel(edit.Edit):
                         r.node = self._make_relative_internal(r.node, processor, first_pitch_absolute)
                     else:
                         abs2rel()
+                elif isinstance(n, lily.ChordMode):
+                    r.node = self._make_relative_internal(r.node, processor, first_pitch_absolute)
+
         # Do it!
         abs2rel()
 
@@ -249,7 +252,7 @@ class Abs2rel(edit.Edit):
                         stack.append(relative_note(note, last_pitch))
                     last_pitch = stack[:2][-1]  # first of chord or old if empty
                 elif isinstance(n, (
-                    lily.ChordMode, lily.Key, lily.Absolute, lily.Fixed,
+                    lily.Inversion, lily.Key, lily.Absolute, lily.Fixed,
                     lily.Transpose, lily.Transposition, lily.StringTuning,
                 )):
                     pass

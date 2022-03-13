@@ -152,7 +152,7 @@ class Transpose(edit.Edit):
                 if isinstance(n, lily.Pitchable):
                     yield n
                     transpose_absolute(n)   # e.g. notes in markup scores
-                elif isinstance(n, (lily.ChordMode, lily.Key)):
+                elif isinstance(n, (lily.Key, lily.Inversion)):
                     transpose_no_octave(n)
                 elif isinstance(n, lily.Absolute):
                     transpose_absolute(n)
@@ -181,8 +181,11 @@ class Transpose(edit.Edit):
 
         def transpose_no_octave(nodes):
             r"""Transpose without modifying octave, e.g. for \key or \chordmode."""
-            for p in transpose_pitches(nodes):
-                p.octave = 0
+            for n in notes(nodes):
+                with processor.process(n, writable(n)) as p:
+                    octave = p.octave
+                    self.transposer.transpose(p)
+                    p.octave = octave
 
         def transpose_absolute(nodes):
             """Transpose absolute pitches."""
@@ -211,7 +214,7 @@ class Transpose(edit.Edit):
                 p = processor.read_node(note)
                 default_octave = p.octave - note.octave # the octave of the pitch name itself
                 # absolute pitch determined from untransposed pitch of last_pitch
-                p.make_absolute(last_pitch)
+                p.make_absolute(last_pitch, default_octave)
                 if not writable(note):
                     return p
                 # we may change this pitch. Make it relative against the
@@ -228,7 +231,7 @@ class Transpose(edit.Edit):
                 last_pitch.transposed = p.copy()
                 if note.oct_check is not None:
                     note.oct_check = p.octave - default_octave
-                p.make_relative(last)
+                p.make_relative(last, default_octave)
                 processor.write_node(note, p)
                 return last_pitch
 

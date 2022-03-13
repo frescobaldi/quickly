@@ -222,6 +222,17 @@ def check_transpose():
     Transpose(t).edit_cursor(cur)
     assert doc.text() == "{ c fis gis f g }"    # only two notes changed
 
+    # chordmode, inversion should never get an octave
+    doc = lydoc(r"\chords { c/g }")
+    t = Transposer(Pitch(0, 0, 0), Pitch(-1, 0, 0))
+    Transpose(t).edit(doc)
+    assert doc.text() == r"\chords { c,/g }"
+
+    doc = lydoc(r"\relative c' \chordmode { g:7 | c2/e }")
+    t = Transposer(Pitch(0, 0, 0), Pitch(-1, 0, 0))
+    Transpose(t).edit(doc)
+    assert doc.text() == r"\relative c \chordmode { g:7 | c2/e }"
+
 
 def check_relative():
     """Test functions in the relative module."""
@@ -258,6 +269,13 @@ def check_relative():
     assert doc.text() == "music = { c' d' e' f' g' }"
     abs2rel(doc)
     assert doc.text() == r"music = \relative c' { c d e f g }"
+
+    # chordmode
+    doc = lydoc(r"music = \relative c' \chordmode { c/g d e f g }")
+    rel2abs(doc)
+    assert doc.text() == r"music = \chordmode { c'/g d' e' f' g' }"
+    abs2rel(doc)
+    assert doc.text() == r"music = \relative c' \chordmode { c/g d e f g }"
 
 
 def test_main():
