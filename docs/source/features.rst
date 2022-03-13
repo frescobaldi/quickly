@@ -14,6 +14,21 @@ of the texts with the musical fragments properly inserted. *quickly* is able to
 recognize LilyPond music inside these document formats and allows the user to
 manipulate the music.
 
+Importing ``quickly`` adds those language definitions to the *parce* registry.
+Most language definitions included in ``quickly.lang`` inherit from the
+language defitions with the same name from *parce*.
+
+So, after importing ``quickly``, :func:`parce.find` will find the language
+definitions of *quickly*::
+
+    >>> import parce
+    >>> parce.find('lilypond').language
+    parce.lang.lilypond.LilyPond
+    >>> import quickly
+    >>> parce.find('lilypond').language
+    quickly.lang.lilypond.LilyPond
+
+
 .. _LilyPond: http://lilypond.org/
 
 Music manipulations
@@ -46,8 +61,8 @@ pitch names in all languages.
 
 An example; create a document::
 
-    >>> import parce, import quickly
-    >>> doc = parce.Document(quickly.find("lilypond"), r"music = { c d e f g }", transformer=True)
+    >>> import parce, quickly
+    >>> doc = parce.Document(parce.find("lilypond"), r"music = { c d e f g }", transformer=True)
 
 Create a transposer::
 
