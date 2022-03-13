@@ -46,16 +46,15 @@ pitch names in all languages.
 
 An example; create a document::
 
-    >>> import parce
-    >>> from quickly.registry import find
-    >>> doc = parce.Document(find("lilypond"), r"music = { c d e f g }", transformer=True)
+    >>> import parce, import quickly
+    >>> doc = parce.Document(quickly.find("lilypond"), r"music = { c d e f g }", transformer=True)
 
 Create a transposer::
 
     >>> from quickly.pitch import Pitch
     >>> from quickly.transpose import transpose, Transposer
-    >>> p1 = Pitch(0)     # -> c
-    >>> p2 = Pitch(3)     # -> f
+    >>> p1 = Pitch(-1, 0, 0)     # -> c
+    >>> p2 = Pitch(-1, 3, 0)     # -> f
     >>> t = Transposer(p1, p2)
 
 Now transpose the music from ``c`` to ``f`` and view the result::
@@ -89,7 +88,7 @@ language used in a document.
 To convert all music from relative to absolute notation::
 
     >>> import parce
-    >>> from quickly.registry import find
+    >>> from quickly import find
     >>> doc = parce.Document(find("lilypond"), r"music = \relative c' { c d e f g }", transformer=True)
     >>> from quickly.relative import rel2abs
     >>> rel2abs(doc)
