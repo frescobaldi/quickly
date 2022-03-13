@@ -2,6 +2,11 @@ ChangeLog
 =========
 
 
+current: quickly-0.7.0
+
+- fix issue #4, relative to absolute yields incorrect results
+
+
 2022-02-12: quickly-0.6.0
 
 - requires parce-0.31.0
