@@ -2,9 +2,17 @@ ChangeLog
 =========
 
 
-current: quickly-0.7.0
+2022-03-14: quickly-0.7.0
 
+- fix issue #3, allow adding octave to notes in chordmode, but not to the
+  inversion
 - fix issue #4, relative to absolute yields incorrect results
+- removed the quickly.registry module, included languages are now added to
+  parce's global registry
+- correctly handle \skip with music instead of a single duration (Lily>=2.23.6)
+- rhythm.transform() now also handles duration in commands like \tempo, \tuplet,
+  \after and \partial
+- documentation improvements
 
 
 2022-02-12: quickly-0.6.0
