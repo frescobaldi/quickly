@@ -1483,7 +1483,8 @@ class Note(Pitchable, Durable):
         yield Octave, Accidental, OctCheck, Duration, Articulations, base.Comment
 
     def to_pitch(self):
-        r"""Convenience function to create a :class:`Pitch` from this note.
+        r"""Convenience function to create a :class:`Pitch` node from this note
+        node.
 
         This is used when this Note is added to a command where the note has
         not a musical meaning, but just a pitch is intended, e.g. ``\key`` or
@@ -1502,6 +1503,11 @@ class Pitch(Pitchable):
     ``\fixed``, ``\relative``, ``\key`` etc. The difference with :class:`Note`
     is that a Pitch is not a Durable and can't have a duration or
     articulations.
+
+    .. note::
+
+       Do not confuse this Pitch element type with the musical
+       :class:`~.pitch.Pitch` class from the :mod:`~.pitch` module!
 
     """
 

@@ -221,7 +221,8 @@ class KeySignature:
         self.accidentals = accidentals(note, alter, mode, scale)    #: The accidentals for this key signature.
         #: The tuple of pitch values in the default scale to give a flat instead
         #: of a sharp when converting a MIDI key number to a pitch. The default
-        #: value is set in the :py:data:`MAJOR_FLATS` module constant.
+        #: value is set in the :py:data:`~.pitch.MAJOR_FLATS` module constant
+        #: from the :mod:`.pitch` module.
         self.flats = pitch.MAJOR_FLATS
 
     def __repr__(self):

@@ -25,17 +25,15 @@ definition. Transforming the lexed text into a DOM document is also done by
 language definition.
 
 Most music manipulation functions operate on the *quickly* DOM, which
-afterwards can update the text document it originated from, if desired.
+afterwards can update the text document it originated from, if desired. To
+target only specific regions in a text document, often a :class:`parce.Cursor`
+is used.
 
 To create a parce Document, with LilyPond contents::
 
-    >>> import parce
-    >>> from quickly.registry import find
-    >>> doc = parce.Document(find("lilypond"), transformer=True)
+    >>> import parce, quickly
+    >>> doc = parce.Document(parce.find("lilypond"), transformer=True)
     >>> doc.set_text(r"music = { c d e f g }")
-
-To target only specific regions in a text document, often a
-:class:`parce.Cursor` is used.
 
 To get the transformed DOM document:
 

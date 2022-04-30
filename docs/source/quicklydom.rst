@@ -276,17 +276,16 @@ Add an octave mark to all notes that don't have one::
     >>> music.write()
     "{ <c'' g''>4( a''2) f'':16-. e'' }"
 
-Change the note names::
+Change the note names: (To musically manipulate the pitches in
+:class:`~lily.Note` nodes, see the :mod:`~.pitch` module!)
+
+::
 
     >>> for node in music // lily.Note:
     ...     node.head += 'is'
     ...
     >>> music.write()
     "{ <cis'' gis''>4( ais''2) fis'':16-. eis'' }"
-
-TODO: Really understanding the pitches and modifying them in a musical manner
-(e.g. transposing) will be implemented using a helper class that holds track of
-the current pitch language, and the last duration etc.
 
 Move all slurs up (only where they start)::
 
@@ -347,7 +346,8 @@ note::
 
 Unpitched and Skip *must* have a duration child. A Skip (``\skip``) does not
 change the "current" duration in LilyPond however, while an unpitched note
-(indicated by a sole duration) does.
+(indicated by a sole duration) does. (See the :mod:`.rhythm` module for
+rhythmical manipulations.)
 
 
 Intermezzo: Validity

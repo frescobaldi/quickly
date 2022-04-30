@@ -23,7 +23,7 @@ Transpose pitches.
 """
 
 from .dom import edit, lily, util
-from .pitch import MAJOR_SCALE, Pitch, PitchProcessor
+from .pitch import Pitch, PitchProcessor
 
 
 class AbstractTransposer:
@@ -51,7 +51,9 @@ class Transposer(AbstractTransposer):
 
     """
 
-    def __init__(self, from_pitch, to_pitch, scale=MAJOR_SCALE):
+    def __init__(self, from_pitch, to_pitch, scale=None):
+        if scale is None:
+            from .pitch import MAJOR_SCALE as scale
         self.scale = scale
 
         # the number of octaves we need to transpose
