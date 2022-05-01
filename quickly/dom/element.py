@@ -824,7 +824,7 @@ class HeadElement(Element):
             pos = origin[0].pos
             end = origin[-1].end
         modified = bool(self._modified & HEAD_MODIFIED)
-        space_after = self.space_after_head if len(self) else self.space_after
+        space_after = self.space_after_head if len(self) or self.write_tail() else self.space_after
         return Point(pos, end, self.write_head, modified, self.space_before, space_after)
 
 

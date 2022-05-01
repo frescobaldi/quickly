@@ -222,6 +222,11 @@ properties are:
 :attr:`~element.Element.space_before_tail` and
 :attr:`~element.Element.space_after`.
 
+The :attr:`~element.Element.space_after_head` value is only consulted between a
+:attr:`~element.Element.head` value and the first child element or the tail, and
+:attr:`~element.Element.space_before_tail` is only taken into account between
+the last child (or the head) and the :attr:`~element.Element.tail` value.
+
 If the whitespace properties have their default value, they don't take any
 memory. Then there is a :meth:`~element.Element.concat_space` method which is
 called to return the whitespace to use between two child elements. Most element

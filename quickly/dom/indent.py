@@ -146,20 +146,20 @@ class Indenter:
         """
         head = node.write_head()
         tail = node.write_tail()
-        children = len(node) > 0
+        has_children = len(node) > 0
         indent = node.indent_children()
 
         self.add_whitespace(node.space_before)
 
         if head:
             self.output_head(head, index, node.indent_override())
-            if tail or children:
+            if tail or has_children:
                 self.add_whitespace(node.space_after_head)
 
         if indent:
             self.enter_indent(node)
 
-        if children:
+        if has_children:
             n = node[0]
             self.output_node(n, 0)
             for i, m in enumerate(node[1:], 1):
