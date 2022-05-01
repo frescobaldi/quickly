@@ -41,7 +41,7 @@ class Document(element.Element):
 
     space_between = '\n\n'
 
-    def concat(self, n, m):
+    def concat_space(self, n, m):
         if isinstance(n, (SinglelineComment, Newline)):
             return '\n'
         return self.space_between

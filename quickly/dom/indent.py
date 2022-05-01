@@ -163,7 +163,7 @@ class Indenter:
             n = node[0]
             self.output_node(n, 0)
             for i, m in enumerate(node[1:], 1):
-                self.add_whitespace(node.concat(n, m))
+                self.add_whitespace(node.concat_space(n, m))
                 self.output_node(m, i)
                 n = m
 

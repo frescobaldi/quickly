@@ -583,16 +583,16 @@ class Element(Node, metaclass=ElementType):
         children = iter(self)
         for n in children:
             # collapse the whitespace after each child (except the last) with
-            # the return value of self.concat() (by default space_between)
+            # the return value of self.concat_space() (by default space_between)
             for m in children:
-                yield from collapse_last(n.points(), self.concat(n, m))
+                yield from collapse_last(n.points(), self.concat_space(n, m))
                 n = m
             # collapse own space_after with last child point?
             yield from collapse_last(n.points(), self.space_after) if not tail_point else n.points()
         if tail_point:
             yield tail_point
 
-    def concat(self, node, next_node):
+    def concat_space(self, node, next_node):
         """Return the minimum whitespace to apply between these child nodes.
 
         This method is called in the :meth:`points` method, when calculating

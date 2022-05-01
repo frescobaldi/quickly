@@ -208,10 +208,10 @@ Intermezzo: Whitespace handling
 -------------------------------
 
 Some elements have whitespace between them, others don't. For example, the
-:class:`lily.MusicList` and the :class:`lily.Chord` element put whitespace
+:class:`lily.MusicList` and the :class:`lily.ChordBody` element put whitespace
 between their children, but :class:`lily.Note` doesn't. MusicList also puts
 whitespace after the first brace (the "head") and before the closing brace
-("tail"), but Chord doesn't.
+("tail"), but ChordBody doesn't.
 
 This is handled by five properties that have sensible defaults for every
 element type, but can be modified for every individual element. These
@@ -223,9 +223,9 @@ properties are:
 :attr:`~element.Element.space_after`.
 
 If the whitespace properties have their default value, they don't take any
-memory. Then there is a :meth:`~element.Element.concat` method which is called
-to return the whitespace to use between two child elements. Most element types
-just return the :attr:`~element.Element.space_between` there.
+memory. Then there is a :meth:`~element.Element.concat_space` method which is
+called to return the whitespace to use between two child elements. Most element
+types just return the :attr:`~element.Element.space_between` there.
 
 After consulting all the whitespace wishes, the most important whitespace is
 chosen by the :meth:`~element.Element.write` method. E.g. ``"\n"`` prevails
