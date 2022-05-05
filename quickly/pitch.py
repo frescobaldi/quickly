@@ -659,7 +659,7 @@ def determine_language(names):
     def langs():
         # prefer often used languages
         ubiquitous = ["nederlands", "english", "deutsch", "français", "italiano"]
-        exotic = ["arabic", "bagpipe"]
+        exotic = ["arabic", "bagpipe", "persian"]
 
         def others():
             # remove synonyms
