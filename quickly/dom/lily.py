@@ -2969,18 +2969,25 @@ class GrobStyle(element.MappingElement):
 
     The ``grobs`` class attribute is a dictionary mapping each available grob
     to a tuple of the styles it supports. All grobs support the styles
-    ``"solid"``, ``"dashed"``, and ``"dotted"``.
+    ``"solid"``, ``"dashed"``, ``"half_solid"``, ``"half_dashed"``, and
+    ``"dotted"``.
 
     """
     mapping = {
         r'\phrasingSlurDashed': ('PhrasingSlur', "dashed"),
         r'\phrasingSlurDotted': ('PhrasingSlur', "dotted"),
+        r'\phrasingSlurHalfDashed': ('PhrasingSlur', "half_dashed"),
+        r'\phrasingSlurHalfSolid': ('PhrasingSlur', "half_solid"),
         r'\phrasingSlurSolid': ('PhrasingSlur', "solid"),
         r'\slurDashed': ('Slur', "dashed"),
         r'\slurDotted': ('Slur', "dotted"),
+        r'\slurHalfDashed': ('Slur', "half_dashed"),
+        r'\slurHalfSolid': ('Slur', "half_solid"),
         r'\slurSolid': ('Slur', "solid"),
         r'\tieDashed': ('Tie', "dashed"),
         r'\tieDotted': ('Tie', "dotted"),
+        r'\tieHalfDashed': ('Tie', "half_dashed"),
+        r'\tieHalfSolid': ('Tie', "half_solid"),
         r'\tieSolid': ('Tie', "solid"),
     }
 
@@ -3008,6 +3015,18 @@ class GrobStyle(element.MappingElement):
     @style.setter
     def style(self, value):
         self.head = (self.head[0], value)
+
+
+class GrobDashPattern(element.MappingElement, _ConvertUnpitchedToInt):
+    r"""The commands ``\slur``- ``\tie``- and ``\phrasingSlurDashPattern``."""
+    mapping = {
+        r'\phrasingSlurDashPattern': 'PhrasingSlur',
+        r'\slurDashPattern': 'Slur',
+        r'\tieDashPattern': 'Tie',
+    }
+
+    def signatures(self):
+        yield NUMBER, NUMBER
 
 
 class Toggle(element.MappingElement):
@@ -3056,6 +3075,7 @@ class Toggle(element.MappingElement):
         "markLength",                   # since 2.18
         "mergeDifferentlyDotted",
         "mergeDifferentlyHeaded",
+        "palmMute",                     # since 2.16
         "pointAndClick",
         "predefinedFretboards",
         "sostenuto",

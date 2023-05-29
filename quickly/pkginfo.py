@@ -61,5 +61,5 @@ url = "https://quick-ly.info/"
 license = "GPL v3"
 
 #: copyright year
-copyright_year = "2020-2022"
+copyright_year = "2020-2023"
 
