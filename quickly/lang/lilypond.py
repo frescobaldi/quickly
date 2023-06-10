@@ -358,8 +358,7 @@ class LilyPondTransform(base.Transform):
         """
         opts = []
         if items.peek(0, "option"):
-            opts.extend(items[0].obj[0])
-            items = items[1:]
+            opts.extend(items.pop(0).obj[0])
         end = None
         tail_origin = ()
         if items.peek(-4, a.Name.Builtin, a.Delimiter, a.Name.Tag, a.Delimiter):
